@@ -1,0 +1,9 @@
+numpy>=1.26
+scipy>=1.11
+trimesh>=4.4
+shapely>=2.0
+networkx>=3.2
+rtree>=1.2
+mapbox-earcut>=1.0
+pyyaml>=6.0
+pytest>=8.0

@@ -1,0 +1,11 @@
+# 데이터셋·모델 파일은 절대 커밋 금지 (라이선스: NOMO 재배포 금지, Texel CC BY-NC, SMPL 재배포 불가)
+data/external/
+models/
+reports/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+external/
+.omc/
+data/generated/

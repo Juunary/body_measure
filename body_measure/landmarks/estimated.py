@@ -1,0 +1,383 @@
+"""Topology-agnostic landmark estimation on a canonical (Y-up, floor y=0)
+standing body. These are replaceable heuristics (docs/decisions.md #4);
+each landmark reports its method and confidence so downstream numbers can
+be traced back to how the landmark was placed.
+
+Implemented levels (all girth-profile based):
+  waist_level  — minimum torso circumference between hip and chest;
+  armpit_level — lowest height where the slice separates into >= 3 closed
+                 loops (torso + two arms); absent if arms touch the torso;
+  chest_level  — maximum torso circumference between waist and armpit;
+  neck_base_level — minimum torso circumference between shoulder top and
+                 head (v1: horizontal; the ISO neck-base plane is inclined,
+                 so the evidence decides which dataset girth this matches).
+A minimum/maximum sitting on its search-window boundary is flagged and
+gets low confidence.
+"""
+from __future__ import annotations
+
+import numpy as np
+import trimesh
+
+from ..canonicalize import body_axis_point
+from ..measure.circumference import measure_circumference
+from ..measure.slicing import project_axis_to_plane, select_torso_loop, slice_mesh
+from .base import Landmark
+
+_UP = np.array([0.0, 1.0, 0.0])
+
+# stature-relative search window for the natural waist; hips peak ~52 %,
+# chest peaks ~72 %, so the interior minimum lives between them.
+WAIST_WINDOW = (0.45, 0.75)
+
+
+def torso_girth_profile(
+    mesh: trimesh.Trimesh,
+    lo_mm: float,
+    hi_mm: float,
+    step_mm: float = 10.0,
+) -> list[tuple[float, float]]:
+    """(height, torso hull circumference) samples; heights with no
+    trustworthy closed torso loop are skipped."""
+    axis_xz = body_axis_point(mesh)
+    profile: list[tuple[float, float]] = []
+    for height in np.arange(lo_mm, hi_mm + 1e-9, step_mm):
+        origin = np.array([0.0, height, 0.0])
+        loops = slice_mesh(mesh, origin, _UP)
+        selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
+        if selection is None:
+            continue
+        circ = measure_circumference(
+            selection.loop, close_gap="gap_closed_open_loop" in selection.quality_flags
+        )
+        if circ.selected_value_mm is None:
+            continue
+        profile.append((float(height), float(circ.selected_value_mm)))
+    return profile
+
+
+ARMPIT_WINDOW = (0.55, 0.85)
+NECK_WINDOW_TOP = 0.95
+
+
+def _extremum_level(
+    mesh: trimesh.Trimesh,
+    name: str,
+    lo_mm: float,
+    hi_mm: float,
+    *,
+    minimum: bool,
+    method: str,
+    step_mm: float = 10.0,
+) -> Landmark | None:
+    profile = torso_girth_profile(mesh, lo_mm, hi_mm, step_mm)
+    if len(profile) < 3:
+        return None
+    heights = np.array([p[0] for p in profile])
+    girths = np.array([p[1] for p in profile])
+    idx = int(np.argmin(girths) if minimum else np.argmax(girths))
+    axis_xz = body_axis_point(mesh)
+
+    flags: list[str] = []
+    confidence = 0.8
+    if idx in (0, len(profile) - 1):
+        flags.append(("minimum" if minimum else "maximum") + "_at_search_boundary")
+        confidence = 0.4
+
+    return Landmark(
+        name=name,
+        position_mm=np.array([axis_xz[0], heights[idx], axis_xz[1]]),
+        confidence=confidence,
+        method=method,
+        quality_flags=flags,
+    )
+
+
+CROTCH_WINDOW = (0.35, 0.60)
+
+
+def estimate_crotch_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> float | None:
+    """Lowest height whose slice has a closed loop AROUND the body axis
+    (legs merged). Below the crotch the legs are separate loops and the
+    axis falls between them — bodies with a thigh gap (e.g. the SMPL
+    template) would otherwise let a single-thigh girth win the waist
+    minimum."""
+    height = float(mesh.bounds[1][1])
+    axis_xz = body_axis_point(mesh)
+    for level in np.arange(CROTCH_WINDOW[0] * height, CROTCH_WINDOW[1] * height, step_mm):
+        origin = np.array([0.0, float(level), 0.0])
+        loops = slice_mesh(mesh, origin, _UP)
+        selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
+        if selection is not None and selection.method == "axis_containment":
+            return float(level)
+    return None
+
+
+def estimate_waist_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landmark | None:
+    height = float(mesh.bounds[1][1])
+    lo = WAIST_WINDOW[0] * height
+    crotch = estimate_crotch_level(mesh, step_mm)
+    if crotch is not None:
+        lo = max(lo, crotch + 20.0)
+    waist = _extremum_level(
+        mesh,
+        "waist_level",
+        lo,
+        WAIST_WINDOW[1] * height,
+        minimum=True,
+        method="minimum_torso_circumference",
+        step_mm=step_mm,
+    )
+    if waist is not None and crotch is None:
+        waist.quality_flags.append("crotch_not_detected")
+    return waist
+
+
+def estimate_armpit_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landmark | None:
+    """Armpit = the HIGHEST height whose slice still has >= 3 closed loops
+    (torso + both arms), i.e. just below where the arms merge into the
+    shoulders. Searching upward from below would stop at the wrists —
+    hanging hands already separate from the torso near hip height (this
+    exact failure showed up on Texel Part 1). Returns None when the arms
+    never separate from the torso."""
+    height = float(mesh.bounds[1][1])
+    axis_xz = body_axis_point(mesh)
+
+    def landmark(level: float, confidence: float, flags: list[str]) -> Landmark:
+        return Landmark(
+            name="armpit_level",
+            position_mm=np.array([axis_xz[0], level, axis_xz[1]]),
+            confidence=confidence,
+            method="highest_height_with_three_closed_loops",
+            quality_flags=flags,
+        )
+
+    # position: always the HIGHEST separating level (the armpit is where
+    # the arms merge into the shoulders — a lower, thicker separation zone
+    # must not outrank it; Texel Woman4's true gap is one slice thick).
+    # persistence of the level below only sets confidence: a single-slice
+    # separation is honest but fragile under noise (known limitation).
+    for level in np.arange(ARMPIT_WINDOW[1] * height, ARMPIT_WINDOW[0] * height, -step_mm):
+        loops = slice_mesh(mesh, np.array([0.0, float(level), 0.0]), _UP)
+        if sum(1 for lp in loops if lp.closed) >= 3:
+            below = slice_mesh(mesh, np.array([0.0, float(level) - step_mm, 0.0]), _UP)
+            persistent = sum(1 for lp in below if lp.closed) >= 3
+            if persistent:
+                return landmark(float(level), 0.7, [])
+            return landmark(float(level), 0.4, ["single_slice_arm_separation"])
+    return None
+
+
+def estimate_chest_level(
+    mesh: trimesh.Trimesh,
+    waist: Landmark,
+    armpit: Landmark | None,
+    step_mm: float = 10.0,
+) -> Landmark | None:
+    """Maximum torso girth between the waist and the armpit."""
+    height = float(mesh.bounds[1][1])
+    hi = float(armpit.position_mm[1]) if armpit is not None else 0.78 * height
+    chest = _extremum_level(
+        mesh,
+        "chest_level",
+        float(waist.position_mm[1]) + step_mm,
+        hi,
+        minimum=False,
+        method="maximum_torso_circumference_below_armpit",
+        step_mm=step_mm,
+    )
+    if chest is not None and armpit is None:
+        chest.quality_flags.append("armpit_not_detected_window_is_stature_relative")
+        chest.confidence = min(chest.confidence, 0.5)
+    return chest
+
+
+def body_lateral_axis(mesh: trimesh.Trimesh, level_mm: float) -> np.ndarray:
+    """Unit (x, z) direction of the body's left-right axis. World axes are
+    NOT assumed — a scanner may deliver the subject at any yaw.
+
+    Primary signal: at a slice with separated arms, the line between the
+    two arm-loop centroids IS the lateral direction (arms hang beside the
+    torso by construction). Cross-section PCA is only a fallback — a torso
+    slice can be deeper than it is wide (seen on Texel Woman4, where PCA
+    picked the front-back axis and wrecked the arm clip)."""
+    loops, selection = _torso_loop_at(mesh, level_mm)
+    if selection is None:
+        return np.array([1.0, 0.0])
+    arms = sorted(
+        (lp for lp in loops if lp.closed and lp is not selection.loop),
+        key=lambda lp: len(lp.points),
+        reverse=True,
+    )[:2]
+    if len(arms) == 2:
+        delta = arms[0].points[:, [0, 2]].mean(axis=0) - arms[1].points[:, [0, 2]].mean(axis=0)
+        norm = float(np.linalg.norm(delta))
+        if norm > 1e-6:
+            return delta / norm
+    pts = selection.loop.points[:, [0, 2]]
+    centered = pts - pts.mean(axis=0)
+    _, _, vt = np.linalg.svd(centered, full_matrices=False)
+    lateral = vt[0]
+    return lateral / np.linalg.norm(lateral)
+
+
+def estimate_facing(mesh: trimesh.Trimesh) -> tuple[np.ndarray, list[str]]:
+    """Unit (x, z) direction the body faces: the toes extend forward of the
+    body axis, so the centroid of the foot slice sits in the facing
+    direction. Low-magnitude offsets get a quality flag."""
+    height = float(mesh.bounds[1][1])
+    axis_xz = body_axis_point(mesh)
+    loops = slice_mesh(mesh, np.array([0.0, 0.03 * height, 0.0]), _UP)
+    if not loops:
+        return np.array([0.0, 1.0]), ["facing_undetected_no_foot_slice"]
+    points = np.vstack([lp.points for lp in loops])
+    offset = np.array([points[:, 0].mean(), points[:, 2].mean()]) - axis_xz
+    norm = float(np.linalg.norm(offset))
+    if norm < 10.0:  # toes less than 1 cm ahead of the axis — unreliable
+        return np.array([0.0, 1.0]), ["facing_low_confidence"]
+    return offset / norm, []
+
+
+def _torso_loop_at(mesh: trimesh.Trimesh, level_mm: float):
+    axis_xz = body_axis_point(mesh)
+    origin = np.array([0.0, level_mm, 0.0])
+    loops = slice_mesh(mesh, origin, _UP)
+    selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
+    return loops, selection
+
+
+def estimate_back_point_at(
+    mesh: trimesh.Trimesh, level_mm: float, facing_xz: np.ndarray, name: str
+) -> Landmark | None:
+    """Most-backward point of the torso loop at a height (e.g. the back
+    neck point at the neck-base level, the back waist point)."""
+    _, selection = _torso_loop_at(mesh, level_mm)
+    if selection is None:
+        return None
+    pts = selection.loop.points
+    backwardness = -(pts[:, [0, 2]] @ facing_xz)
+    point = pts[int(np.argmax(backwardness))]
+    return Landmark(
+        name=name,
+        position_mm=np.asarray(point, dtype=np.float64),
+        confidence=0.6 * selection.confidence / 0.9,
+        method="most_backward_point_of_torso_loop",
+        quality_flags=list(selection.quality_flags),
+    )
+
+
+def estimate_shoulder_points(
+    mesh: trimesh.Trimesh, armpit: Landmark
+) -> tuple[Landmark, Landmark] | None:
+    """Shoulder (acromion-ish) point per side: the HIGHEST surface point in
+    the vertical column above the armpit crease. With hanging arms the
+    lateral silhouette extreme is the arm, not the shoulder — the column
+    above the crease tops out on the shoulder ridge instead. Flagged as an
+    approximation; the ISO acromion is a palpated bony landmark."""
+    armpit_y = float(armpit.position_mm[1])
+    _, selection = _torso_loop_at(mesh, armpit_y)
+    if selection is None:
+        return None
+    pts = selection.loop.points
+    height = float(mesh.bounds[1][1])
+    vertices = mesh.vertices
+
+    lateral = body_lateral_axis(mesh, armpit_y)
+    ortho = np.array([-lateral[1], lateral[0]])
+    t_loop = pts[:, [0, 2]] @ lateral
+    t_vert = vertices[:, [0, 2]] @ lateral
+    o_vert = vertices[:, [0, 2]] @ ortho
+
+    def side_landmark(crease: np.ndarray, name: str) -> Landmark | None:
+        crease_t = crease[[0, 2]] @ lateral
+        crease_o = crease[[0, 2]] @ ortho
+        mask = (
+            (np.abs(t_vert - crease_t) < 25.0)
+            & (np.abs(o_vert - crease_o) < 45.0)
+            & (vertices[:, 1] > armpit_y)
+            & (vertices[:, 1] < armpit_y + 0.15 * height)
+        )
+        if not mask.any():
+            return None
+        column = vertices[mask]
+        top = column[int(np.argmax(column[:, 1]))]
+        return Landmark(
+            name,
+            np.asarray(top, dtype=np.float64),
+            0.5,
+            "highest_point_above_armpit_crease",
+            ["acromion_approximation"],
+        )
+
+    left = side_landmark(pts[int(np.argmin(t_loop))], "shoulder_point_left")
+    right = side_landmark(pts[int(np.argmax(t_loop))], "shoulder_point_right")
+    if left is None or right is None:
+        return None
+    return left, right
+
+
+WRIST_WINDOW = (0.40, 0.55)
+
+
+def estimate_wrist_points(
+    mesh: trimesh.Trimesh, armpit: Landmark, step_mm: float = 10.0
+) -> tuple[Landmark | None, Landmark | None]:
+    """Wrist per hanging arm: the minimum arm-loop girth in the wrist
+    window (the palm below and the forearm above are both wider)."""
+    height = float(mesh.bounds[1][1])
+    axis_xz = body_axis_point(mesh)
+    armpit_y = float(armpit.position_mm[1])
+    _, torso_sel = _torso_loop_at(mesh, armpit_y)
+    if torso_sel is None:
+        return None, None
+    lateral = body_lateral_axis(mesh, armpit_y)
+    t_torso = torso_sel.loop.points[:, [0, 2]] @ lateral
+    t_lo, t_hi = float(t_torso.min()), float(t_torso.max())
+    t_axis = float(axis_xz @ lateral)
+
+    best: dict[str, tuple[float, np.ndarray]] = {}
+    for level in np.arange(WRIST_WINDOW[0] * height, WRIST_WINDOW[1] * height, step_mm):
+        loops = slice_mesh(mesh, np.array([0.0, float(level), 0.0]), _UP)
+        for lp in loops:
+            if not lp.closed:
+                continue
+            ct = float((lp.points[:, [0, 2]] @ lateral).mean())
+            if t_lo < ct < t_hi:
+                continue  # torso, not an arm
+            side = "left" if ct < t_axis else "right"
+            girth = float(np.linalg.norm(np.diff(np.vstack([lp.points, lp.points[:1]]), axis=0), axis=1).sum())
+            if side not in best or girth < best[side][0]:
+                best[side] = (girth, lp.points.mean(axis=0))
+
+    def landmark(side: str) -> Landmark | None:
+        if side not in best:
+            return None
+        return Landmark(
+            f"wrist_point_{side}",
+            best[side][1].astype(np.float64),
+            0.5,
+            "minimum_arm_girth_in_wrist_window",
+            ["hanging_arm_assumed"],
+        )
+
+    return landmark("left"), landmark("right")
+
+
+def estimate_neck_base_level(
+    mesh: trimesh.Trimesh,
+    armpit: Landmark | None,
+    step_mm: float = 5.0,
+) -> Landmark | None:
+    """Minimum girth between shoulder top and head (v1: horizontal plane)."""
+    height = float(mesh.bounds[1][1])
+    lo = (float(armpit.position_mm[1]) if armpit is not None else 0.78 * height) + 0.05 * height
+    neck = _extremum_level(
+        mesh,
+        "neck_base_level",
+        lo,
+        NECK_WINDOW_TOP * height,
+        minimum=True,
+        method="minimum_girth_above_shoulders_horizontal_v1",
+        step_mm=step_mm,
+    )
+    return neck

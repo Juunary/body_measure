@@ -1,0 +1,5 @@
+# SMPL 트랙 전용 (Slice 4). 측정 코어는 torch를 절대 import하지 않는다.
+# 설치: pip install -r requirements-smpl.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+# SMPL 모델 파일은 등록 후 별도 다운로드 (재배포 불가) — docs/datasets.md 참조.
+torch
+smplx>=0.1.28

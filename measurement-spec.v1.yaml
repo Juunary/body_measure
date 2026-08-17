@@ -1,0 +1,76 @@
+# measurement-spec v1
+# 치수 이름이 아니라 정의가 계약이다. 코드는 이 파일의 6개 키를 정확히 구현해야 한다.
+# definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
+# implementation_status: not_implemented | implemented_v1 | ...
+
+spec_version: 1
+standard: ISO 8559-1
+posture_default: standing
+
+measurements:
+  chest_circumference:
+    definition: horizontal_torso_girth_at_maximum_chest_level
+    definition_verified: false
+    method: plane_slice
+    plane: horizontal            # v1; 실제 ISO 정의가 경사면이면 spec_version 올려서 변경
+    landmarks: [chest_level]
+    known_deviations:
+      - arm_interference_requires_torso_loop_selection
+      - arms_merged_above_armpit_are_clipped_at_torso_x_range   # 실데이터 자세 대응, 항상 플래그
+    implementation_status: implemented_v1
+    no_reference: false          # SMPL-Anthropometry chest circumference와 대조 (T-pose 트랙)
+
+  waist_circumference:
+    definition: natural_waist_girth_at_minimum_torso_circumference
+    definition_verified: false
+    method: plane_slice
+    plane: horizontal
+    landmarks: [waist_level]
+    known_deviations: []
+    implementation_status: implemented_v1
+    no_reference: false
+
+  neck_circumference:
+    definition: neck_base_girth
+    definition_verified: false
+    method: plane_slice
+    plane: horizontal            # v1 수평 근사; ISO는 경사(7번 경추 경유) — known_deviations 참조
+    landmarks: [neck_base_level]
+    known_deviations:
+      - horizontal_slice_v1_iso_defines_inclined_plane_through_c7
+    implementation_status: implemented_v1
+    no_reference: false
+
+  across_back_shoulder_width:
+    definition: surface_path_left_shoulder_to_right_shoulder_through_back_neck_point
+    definition_verified: false
+    method: surface_path
+    route: [shoulder_point_left, back_neck_point, shoulder_point_right]  # 경유점 강제
+    known_deviations:
+      - edge_graph_approximation
+      - acromion_approximated_as_highest_point_above_armpit_crease
+    implementation_status: implemented_v1
+    no_reference: true           # 레퍼런스의 shoulder breadth는 직선거리 — 정의 불일치, 비교 금지
+
+  sleeve_length:
+    definition: back_neck_point_to_wrist_length_over_shoulder_and_elbow
+    definition_verified: false
+    method: surface_path
+    route: [back_neck_point, shoulder_point_right, elbow_point_right, wrist_point_right]  # 구간 합
+    posture: elbow_bent
+    known_deviations:
+      - approximated_in_a_pose_straight_arm_underestimates_bent_elbow
+      - edge_graph_approximation
+      - elbow_waypoint_omitted_in_v1_systematic_overshoot_observed   # Part 1: +197mm 평균
+    implementation_status: implemented_v1
+    no_reference: true           # 레퍼런스의 arm length는 정의 상이 — 비교 금지
+
+  back_length:
+    definition: back_neck_point_to_waist_level_along_back_surface
+    definition_verified: false
+    method: sagittal_slice_polyline
+    route: [back_neck_point, waist_level]
+    known_deviations:
+      - implemented_as_edge_graph_geodesic_v1_not_sagittal_slice
+    implementation_status: implemented_v1
+    no_reference: true
