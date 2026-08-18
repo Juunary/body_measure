@@ -30,6 +30,10 @@ DATASET_AGREEMENT_TARGETS: dict[str, dict[str, float]] = {
     "across_back_shoulder_width": {"per_body_mm": 100.0, "mean_bias_mm": 45.0},
     "sleeve_length": {"per_body_mm": 260.0, "mean_bias_mm": 230.0},
     "back_length": {"per_body_mm": 95.0, "mean_bias_mm": 40.0},
+    # upper_arm_girth vs m15_r: first run mean -3.3, max |d| 20.9 (search up
+    # to the armpit level; NOMO Bicep_Circ cross-check: mean -5.5, max 93.1
+    # with the max on a known hole-riddled scan)
+    "upper_arm_girth": {"per_body_mm": 45.0, "mean_bias_mm": 20.0},
 }
 
 # waist-height sanity vs Texel m43 (first run: mean +24.4, max |d| 65.4)

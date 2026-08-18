@@ -80,6 +80,7 @@ def summarize(entries: list[dict]) -> dict:
 TEXEL_MAPPING = {
     "waist_circumference": "exact",
     "across_back_shoulder_width": "exact",
+    "upper_arm_girth": "approximate",  # pending the ISO 5.3.16 text check
     "chest_circumference": "approximate",
     "neck_circumference": "approximate",
     "back_length": "approximate",
@@ -88,4 +89,5 @@ TEXEL_MAPPING = {
 NOMO_MAPPING = {
     "neck_circumference": "approximate",
     "chest_circumference": "approximate",
+    "upper_arm_girth": "approximate",
 }

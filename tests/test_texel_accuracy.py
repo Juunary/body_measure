@@ -24,7 +24,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-CIRCUMFERENCES = ("waist_circumference", "chest_circumference", "neck_circumference")
+CIRCUMFERENCES = (
+    "waist_circumference",
+    "chest_circumference",
+    "neck_circumference",
+    "upper_arm_girth",
+)
 LENGTHS = ("across_back_shoulder_width", "sleeve_length", "back_length")
 ALL_MEASUREMENTS = CIRCUMFERENCES + LENGTHS
 

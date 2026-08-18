@@ -24,6 +24,7 @@ from .base import Adapter, NormalizedBodySurface
 REF_NAMES = {
     "neck_circumference": "NeckBase_Circ",
     "chest_circumference": "CHEST_Circ",
+    "upper_arm_girth": "Bicep_Circ",
 }
 AUX_NAMES = {
     "max_waist_girth": "MaxWAIST_Circ",

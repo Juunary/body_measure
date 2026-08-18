@@ -200,7 +200,33 @@ provenance.
 
 **Revisit if:** smplx changes its expected .pkl schema.
 
-## 14. Public artifacts use HSRD-100 only
+## 14. Stage 1 is a short-sleeve shirt; upper_arm_girth joins the spec
+
+**Decided:** Handover confirmed the stage-1 product is a short-sleeve
+shirt (long-sleeve extension undecided). A short sleeve ends on the upper
+arm, so `upper_arm_girth` (right side, maximum girth between armpit and
+the upper-arm span) is added as spec v3 — the same plane-slice primitive
+as the torso girths, applied to the arm loop that arm_loops_at already
+isolates. sleeve_length is KEPT but demoted: its regression bound only
+guards against regressions, and the +198 mm decomposition drops in
+priority. References: Texel m15_r (ISO 5.3.16), NOMO Bicep_Circ — both
+judged approximate until the ISO text check.
+
+The search window's upper clearance was removed (20 mm -> 0) after the
+maximum landed on the window boundary for all ten Texel subjects; the
+choice was then cross-checked on NOMO (bias -5.5, MAE 19.0), not tuned
+further. Negative clearance (above the armpit) was measured to help
+slightly on Texel and rejected as overfitting.
+
+**Rules out:** Optimising sleeve_length before the definition audit
+resolves; picking window parameters on a single dataset without a
+second-dataset check.
+
+**Revisit if:** Long-sleeve becomes confirmed (sleeve_length precision
+returns to the critical path), or the ISO 5.3.16 text moves the mapping
+to exact/mismatch.
+
+## 15. Public artifacts use HSRD-100 only
 
 **Decided:** Weekly reports, portfolio, and anything shown outside the
 research context use HSRD-100 (CC BY 4.0) exclusively. Texel (CC BY-NC),

@@ -23,7 +23,12 @@ import trimesh
 
 from ..canonicalize import body_axis_point
 from ..measure.circumference import measure_circumference
-from ..measure.slicing import project_axis_to_plane, select_torso_loop, slice_mesh
+from ..measure.slicing import (
+    SliceLoop,
+    project_axis_to_plane,
+    select_torso_loop,
+    slice_mesh,
+)
 from .base import Landmark
 
 _UP = np.array([0.0, 1.0, 0.0])
@@ -390,6 +395,65 @@ def estimate_wrist_points(
         )
 
     return landmark("left"), landmark("right")
+
+
+#: Fraction of the armpit->wrist span that still counts as upper arm. The
+#: elbow sits near the middle of that span, so staying below 0.45 keeps the
+#: elbow (which widens again) out of the search.
+UPPER_ARM_SPAN_FRACTION = 0.45
+#: The search runs up to the armpit level itself: the deltoid is widest
+#: right there, and a 20 mm safety clearance clipped the true maximum on
+#: all ten Texel subjects (max girth always landed on the window's top
+#: boundary; bias -12.6 -> -3.3 mm after removing it). Merged arm/torso
+#: slices need no clearance to guard against — arm_loops_at only accepts
+#: loops whose centroid lies outside the torso's lateral extent.
+UPPER_ARM_CLEARANCE_MM = 0.0
+
+
+def arm_loops_at(
+    mesh: trimesh.Trimesh, level_mm: float, armpit: Landmark
+) -> tuple[dict[str, SliceLoop], list[str]]:
+    """Closed loops at `level_mm` that are arms, keyed 'left'/'right'.
+
+    A loop is an arm when its centroid lies outside the torso's extent along
+    the body's lateral axis — the same test estimate_wrist_points uses, so
+    both stay consistent if the axis estimate changes."""
+    armpit_y = float(armpit.position_mm[1])
+    _, torso_sel = _torso_loop_at(mesh, armpit_y)
+    if torso_sel is None:
+        return {}, ["no_torso_at_armpit"]
+    lateral, flags = body_lateral_axis(mesh, armpit_y)
+    t_torso = torso_sel.loop.points[:, [0, 2]] @ lateral
+    t_lo, t_hi = float(t_torso.min()), float(t_torso.max())
+    t_axis = float(body_axis_point(mesh) @ lateral)
+
+    found: dict[str, SliceLoop] = {}
+    for lp in slice_mesh(mesh, np.array([0.0, float(level_mm), 0.0]), _UP):
+        if not lp.closed:
+            continue
+        ct = float((lp.points[:, [0, 2]] @ lateral).mean())
+        if t_lo < ct < t_hi:
+            continue  # torso, not an arm
+        found["left" if ct < t_axis else "right"] = lp
+    return found, flags
+
+
+def upper_arm_window(
+    mesh: trimesh.Trimesh, armpit: Landmark, wrist: Landmark | None
+) -> tuple[float, float, list[str]]:
+    """(lowest, highest, flags) height range to search for the upper arm's
+    widest point. Anchored on the detected wrist; without one the window is
+    stature-relative and says so, the same way the chest window does."""
+    armpit_y = float(armpit.position_mm[1])
+    top = armpit_y - UPPER_ARM_CLEARANCE_MM
+    if wrist is not None:
+        span = armpit_y - float(wrist.position_mm[1])
+        return armpit_y - UPPER_ARM_SPAN_FRACTION * span, top, []
+    return (
+        armpit_y - 0.19 * float(mesh.bounds[1][1]),
+        top,
+        ["wrist_not_detected_window_is_stature_relative"],
+    )
 
 
 def estimate_neck_base_level(

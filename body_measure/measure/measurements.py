@@ -203,7 +203,73 @@ def run_estimated_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         landmarks["neck_base_level"] = neck
         measurements["neck_circumference"] = measure_circumference_at_landmark(mesh, neck)
 
+    # Upper arm girth needs no front/back orientation — it is a girth, not a
+    # back-neck-dependent path — so it belongs here rather than with the lengths.
+    wrist = None
+    if armpit is not None:
+        from ..landmarks.estimated import estimate_wrist_points
+
+        wrist_left, wrist_right = estimate_wrist_points(mesh, armpit)
+        wrist = wrist_right if wrist_right is not None else wrist_left
+        if wrist is not None:
+            landmarks[wrist.name] = wrist
+    side = "right" if (wrist is None or wrist.name.endswith("right")) else "left"
+    measurements["upper_arm_girth"] = measure_upper_arm_girth(
+        mesh, armpit, wrist, side=side
+    )
+
     return measurements, landmarks
+
+
+def measure_upper_arm_girth(
+    mesh: trimesh.Trimesh,
+    armpit: Landmark | None,
+    wrist: Landmark | None,
+    side: str = "right",
+    step_mm: float = 6.0,
+) -> MeasurementValue:
+    """Widest girth of the upper arm — the sleeve-width measurement a short
+    sleeve is built around. Same plane-slice primitive as the torso girths,
+    applied to the arm loop instead of the torso loop."""
+    from ..landmarks.estimated import arm_loops_at, upper_arm_window
+
+    if armpit is None:
+        return MeasurementValue(
+            method="plane_slice", quality=["armpit_not_detected"]
+        )
+    lo, hi, window_flags = upper_arm_window(mesh, armpit, wrist)
+    best: tuple[float, MeasurementValue] | None = None
+    axis_flags: list[str] = []
+    for level in np.arange(lo, hi, step_mm):
+        loops, flags = arm_loops_at(mesh, float(level), armpit)
+        axis_flags = flags
+        loop = loops.get(side)
+        if loop is None:
+            continue
+        circ = measure_circumference(loop, close_gap=not loop.closed)
+        if circ.selected_value_mm is None:
+            continue
+        value = MeasurementValue(
+            raw_contour_mm=circ.raw_contour_mm,
+            taut_tape_hull_mm=circ.taut_tape_hull_mm,
+            selected_value_mm=circ.selected_value_mm,
+            selection_method=circ.selection_method,
+            method="plane_slice",
+            quality=circ.quality_flags,
+            disposition="accepted",
+        )
+        if best is None or circ.selected_value_mm > best[0]:
+            best = (circ.selected_value_mm, value)
+
+    if best is None:
+        return MeasurementValue(
+            method="plane_slice",
+            quality=["no_arm_loop_in_upper_arm_window"] + window_flags + axis_flags,
+        )
+    value = best[1]
+    flags = [f for f in value.quality if f != "ok"] + window_flags + axis_flags
+    value.quality = flags or ["ok"]
+    return value
 
 
 def _length_value(length: float | None, flags: list[str], method: str) -> MeasurementValue:

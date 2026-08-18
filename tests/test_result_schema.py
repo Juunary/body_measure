@@ -1,4 +1,4 @@
-"""Result contract: exactly the spec's six measurements, JSON round-trip,
+"""Result contract: exactly the spec's measurements, JSON round-trip,
 honest nulls for unimplemented values."""
 import json
 
@@ -9,13 +9,14 @@ EXPECTED = {
     "chest_circumference",
     "waist_circumference",
     "neck_circumference",
+    "upper_arm_girth",          # v3: the stage-1 product is a short-sleeve shirt
     "across_back_shoulder_width",
     "sleeve_length",
     "back_length",
 }
 
 
-def test_the_spec_defines_exactly_the_six_shirt_measurements():
+def test_the_spec_defines_exactly_the_seven_shirt_measurements():
     assert set(load_spec().names) == EXPECTED
 
 

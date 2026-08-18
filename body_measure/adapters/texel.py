@@ -33,6 +33,7 @@ REF_IDS = {
     "chest_circumference": "m5",           # Bust/Chest Girth, 5.3.4
     "waist_circumference": "m102",         # Minimum Waist Girth (no clause) — matches spec definition
     "neck_circumference": "m11",           # Neck Base Girth, 5.3.3
+    "upper_arm_girth": "m15_r",            # Upper Arm Girth (R), 5.3.16 — right side, matching the spec
     "across_back_shoulder_width": "m1",    # Across Back Shoulder Width (through the back neck point), 5.4.3
     "sleeve_length": "m55",                # Back Neck Point to Wrist (L/R), 5.4.17
     "back_length": "m3",                   # Back Neck Point to Waist, 5.4.5

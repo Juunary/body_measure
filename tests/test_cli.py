@@ -46,7 +46,9 @@ def test_measure_emits_the_full_schema_with_nulls_by_default(body_like_ply, tmp_
                    "--up-axis", "Z", "--out", str(out))
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert len(payload["measurements"]) == 6
+    from body_measure.spec import load_spec
+
+    assert set(payload["measurements"]) == set(load_spec().names)
     assert payload["measurements"]["waist_circumference"]["selected_value_mm"] is None
 
 
