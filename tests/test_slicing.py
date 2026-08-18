@@ -73,7 +73,9 @@ def test_an_open_surface_yields_an_open_loop_report_not_a_crash():
     circ = measure_circumference(loops[0])
     assert circ.selected_value_mm is None
     assert "open_loop" in circ.quality_flags
-    assert select_torso_loop(loops, axis2d=np.zeros(2)) is None
+    # a wide-open polyline may be identified but must be judged rejected
+    selection = select_torso_loop(loops, axis2d=np.zeros(2))
+    assert selection is None or selection.disposition == "rejected"
 
 
 def test_slice_outside_the_mesh_returns_no_loops():

@@ -28,6 +28,7 @@ class MeasurementSpec:
     route: tuple[str, ...]
     landmarks: tuple[str, ...]
     implementation_status: str
+    requires: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ def load_spec(path: Path | None = None) -> Spec:
             route=tuple(entry.get("route", ())),
             landmarks=tuple(entry.get("landmarks", ())),
             implementation_status=entry.get("implementation_status", "not_implemented"),
+            requires=tuple(entry.get("requires", ())),
         )
     return Spec(
         version=int(raw.get("spec_version", 0)),

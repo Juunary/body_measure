@@ -8,7 +8,7 @@ Definition mapping (docs/datasets.md rules — match by definition, not name):
 - neck_circumference <- NeckBase_Circ (neck base girth, matches spec)
 - chest_circumference <- CHEST_Circ
 - waist: TC2 provides MaxWAIST_Circ / TrouserWAIST_Circ, NEITHER of which
-  is the spec's minimum torso girth -> exposed as aux only, no GT claim.
+  is the spec's minimum torso girth -> exposed as aux only, no reference claim.
 Per-subject Head_Top_Height doubles as a stature cross-check for the mesh
 unit (verified, not guessed).
 """
@@ -21,7 +21,7 @@ import trimesh
 
 from .base import Adapter, NormalizedBodySurface
 
-GT_NAMES = {
+REF_NAMES = {
     "neck_circumference": "NeckBase_Circ",
     "chest_circumference": "CHEST_Circ",
 }
@@ -49,7 +49,7 @@ def parse_tc2(path: Path) -> dict[str, float]:
 class NomoAdapter(Adapter):
     name = "nomo"
     source_type = "dataset_scan"
-    provides = frozenset(GT_NAMES)
+    provides = frozenset(REF_NAMES)
 
     def __init__(self, root: Path):
         self.root = Path(root)  # .../extracted
@@ -97,10 +97,10 @@ class NomoAdapter(Adapter):
             meta={"dataset": "nomo", "verified_unit_scale": scale},
         )
 
-    def ground_truth(self, path: Path, **kwargs) -> dict[str, float]:
+    def dataset_reference(self, path: Path, **kwargs) -> dict[str, float]:
         values = parse_tc2(self._txt_path(str(path)))
-        return {k: values[v] * _CM_TO_MM for k, v in GT_NAMES.items() if v in values}
+        return {k: values[v] * _CM_TO_MM for k, v in REF_NAMES.items() if v in values}
 
-    def aux(self, path: Path) -> dict[str, float]:
+    def aux_reference(self, path: Path) -> dict[str, float]:
         values = parse_tc2(self._txt_path(str(path)))
         return {k: values[v] * _CM_TO_MM for k, v in AUX_NAMES.items() if v in values}

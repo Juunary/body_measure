@@ -4,9 +4,16 @@ normalized to a NormalizedBodySurface before the measurement core sees it.
 Rules enforced here:
 - Units are never guessed. An adapter must know its unit (metadata) or be
   told one explicitly; otherwise loading fails with UnitError.
-- Ground-truth values an adapter returns must stay inside its declared
+- Reference values an adapter returns must stay inside its declared
   `provides` frozenset (AdapterContractError otherwise) — same philosophy as
   dpp-prototype's Source.provides contract.
+
+Reference-value tiers used across the project (see docs/measurement-audit.md):
+  analytic_expected  — closed-form values of synthetic shapes (true ground truth)
+  synthetic_reference — another implementation on identical synthetic bodies
+  dataset_reference  — automatic values shipped with a dataset (vendor pipeline)
+  manual_reference   — trained-measurer manual values (post-scanner phase only)
+Adapters serve dataset_reference: agreement with them is NOT accuracy.
 """
 from __future__ import annotations
 
@@ -26,7 +33,7 @@ class UnitError(ValueError):
 
 
 class AdapterContractError(RuntimeError):
-    """Raised when an adapter emits ground truth outside its `provides` set."""
+    """Raised when an adapter emits reference values outside its `provides` set."""
 
 
 @dataclass
@@ -42,27 +49,29 @@ class NormalizedBodySurface:
 
 
 class Adapter(ABC):
-    """A named input source with a declared ground-truth capability set."""
+    """A named input source with a declared reference-value capability set."""
 
     name: str
     source_type: str
     #: measurement names (from measurement-spec) this adapter can supply
-    #: ground truth for. Empty for sources without reference values.
+    #: dataset reference values for. Empty for sources without references.
     provides: frozenset[str] = frozenset()
 
     @abstractmethod
     def load(self, path: Path, **kwargs) -> NormalizedBodySurface: ...
 
-    def ground_truth(self, path: Path, **kwargs) -> dict[str, float]:
-        """Ground-truth values in mm, keyed by measurement-spec names."""
+    def dataset_reference(self, path: Path, **kwargs) -> dict[str, float]:
+        """Dataset-provided reference values in mm, keyed by spec names.
+        These come from the dataset's own (automatic) pipeline — agreement
+        with them is dataset_agreement, never measurement accuracy."""
         return {}
 
-    def checked_ground_truth(self, path: Path, **kwargs) -> dict[str, float]:
-        values = self.ground_truth(path, **kwargs)
+    def checked_dataset_reference(self, path: Path, **kwargs) -> dict[str, float]:
+        values = self.dataset_reference(path, **kwargs)
         extra = set(values) - self.provides
         if extra:
             raise AdapterContractError(
-                f"adapter '{self.name}' emitted ground truth outside its "
+                f"adapter '{self.name}' emitted reference values outside its "
                 f"declared provides set: {sorted(extra)}"
             )
         return values

@@ -12,7 +12,7 @@ measurer, which this project cannot run before the scanner arrives.
 """
 
 # spec measurement name -> internal regression bounds (mm), vs the
-# definition-matched dataset ground truth (see adapters/texel.py GT_IDS).
+# definition-matched dataset reference (see adapters/texel.py REF_IDS).
 # First runs on Texel Part 1 (portal_mx, 10 bodies):
 #   waist vs m102: mean -3.5, max |d| 38.6
 #   chest vs m5:   mean +32.9, max |d| 78.0  (arm-clipped tape approximation)
@@ -38,3 +38,13 @@ WAIST_HEIGHT_TARGET_MM = 75.0
 # VERIFY against ISO 20685-1 before recording anything here; until then
 # no code may import this for pass/fail decisions.
 ISO_20685_REFERENCE_VALUES: dict[str, float] = {}
+
+# ---------------------------------------------------------------------------
+# Gap-closure tiers — PROVISIONAL PROJECT THRESHOLDS, not standard-derived.
+# gap_ratio = chord / (open_path_length + chord).
+# accept requires BOTH bounds (AND): a 30 mm chord on a 100 mm neck path or a
+# 100 mm chord on a 2 m torso path must not slip through a single OR bound.
+GAP_ACCEPT_MAX_CHORD_MM = 30.0
+GAP_ACCEPT_MAX_RATIO = 0.05
+GAP_REVIEW_MAX_CHORD_MM = 120.0
+GAP_REVIEW_MAX_RATIO = 0.20

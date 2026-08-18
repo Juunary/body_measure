@@ -39,6 +39,9 @@ class LoopSelection:
     method: str            # "axis_containment" | "nearest_centroid"
     confidence: float
     quality_flags: list[str] = field(default_factory=list)
+    disposition: str = "accepted"      # accepted | manual_review | rejected
+    gap_chord_mm: float = 0.0
+    gap_ratio: float = 0.0
 
 
 def plane_basis(normal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -113,25 +116,55 @@ def slice_mesh(mesh: trimesh.Trimesh, origin: np.ndarray, normal: np.ndarray) ->
     return loops
 
 
-MAX_GAP_RATIO = 0.2
+from ..validate.thresholds import (  # noqa: E402  (single source for tiers)
+    GAP_ACCEPT_MAX_CHORD_MM,
+    GAP_ACCEPT_MAX_RATIO,
+    GAP_REVIEW_MAX_CHORD_MM,
+    GAP_REVIEW_MAX_RATIO,
+)
+
+ACCEPTED = "accepted"
+MANUAL_REVIEW = "manual_review"
+REJECTED = "rejected"
 
 
-def loop_gap_ratio(loop: SliceLoop) -> float:
-    """Gap between endpoints relative to polyline length (0 for closed)."""
+def loop_gap(loop: SliceLoop) -> tuple[float, float]:
+    """(chord_mm, gap_ratio) with gap_ratio = chord / (open_path + chord).
+    (0, 0) for closed loops."""
     if loop.closed:
-        return 0.0
-    length = float(np.linalg.norm(np.diff(loop.points, axis=0), axis=1).sum())
-    if length <= 0:
-        return np.inf
-    return float(np.linalg.norm(loop.points[0] - loop.points[-1])) / length
+        return 0.0, 0.0
+    open_len = float(np.linalg.norm(np.diff(loop.points, axis=0), axis=1).sum())
+    chord = float(np.linalg.norm(loop.points[0] - loop.points[-1]))
+    if open_len + chord <= 0:
+        return chord, 1.0
+    return chord, chord / (open_len + chord)
+
+
+def gap_disposition(loop: SliceLoop) -> tuple[str, float, float]:
+    """Tier a loop's hole for measurement: closed loops are accepted;
+    open loops are accepted / manual_review / rejected by BOTH an absolute
+    chord bound and a relative ratio bound (see thresholds.py). Structural
+    prerequisites (single component, exactly two endpoints, degree <= 2)
+    hold by construction of _chain_segments — anything else was never
+    chained into a loop in the first place."""
+    if loop.closed:
+        return ACCEPTED, 0.0, 0.0
+    chord, ratio = loop_gap(loop)
+    if len(loop.points) < 3:
+        return REJECTED, chord, ratio
+    if chord <= GAP_ACCEPT_MAX_CHORD_MM and ratio <= GAP_ACCEPT_MAX_RATIO:
+        return ACCEPTED, chord, ratio
+    if chord <= GAP_REVIEW_MAX_CHORD_MM and ratio <= GAP_REVIEW_MAX_RATIO:
+        return MANUAL_REVIEW, chord, ratio
+    return REJECTED, chord, ratio
 
 
 def _valid_polygon(loop: SliceLoop) -> Polygon | None:
-    """Polygon for a closed loop, or for an open loop whose endpoint gap is
-    small enough to close (scan-hole tolerance — Polygon auto-closes)."""
+    """Polygon for a closed loop or an auto-closed open loop. Containment
+    is a CANDIDATE test only — whether an open candidate may actually be
+    measured is decided afterwards by gap_disposition (identify first,
+    judge second; never re-shop among other loops after a reject)."""
     if len(loop.points2d) < 3:
-        return None
-    if not loop.closed and loop_gap_ratio(loop) > MAX_GAP_RATIO:
         return None
     poly = Polygon(loop.points2d)
     if not poly.is_valid:
@@ -159,15 +192,32 @@ def project_axis_to_plane(axis_point_xz: np.ndarray, origin: np.ndarray, normal:
     return np.array([rel @ u, rel @ v])
 
 
+def _tiered_selection(loop: SliceLoop, method: str, confidence: float,
+                      flags: list[str]) -> LoopSelection:
+    disposition, chord, ratio = gap_disposition(loop)
+    if not loop.closed:
+        if disposition == ACCEPTED:
+            flags = flags + ["gap_closed_degraded"]
+        elif disposition == MANUAL_REVIEW:
+            flags = flags + ["gap_closed_manual_review"]
+            confidence = min(confidence, 0.3)
+        else:
+            flags = flags + ["gap_rejected"]
+            confidence = 0.0
+    return LoopSelection(
+        loop=loop, method=method, confidence=confidence, quality_flags=flags,
+        disposition=disposition, gap_chord_mm=chord, gap_ratio=ratio,
+    )
+
+
 def select_torso_loop(loops: list[SliceLoop], axis2d: np.ndarray) -> LoopSelection | None:
-    """Closed loops plus nearly-closed open loops (scan holes, gap <=
-    MAX_GAP_RATIO) are candidates — a torso slice crossing a hole must not
-    lose to a closed ARM loop (seen on NOMO: waist came out wrist-sized).
-    Selecting a gap-closed loop is flagged `gap_closed_open_loop`."""
-    candidates = [
-        lp for lp in loops
-        if lp.closed or (len(lp.points) >= 3 and loop_gap_ratio(lp) <= MAX_GAP_RATIO)
-    ]
+    """Identify the torso candidate FIRST (axis containment over closed and
+    auto-closable open loops), THEN judge its hole via gap_disposition. A
+    rejected torso candidate stays selected with disposition "rejected" —
+    the search never falls back to some other closed loop, because that is
+    exactly how a closed ARM loop once produced a wrist-sized waist on
+    NOMO. Callers must map "rejected" to a null measurement."""
+    candidates = [lp for lp in loops if len(lp.points) >= 3]
     if not candidates:
         return None
     axis = Point(axis2d)
@@ -182,24 +232,15 @@ def select_torso_loop(loops: list[SliceLoop], axis2d: np.ndarray) -> LoopSelecti
     if any(not lp.closed for lp in loops):
         flags.append("open_loops_present")
 
-    def selection_flags(loop: SliceLoop, extra: list[str]) -> list[str]:
-        gap = [] if loop.closed else ["gap_closed_open_loop"]
-        return flags + extra + gap
-
     if containing:
         loop, _ = max(containing, key=lambda pair: pair[1].area)
         extra = ["multiple_axis_containing_loops"] if len(containing) > 1 else []
-        return LoopSelection(
-            loop=loop,
-            method="axis_containment",
-            confidence=0.9 if loop.closed else 0.6,
-            quality_flags=selection_flags(loop, extra),
+        return _tiered_selection(
+            loop, "axis_containment", 0.9 if loop.closed else 0.6, flags + extra
         )
 
     loop = min(candidates, key=lambda lp: float(np.linalg.norm(lp.centroid2d - axis2d)))
-    return LoopSelection(
-        loop=loop,
-        method="nearest_centroid",
-        confidence=0.4 if loop.closed else 0.3,
-        quality_flags=selection_flags(loop, ["axis_not_inside_any_loop"]),
+    return _tiered_selection(
+        loop, "nearest_centroid", 0.4 if loop.closed else 0.3,
+        flags + ["axis_not_inside_any_loop"],
     )

@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 1
+spec_version: 2          # v2: requires 선언 추가 (방향·랜드마크 의존성)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -46,6 +46,7 @@ measurements:
     definition_verified: false
     method: surface_path
     route: [shoulder_point_left, back_neck_point, shoulder_point_right]  # 경유점 강제
+    requires: [front_back_orientation, back_neck_point, shoulder_points]
     known_deviations:
       - edge_graph_approximation
       - acromion_approximated_as_highest_point_above_armpit_crease
@@ -58,6 +59,7 @@ measurements:
     method: surface_path
     route: [back_neck_point, shoulder_point_right, elbow_point_right, wrist_point_right]  # 구간 합
     posture: elbow_bent
+    requires: [front_back_orientation, back_neck_point, shoulder_points, wrist_point]
     known_deviations:
       - approximated_in_a_pose_straight_arm_underestimates_bent_elbow
       - edge_graph_approximation
@@ -70,6 +72,7 @@ measurements:
     definition_verified: false
     method: sagittal_slice_polyline
     route: [back_neck_point, waist_level]
+    requires: [front_back_orientation, back_neck_point]
     known_deviations:
       - implemented_as_edge_graph_geodesic_v1_not_sagittal_slice
     implementation_status: implemented_v1

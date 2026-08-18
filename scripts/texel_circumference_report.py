@@ -36,8 +36,8 @@ def main() -> int:
     lines = []
     for person in persons:
         mesh = canonicalize(adapter.load(person))
-        gt = adapter.checked_ground_truth(person)
-        aux = adapter.aux(person)
+        gt = adapter.checked_dataset_reference(person)
+        aux = adapter.aux_reference(person)
         measurements, landmarks = run_estimated_circumferences(mesh)
 
         candidates = {

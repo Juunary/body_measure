@@ -16,6 +16,8 @@ gets low confidence.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 import numpy as np
 import trimesh
 
@@ -45,11 +47,9 @@ def torso_girth_profile(
         origin = np.array([0.0, height, 0.0])
         loops = slice_mesh(mesh, origin, _UP)
         selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
-        if selection is None:
+        if selection is None or selection.disposition == "rejected":
             continue
-        circ = measure_circumference(
-            selection.loop, close_gap="gap_closed_open_loop" in selection.quality_flags
-        )
+        circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
         if circ.selected_value_mm is None:
             continue
         profile.append((float(height), float(circ.selected_value_mm)))
@@ -192,18 +192,21 @@ def estimate_chest_level(
     return chest
 
 
-def body_lateral_axis(mesh: trimesh.Trimesh, level_mm: float) -> np.ndarray:
-    """Unit (x, z) direction of the body's left-right axis. World axes are
-    NOT assumed — a scanner may deliver the subject at any yaw.
+def body_lateral_axis(mesh: trimesh.Trimesh, level_mm: float) -> tuple[np.ndarray, list[str]]:
+    """(unit (x, z) left-right axis, quality_flags). World axes are NOT
+    assumed — a scanner may deliver the subject at any yaw.
 
     Primary signal: at a slice with separated arms, the line between the
-    two arm-loop centroids IS the lateral direction (arms hang beside the
-    torso by construction). Cross-section PCA is only a fallback — a torso
-    slice can be deeper than it is wide (seen on Texel Woman4, where PCA
-    picked the front-back axis and wrecked the arm clip)."""
+    two arm-loop centroids gives the lateral direction (arms hang beside
+    the torso by construction; stable on the poses tested so far —
+    Texel Part 1 and generated SMPL bodies). Cross-section PCA is a
+    flagged fallback: a torso slice can be deeper than it is wide (Texel
+    Woman4), sending PCA front-back, and the fallback is unvalidated for
+    asymmetric or single-arm bodies — hence the flag propagates into
+    every measurement that uses the axis."""
     loops, selection = _torso_loop_at(mesh, level_mm)
     if selection is None:
-        return np.array([1.0, 0.0])
+        return np.array([1.0, 0.0]), ["lateral_axis_default_no_torso"]
     arms = sorted(
         (lp for lp in loops if lp.closed and lp is not selection.loop),
         key=lambda lp: len(lp.points),
@@ -213,29 +216,55 @@ def body_lateral_axis(mesh: trimesh.Trimesh, level_mm: float) -> np.ndarray:
         delta = arms[0].points[:, [0, 2]].mean(axis=0) - arms[1].points[:, [0, 2]].mean(axis=0)
         norm = float(np.linalg.norm(delta))
         if norm > 1e-6:
-            return delta / norm
+            return delta / norm, []
     pts = selection.loop.points[:, [0, 2]]
     centered = pts - pts.mean(axis=0)
     _, _, vt = np.linalg.svd(centered, full_matrices=False)
     lateral = vt[0]
-    return lateral / np.linalg.norm(lateral)
+    return lateral / np.linalg.norm(lateral), ["lateral_axis_pca_fallback"]
 
 
-def estimate_facing(mesh: trimesh.Trimesh) -> tuple[np.ndarray, list[str]]:
-    """Unit (x, z) direction the body faces: the toes extend forward of the
-    body axis, so the centroid of the foot slice sits in the facing
-    direction. Low-magnitude offsets get a quality flag."""
+@dataclass
+class Facing:
+    """Front-back orientation estimate. `confidence` is
+    front_back_confidence: 0 means the 180-degree ambiguity is unresolved
+    and every orientation-dependent measurement must refuse to produce a
+    number (spec `requires: [front_back_orientation]`)."""
+
+    direction: np.ndarray          # unit (x, z)
+    confidence: float
+    method: str
+    flags: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "direction": [float(v) for v in self.direction],
+            "confidence": self.confidence,
+            "method": self.method,
+            "flags": list(self.flags),
+        }
+
+
+def estimate_facing(mesh: trimesh.Trimesh) -> Facing:
+    """The toes extend forward of the body axis, so the centroid of the
+    foot slice sits in the facing direction (toe_projection). Missing feet
+    leave the front/back 180-degree ambiguity unresolved ->
+    orientation_unknown with confidence 0."""
     height = float(mesh.bounds[1][1])
     axis_xz = body_axis_point(mesh)
     loops = slice_mesh(mesh, np.array([0.0, 0.03 * height, 0.0]), _UP)
     if not loops:
-        return np.array([0.0, 1.0]), ["facing_undetected_no_foot_slice"]
+        return Facing(np.array([0.0, 1.0]), 0.0, "toe_projection",
+                      ["orientation_unknown", "no_foot_slice"])
     points = np.vstack([lp.points for lp in loops])
     offset = np.array([points[:, 0].mean(), points[:, 2].mean()]) - axis_xz
     norm = float(np.linalg.norm(offset))
-    if norm < 10.0:  # toes less than 1 cm ahead of the axis — unreliable
-        return np.array([0.0, 1.0]), ["facing_low_confidence"]
-    return offset / norm, []
+    if norm < 5.0:  # 180-degree ambiguity effectively unresolved
+        return Facing(np.array([0.0, 1.0]), 0.0, "toe_projection",
+                      ["orientation_unknown", "toe_offset_below_threshold"])
+    confidence = min(0.9, norm / 60.0)
+    flags = ["front_back_low_confidence"] if norm < 30.0 else []
+    return Facing(offset / norm, confidence, "toe_projection", flags)
 
 
 def _torso_loop_at(mesh: trimesh.Trimesh, level_mm: float):
@@ -282,7 +311,7 @@ def estimate_shoulder_points(
     height = float(mesh.bounds[1][1])
     vertices = mesh.vertices
 
-    lateral = body_lateral_axis(mesh, armpit_y)
+    lateral, lateral_flags = body_lateral_axis(mesh, armpit_y)
     ortho = np.array([-lateral[1], lateral[0]])
     t_loop = pts[:, [0, 2]] @ lateral
     t_vert = vertices[:, [0, 2]] @ lateral
@@ -306,7 +335,7 @@ def estimate_shoulder_points(
             np.asarray(top, dtype=np.float64),
             0.5,
             "highest_point_above_armpit_crease",
-            ["acromion_approximation"],
+            ["acromion_approximation"] + lateral_flags,
         )
 
     left = side_landmark(pts[int(np.argmin(t_loop))], "shoulder_point_left")
@@ -330,7 +359,7 @@ def estimate_wrist_points(
     _, torso_sel = _torso_loop_at(mesh, armpit_y)
     if torso_sel is None:
         return None, None
-    lateral = body_lateral_axis(mesh, armpit_y)
+    lateral, lateral_flags = body_lateral_axis(mesh, armpit_y)
     t_torso = torso_sel.loop.points[:, [0, 2]] @ lateral
     t_lo, t_hi = float(t_torso.min()), float(t_torso.max())
     t_axis = float(axis_xz @ lateral)
@@ -357,7 +386,7 @@ def estimate_wrist_points(
             best[side][1].astype(np.float64),
             0.5,
             "minimum_arm_girth_in_wrist_window",
-            ["hanging_arm_assumed"],
+            ["hanging_arm_assumed"] + lateral_flags,
         )
 
     return landmark("left"), landmark("right")

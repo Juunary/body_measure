@@ -23,10 +23,29 @@ def circumference_at_height(mesh: trimesh.Trimesh, height_mm: float) -> Measurem
     loops = slice_mesh(mesh, origin, _UP)
     selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
     if selection is None:
-        return MeasurementValue(method="plane_slice", quality=["no_closed_loop_at_height"])
-    circ = measure_circumference(
-        selection.loop, close_gap="gap_closed_open_loop" in selection.quality_flags
+        return MeasurementValue(method="plane_slice", quality=["no_torso_candidate_at_height"])
+    gap = (
+        {"chord_mm": selection.gap_chord_mm, "ratio": selection.gap_ratio}
+        if not selection.loop.closed
+        else None
     )
+    if selection.disposition == "rejected":
+        # identified torso candidate failed the gap tiers: null, never a
+        # different loop (docs/decisions.md — no re-shopping after reject)
+        return MeasurementValue(
+            method="plane_slice",
+            quality=selection.quality_flags or ["gap_rejected"],
+            disposition="rejected",
+            gap=gap,
+        )
+    circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
+    if circ.selected_value_mm is None:
+        return MeasurementValue(
+            method="plane_slice",
+            quality=(circ.quality_flags + selection.quality_flags) or ["measurement_failed"],
+            disposition="rejected",
+            gap=gap,
+        )
     return MeasurementValue(
         raw_contour_mm=circ.raw_contour_mm,
         taut_tape_hull_mm=circ.taut_tape_hull_mm,
@@ -34,6 +53,8 @@ def circumference_at_height(mesh: trimesh.Trimesh, height_mm: float) -> Measurem
         selection_method=circ.selection_method,
         method="plane_slice",
         quality=(circ.quality_flags + selection.quality_flags) or ["ok"],
+        disposition=selection.disposition,
+        gap=gap,
     )
 
 
@@ -64,11 +85,12 @@ def measure_chest_circumference(
     waist_y = float(waist.position_mm[1])
 
     lateral = lo_t = hi_t = None
+    lateral_flags: list[str] = []
     if armpit is not None:
         from ..landmarks.estimated import body_lateral_axis
 
         armpit_y = float(armpit.position_mm[1])
-        lateral = body_lateral_axis(mesh, armpit_y)
+        lateral, lateral_flags = body_lateral_axis(mesh, armpit_y)
         origin = np.array([0.0, armpit_y, 0.0])
         selection = select_torso_loop(
             slice_mesh(mesh, origin, _UP), project_axis_to_plane(axis_xz, origin, _UP)
@@ -87,11 +109,11 @@ def measure_chest_circumference(
         selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
         if selection is None:
             continue
+        if selection.disposition == "rejected":
+            continue  # rejected torso candidate: skip the height, never re-shop
         n_closed = sum(1 for lp in loops if lp.closed)
         if n_closed >= 3 or lo_t is None:
-            circ = measure_circumference(
-                selection.loop, close_gap="gap_closed_open_loop" in selection.quality_flags
-            )
+            circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
         else:  # arms merged into the torso loop — clip them away
             circ = clipped_circumference_xz(
                 selection.loop.points[:, [0, 2]], lo_t, hi_t, lateral=lateral
@@ -105,6 +127,12 @@ def measure_chest_circumference(
             selection_method=circ.selection_method,
             method="plane_slice",
             quality=(circ.quality_flags + selection.quality_flags) or ["ok"],
+            disposition=selection.disposition,
+            gap=(
+                {"chord_mm": selection.gap_chord_mm, "ratio": selection.gap_ratio}
+                if not selection.loop.closed
+                else None
+            ),
         )
         samples.append((float(level), value))
 
@@ -113,7 +141,7 @@ def measure_chest_circumference(
 
     idx = max(range(len(samples)), key=lambda i: samples[i][1].selected_value_mm)
     level, value = samples[idx]
-    flags = [f for f in value.quality if f != "ok"]
+    flags = [f for f in value.quality if f != "ok"] + lateral_flags
     confidence = 0.7
     if idx in (0, len(samples) - 1):
         flags.append("maximum_at_search_boundary")
@@ -182,7 +210,10 @@ def _length_value(length: float | None, flags: list[str], method: str) -> Measur
     if length is None:
         return MeasurementValue(method=method, quality=flags or ["path_failed"])
     return MeasurementValue(
-        selected_value_mm=float(length), method=method, quality=flags or ["ok"]
+        selected_value_mm=float(length),
+        method=method,
+        quality=flags or ["ok"],
+        disposition="accepted",
     )
 
 
@@ -207,14 +238,32 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
     if waist is None or neck is None:
         return measurements, landmarks
 
-    facing, facing_flags = estimate_facing(mesh)
+    facing = estimate_facing(mesh)
+    landmarks["facing"] = facing
+    # spec `requires: [front_back_orientation]` — with the 180-degree
+    # ambiguity unresolved, every back-neck-dependent measurement refuses
+    # to produce a number rather than guessing a side
+    if "orientation_unknown" in facing.flags:
+        for name in ("across_back_shoulder_width", "sleeve_length", "back_length"):
+            measurements[name] = MeasurementValue(
+                method=METHOD, quality=["orientation_unknown"] + facing.flags
+            )
+        return measurements, landmarks
+    facing_flags = list(facing.flags)
+    orientation_review = "front_back_low_confidence" in facing.flags
+
+    def orientation_gate(value: MeasurementValue) -> MeasurementValue:
+        if orientation_review and value.selected_value_mm is not None:
+            value.disposition = "manual_review"
+        return value
+
     graph = EdgeGraph(mesh)
 
     back_neck = estimate_back_point_at(
-        mesh, float(neck.position_mm[1]), facing, "back_neck_point"
+        mesh, float(neck.position_mm[1]), facing.direction, "back_neck_point"
     )
     back_waist = estimate_back_point_at(
-        mesh, float(waist.position_mm[1]), facing, "back_waist_point"
+        mesh, float(waist.position_mm[1]), facing.direction, "back_waist_point"
     )
     if back_neck is not None:
         back_neck.quality_flags += facing_flags
@@ -226,7 +275,9 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         length, flags = surface_path_length_mm(
             graph, [back_neck.position_mm, back_waist.position_mm]
         )
-        measurements["back_length"] = _length_value(length, flags + facing_flags, METHOD)
+        measurements["back_length"] = orientation_gate(
+            _length_value(length, flags + facing_flags, METHOD)
+        )
 
     shoulders = estimate_shoulder_points(mesh, armpit) if armpit is not None else None
     if shoulders is not None and back_neck is not None:
@@ -236,9 +287,11 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         length, flags = surface_path_length_mm(
             graph, [left.position_mm, back_neck.position_mm, right.position_mm]
         )
-        measurements["across_back_shoulder_width"] = _length_value(
-            length, flags + ["acromion_approximation"], METHOD
-        )
+        measurements["across_back_shoulder_width"] = orientation_gate(_length_value(
+            length,
+            flags + ["acromion_approximation"] + left.quality_flags + facing_flags,
+            METHOD,
+        ))
 
         wrist_left, wrist_right = estimate_wrist_points(mesh, armpit)
         wrist = wrist_right if wrist_right is not None else wrist_left
@@ -248,10 +301,11 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
             length, flags = surface_path_length_mm(
                 graph, [back_neck.position_mm, shoulder.position_mm, wrist.position_mm]
             )
-            measurements["sleeve_length"] = _length_value(
+            measurements["sleeve_length"] = orientation_gate(_length_value(
                 length,
-                flags + ["elbow_waypoint_omitted_straight_hanging_arm"],
+                flags + ["elbow_waypoint_omitted_straight_hanging_arm"]
+                + wrist.quality_flags + facing_flags,
                 METHOD,
-            )
+            ))
 
     return measurements, landmarks

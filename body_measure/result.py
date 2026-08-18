@@ -20,6 +20,11 @@ class MeasurementValue:
     selection_method: str | None = None
     method: str | None = None
     quality: list[str] = field(default_factory=lambda: ["not_implemented"])
+    #: accepted | manual_review | rejected — manual_review values may be
+    #: displayed but are excluded from headline (accepted) statistics
+    disposition: str = "rejected"
+    #: {"chord_mm": float, "ratio": float} when a scan hole was closed
+    gap: dict | None = None
 
 
 @dataclass

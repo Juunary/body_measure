@@ -10,7 +10,7 @@ metadata — this is what makes explicit units possible):
 - free_fusion: scan.ply in metres with an unverified axis convention —
   refused until verified (units/orientation are never guessed).
 
-Ground truth: each measurement value is compared against the CSV of the
+Dataset reference: each measurement value is compared against the CSV of the
 SAME pipeline as the mesh; portal_mx and free_fusion disagree with each
 other (different capture sessions/devices), so mixing them would fold
 device disagreement into our error numbers.
@@ -29,7 +29,7 @@ from .base import Adapter, NormalizedBodySurface
 # Mapped by DEFINITION, not by name: our spec waist is the minimum torso
 # girth, which is Texel's m102 — not m16 "Waist Girth" (5.3.10, natural
 # waist level; observed ~20 mm systematically above the minimum on Part 1).
-GT_IDS = {
+REF_IDS = {
     "chest_circumference": "m5",           # Bust/Chest Girth, 5.3.4
     "waist_circumference": "m102",         # Minimum Waist Girth (no clause) — matches spec definition
     "neck_circumference": "m11",           # Neck Base Girth, 5.3.3
@@ -43,6 +43,9 @@ AUX_IDS = {
     "stature": "m12",                      # 5.1.1
     "waist_height": "m43",                 # 5.1.10
     "waist_girth_iso_5_3_10": "m16",       # natural-waist-level girth, definition differs from spec
+    "outer_arm_length": "m2",              # 5.7.8 — sleeve segment audit (approximate mapping)
+    "shoulder_length": "m36",              # 5.4.1 — side-neck origin: MISMATCH with our back-neck segment
+    "back_neck_to_wrist": "m55",           # 5.4.17 — duplicate of the sleeve reference for audits
     "neck_girth_middle": "m87",            # 5.3.2 — horizontal v1 slice may land here instead of m11
     "bust_girth_contoured": "m44",         # 5.3.5
     "chest_girth_at_axilla": "m45",        # 5.3.6
@@ -55,7 +58,7 @@ _CM_TO_MM = 10.0
 class TexelAdapter(Adapter):
     name = "texel"
     source_type = "dataset_scan"
-    provides = frozenset(GT_IDS)
+    provides = frozenset(REF_IDS)
 
     def persons(self, root: Path, part: str = "Part1") -> list[Path]:
         base = Path(root) / part
@@ -93,13 +96,13 @@ class TexelAdapter(Adapter):
                     continue
         return values
 
-    def ground_truth(self, path: Path, *, pipeline: str = "portal_mx", **kwargs) -> dict[str, float]:
+    def dataset_reference(self, path: Path, *, pipeline: str = "portal_mx", **kwargs) -> dict[str, float]:
         raw = self._csv_values(path, pipeline)
         return {
-            name: raw[mid] * _CM_TO_MM for name, mid in GT_IDS.items() if mid in raw
+            name: raw[mid] * _CM_TO_MM for name, mid in REF_IDS.items() if mid in raw
         }
 
-    def aux(self, path: Path, *, pipeline: str = "portal_mx") -> dict[str, float]:
+    def aux_reference(self, path: Path, *, pipeline: str = "portal_mx") -> dict[str, float]:
         raw = self._csv_values(path, pipeline)
         return {
             name: raw[mid] * _CM_TO_MM for name, mid in AUX_IDS.items() if mid in raw

@@ -45,7 +45,7 @@ portal_mx CSV는 ISO 8559-1 조항 번호가 붙은 100+ 항목, **cm 단위, �
 
 - 정의 일치 GT: **NeckBase_Circ**(목밑둘레, spec 일치!) 평균 −1.5mm, **CHEST_Circ** 평균 +18.5mm
 - **waist는 TC2에 최소둘레 정의가 없음** (MaxWAIST/TrouserWAIST뿐) → GT 아닌 aux
-- **스캔에 구멍 많음**(open_loops_present) → gap-closure(틈 ≤ 둘레 20%, `gap_closed_open_loop` 플래그) 도입으로 7/10 정상. 나머지 3건은 구멍이 커서 플래그와 함께 깨진 값/저신뢰 — 후속 개선 항목
+- **스캔에 구멍 많음**(open_loops_present) → gap-closure 3등급(accept ≤30mm AND ≤5% / manual_review ≤120mm AND ≤20% / reject→null, reject 후 다른 루프 재탐색 금지) 도입. **7/10에서 몸통 단면 선택과 인체 범위 내 측정값 산출을 복구했으며, 정확도는 별도로 검증되지 않았다.** 나머지 3건은 구멍이 커서 reject/저신뢰 — 후속 개선 항목
 - OBJ 단위는 피험자별 Head_Top_Height(cm)와 대조해 검증 (추측 아님)
 
 ## T-pose 구현 간 비교 결과 (synthetic_agreement, 2026-08-17)

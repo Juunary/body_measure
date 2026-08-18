@@ -1,3 +1,5 @@
+﻿> [내부 개발 회고 / internal development retrospective — informal] 공식 수치·판정은 docs/report-formal.ko.md / .en.md 참조
+
 # body-measure 개발 보고서 — Slice 0~5 전 과정
 
 작성일: 2026-08-17 · 대상: Maß-DPP / 3D 바디스캐너 선행 소프트웨어

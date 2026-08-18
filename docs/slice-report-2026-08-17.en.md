@@ -1,3 +1,5 @@
+﻿> [내부 개발 회고 / internal development retrospective — informal] 공식 수치·판정은 docs/report-formal.ko.md / .en.md 참조
+
 # body-measure Development Report — The Full Journey Through Slices 0–5
 
 Date: 2026-08-17 · Context: Maß-DPP / 3D body scanner pre-arrival software

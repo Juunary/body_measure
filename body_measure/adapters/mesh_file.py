@@ -1,5 +1,5 @@
 """Generic mesh-file adapter (OBJ/PLY/STL). No metadata, so the unit must
-be passed explicitly — this adapter provides no ground truth."""
+be passed explicitly — this adapter provides no reference values."""
 from __future__ import annotations
 
 from pathlib import Path

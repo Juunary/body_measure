@@ -153,12 +153,15 @@ or scanner software provides palpated-equivalent landmarks.
 
 **Decided:** All side-dependent logic (chest arm-clip bounds, shoulder
 creases, wrist side assignment) uses a body lateral axis estimated from
-the line between the two arm-loop centroids at the armpit slice, with
-cross-section PCA only as a fallback. World x is never assumed — the
-robustness battery showed yaw+translation breaking chest by +142 mm under
-the world-x version, and a scanner will not guarantee subject alignment.
-PCA alone is also insufficient: a torso slice can be deeper than wide
-(Texel Woman4), sending the PCA major axis front-back.
+the line between the two arm-loop centroids at the armpit slice — stable
+on the poses tested so far (Texel Part 1, generated SMPL bodies) — with
+cross-section PCA as a flagged fallback (`lateral_axis_pca_fallback`,
+propagated into every dependent measurement; unvalidated for asymmetric
+or single-arm bodies). World x is never assumed — the robustness battery
+showed yaw+translation shifting chest by +142 mm under the world-x
+version, and a scanner will not guarantee subject alignment. PCA alone is
+also insufficient: a torso slice can be deeper than wide (Texel Woman4),
+sending the PCA major axis front-back.
 
 **Rules out:** World-axis assumptions in measurement code; PCA-primary
 lateral estimation.

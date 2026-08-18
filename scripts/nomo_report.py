@@ -39,8 +39,8 @@ def main() -> int:
         except (ValueError, FileNotFoundError) as exc:
             print(f"| {subject} | — | — | — | {exc} |")
             continue
-        gt = adapter.checked_ground_truth(subject)
-        aux = adapter.aux(subject)
+        gt = adapter.checked_dataset_reference(subject)
+        aux = adapter.aux_reference(subject)
         measurements, _ = run_estimated_circumferences(mesh)
 
         def cell(name):

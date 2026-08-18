@@ -12,14 +12,10 @@ import argparse
 import sys
 from pathlib import Path
 
-import numpy as np
-
 from .adapters.base import UnitError
 from .adapters.mesh_file import MeshFileAdapter
 from .canonicalize import body_axis_point, canonicalize
-from .measure.circumference import measure_circumference
-from .measure.slicing import project_axis_to_plane, select_torso_loop, slice_mesh
-from .result import MeasurementValue, empty_result
+from .result import empty_result
 from .spec import load_spec
 
 EXIT_OK = 0
@@ -112,31 +108,18 @@ def _measure(args: argparse.Namespace) -> int:
         result.measurements.update(measurements)
         result.landmarks.update({name: lm.to_dict() for name, lm in landmarks.items()})
     elif args.waist_height is not None:
+        from .measure.measurements import circumference_at_height
+
         axis2d = body_axis_point(mesh)
-        origin = np.array([0.0, args.waist_height, 0.0])
-        normal = np.array([0.0, 1.0, 0.0])
-        loops = slice_mesh(mesh, origin, normal)
-        selection = select_torso_loop(loops, project_axis_to_plane(axis2d, origin, normal))
-        if selection is None:
-            result.measurements["waist_circumference"] = MeasurementValue(
-                method="plane_slice", quality=["no_closed_loop_at_height"]
-            )
-        else:
-            circ = measure_circumference(selection.loop)
-            result.measurements["waist_circumference"] = MeasurementValue(
-                raw_contour_mm=circ.raw_contour_mm,
-                taut_tape_hull_mm=circ.taut_tape_hull_mm,
-                selected_value_mm=circ.selected_value_mm,
-                selection_method=circ.selection_method,
-                method="plane_slice",
-                quality=circ.quality_flags + selection.quality_flags or ["ok"],
-            )
-            result.landmarks["waist_level"] = {
-                "position_mm": [float(axis2d[0]), args.waist_height, float(axis2d[1])],
-                "confidence": selection.confidence,
-                "method": "manual_height",
-                "quality_flags": selection.quality_flags,
-            }
+        result.measurements["waist_circumference"] = circumference_at_height(
+            mesh, args.waist_height
+        )
+        result.landmarks["waist_level"] = {
+            "position_mm": [float(axis2d[0]), args.waist_height, float(axis2d[1])],
+            "confidence": 1.0,
+            "method": "manual_height",
+            "quality_flags": [],
+        }
 
     payload = result.to_json()
     if args.out:

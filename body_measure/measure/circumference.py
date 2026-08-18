@@ -88,9 +88,10 @@ def clipped_circumference_xz(
 
 def measure_circumference(loop: SliceLoop, *, close_gap: bool = False) -> CircumferenceResult:
     if not loop.closed:
-        from .slicing import MAX_GAP_RATIO, loop_gap_ratio
+        from .slicing import REJECTED, gap_disposition
 
-        if not (close_gap and loop_gap_ratio(loop) <= MAX_GAP_RATIO):
+        disposition, _, _ = gap_disposition(loop)
+        if not close_gap or disposition == REJECTED:
             return CircumferenceResult(
                 raw_contour_mm=polyline_length(loop.points, closed=False),
                 taut_tape_hull_mm=None,
@@ -98,12 +99,13 @@ def measure_circumference(loop: SliceLoop, *, close_gap: bool = False) -> Circum
                 selection_method=None,
                 quality_flags=["open_loop"],
             )
-        # scan hole: the closing chord stands in for the tape crossing it
+        # scan hole within tier bounds: the closing chord stands in for the
+        # tape crossing it; the tier flag itself comes from the selection
         raw = polyline_length(loop.points, closed=True)
         hull = hull_perimeter(loop.points2d)
         if hull is None:
             return CircumferenceResult(raw, None, None, None, ["degenerate_hull"])
-        return CircumferenceResult(raw, hull, hull, PROVISIONAL_SELECTION, ["gap_closed_open_loop"])
+        return CircumferenceResult(raw, hull, hull, PROVISIONAL_SELECTION, [])
     raw = polyline_length(loop.points, closed=True)
     hull = hull_perimeter(loop.points2d)
     if hull is None:

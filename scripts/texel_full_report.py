@@ -33,7 +33,7 @@ def main() -> int:
     print("|" + "---|" * (len(spec.names) + 1))
     for person in persons:
         mesh = canonicalize(adapter.load(person))
-        gt = adapter.checked_ground_truth(person)
+        gt = adapter.checked_dataset_reference(person)
         measurements, _ = run_estimated_measurements(mesh)
         cells = []
         for name in spec.names:

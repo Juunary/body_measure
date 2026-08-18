@@ -1,4 +1,4 @@
-"""Adapter contract: units are never guessed; ground truth stays inside
+"""Adapter contract: units are never guessed; dataset reference stays inside
 the declared provides set (dpp-prototype Source philosophy)."""
 from pathlib import Path
 
@@ -37,24 +37,24 @@ def test_metres_are_converted_to_millimetres(cylinder_ply):
     assert extent[2] == pytest.approx(400.0, rel=1e-6)
 
 
-def test_an_adapter_cannot_emit_ground_truth_it_does_not_declare(cylinder_ply):
+def test_an_adapter_cannot_emit_dataset_reference_it_does_not_declare(cylinder_ply):
     class Leaky(MeshFileAdapter):
         name = "leaky"
         provides = frozenset({"waist_circumference"})
 
-        def ground_truth(self, path: Path, **kwargs):
+        def dataset_reference(self, path: Path, **kwargs):
             return {"waist_circumference": 800.0, "hip_circumference": 950.0}
 
     with pytest.raises(AdapterContractError):
-        Leaky().checked_ground_truth(cylinder_ply)
+        Leaky().checked_dataset_reference(cylinder_ply)
 
 
-def test_declared_ground_truth_passes_the_contract_check(cylinder_ply):
+def test_declared_dataset_reference_passes_the_contract_check(cylinder_ply):
     class Honest(MeshFileAdapter):
         name = "honest"
         provides = frozenset({"waist_circumference"})
 
-        def ground_truth(self, path: Path, **kwargs):
+        def dataset_reference(self, path: Path, **kwargs):
             return {"waist_circumference": 800.0}
 
-    assert Honest().checked_ground_truth(cylinder_ply) == {"waist_circumference": 800.0}
+    assert Honest().checked_dataset_reference(cylinder_ply) == {"waist_circumference": 800.0}

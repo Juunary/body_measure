@@ -1,4 +1,4 @@
-"""Slice 1 report: estimated waist vs Texel portal_mx ground truth.
+"""Slice 1 report: estimated waist vs Texel portal_mx dataset reference.
 
 Category: dataset_agreement (agreement with the dataset's automatic
 measurements — NOT a measurement-accuracy or ISO-conformity claim).
@@ -32,8 +32,8 @@ def main() -> int:
     for person in persons:
         surface = adapter.load(person)
         mesh = canonicalize(surface)
-        gt = adapter.checked_ground_truth(person)
-        aux = adapter.aux(person)
+        gt = adapter.checked_dataset_reference(person)
+        aux = adapter.aux_reference(person)
 
         waist = estimate_waist_level(mesh)
         if waist is None:
