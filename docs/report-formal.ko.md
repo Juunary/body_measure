@@ -10,26 +10,28 @@
 
 **Texel — pilot baseline (N=10, portal_mx)**
 
-| 측정 | 매핑 | N (전체/산출/accepted/review/reject) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| waist_circumference | exact | 10/10/10/0/0 | -3.6 | 9.4 | 5.9 | 14.4 | 38.6 |
-| across_back_shoulder_width | exact | 10/9/5/4/1 | +58.4 | 58.4 | 53.7 | 29.2 | 86.3 |
+| 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| waist_circumference | exact | 10/10/10/0/0 | 10 | -3.6 | 9.4 | 5.9 | 14.4 | 38.6 |
+| across_back_shoulder_width | exact | 10/9/5/4/1 | 5 | +58.4 | 58.4 | 53.7 | 29.2 | 86.3 |
 
 ## 참고 비교 — approximate 매핑 (정의 편차 있음, 성능 판정에 사용 금지)
 
-| 측정 | 매핑 | N (전체/산출/accepted/review/reject) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| chest_circumference | approximate | 10/10/10/0/0 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
-| neck_circumference | approximate | 10/10/10/0/0 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
-| sleeve_length | approximate | 10/9/5/4/1 | +197.8 | 197.8 | 211.3 | 48.4 | 239.6 |
-| back_length | approximate | 10/9/5/4/1 | +14.2 | 31.0 | 33.3 | 32.8 | 42.5 |
+| 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
+| neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
+| sleeve_length | approximate | 10/9/5/4/1 | 5 | +197.8 | 197.8 | 211.3 | 48.4 | 239.6 |
+| back_length | approximate | 10/9/5/4/1 | 5 | +14.2 | 31.0 | 33.3 | 32.8 | 42.5 |
 
 **NOMO — pilot baseline (N=10, male)**
 
-| 측정 | 매핑 | N (전체/산출/accepted/review/reject) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| neck_circumference | approximate | 10/10/10/0/0 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
-| chest_circumference | approximate | 10/10/10/0/0 | +14.0 | 48.2 | 37.0 | 66.2 | 170.9 |
+| 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| neck_circumference | approximate | 10/10/10/0/0 | 10 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +14.0 | 48.2 | 37.0 | 66.2 | 170.9 |
+
+Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계산하였다 (`N 통계` 열). `manual_review`와 `reject` 표본은 헤드라인 통계에서 제외하였다. SD는 signed delta의 표본표준편차(`ddof=1`)이다. 소매 구간 감사의 N=9 통계는 산출 가능한 `accepted + manual_review` 전체를 사용했으므로 헤드라인 결과와 모집단이 다르다.
 
 ## Quality bucket 분포 (상호 배타, 그룹 N 합 = 전체 N)
 
@@ -48,10 +50,10 @@
 
 | 측정 | 판정 |
 |---|---|
-| waist_circumference | 기준선 확보 — 참조값 일치도 양호 (실사용 승인 전) |
+| waist_circumference | 기준선 확보 — 현재 6종 중 참조값 대비 가장 낮은 MAE. 실사용 허용오차 미합의로 제작 적용 판정은 보류 |
 | chest_circumference | 연구 단계 — 팔 클리핑 근사 의존, approximate 매핑 |
 | neck_circumference | 연구 단계 — 수평 v1 근사, 일부 큰 편차 원인 분석 필요 |
-| across_back_shoulder_width | 연구 단계 — 견봉 추정 오차, 방향 저신뢰 시 manual_review |
+| across_back_shoulder_width | 정의 매핑 exact — accepted 산출률 50%, 편차 및 방향 신뢰도 개선 필요 |
 | sleeve_length | 정의 불일치 가능성으로 성능 판정 보류 — 편차는 shoulder→wrist 구간에 국소화됨 |
 | back_length | 연구 단계 — 경로·방향 추정 개선 필요 |
 
@@ -65,8 +67,8 @@
 
 ## synthetic_agreement — 동일 랜드마크 높이의 구현 간 비교
 
-| 측정 | bias (mm) | max |d| (mm) | n |
-|---|---|---|---|
+| 측정 | Bias (mm) | Max AE (mm) | N |
+|---|---:|---:|---:|
 | chest_circumference | -0.8 | 18.5 | 9 |
 | waist_circumference | -1.1 | 5.9 | 9 |
 | neck_circumference | +24.3 | 95.0 | 9 |
@@ -83,8 +85,24 @@
 
 ## 실행 정보
 
-- generated (UTC): 2026-08-17T14:22:03+00:00
-- git commit: f84161e34e4e (dirty)
+- generated (UTC): 2026-08-18T08:07:44+00:00
+- git commit: c2089e3c846f809d28525810bb986aaa39647499 — working tree: clean
+- platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 2 (sha256 59eab70bbd5f348d); thresholds sha256 c26b0c82319bbc3c
-- Texel Part 1 persons: 10
+- spec_version 2; spec SHA-256: 59eab70bbd5f348d3a32dd168a8d67a83885ec0614ea3d29d75c64bfc52f39ed
+- thresholds SHA-256: b82c7404b3af248f9bfb3ef70eac5f0f67b97c1580f691d31645282ed4e39be3
+- pytest: ﻿60 passed in 58.79s
+- random seed (SMPL generation): 20260817
+- commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
+- report paths: reports/validation-results.json; docs/report-formal.ko.md; docs/report-formal.en.md
+- Texel Part 1: 10 persons (extracted in place; original archive hash: part1.7z: 5f1e43f9ff68031c316751dc849c75a15f8d66e0b450502d689d2bca2a303c36)
+- NOMO archive SHA-256: nomo400.zip: a4f99a47225f1cca00f7c53c2680de3e6e7beb762ef27db1d8ba71f4741de2e3
+
+## 참고문헌
+
+- ISO 8559-1:2017, Size designation of clothes — Part 1: Anthropometric definitions for body measurement.
+- ISO 20685-1:2018, 3-D scanning methodologies for internationally compatible anthropometric databases — Part 1: Evaluation protocol for body dimensions extracted from 3-D body scans.
+- Texel BodyScan Dataset and Texel BodyFit automatic measurements (CC BY-NC 4.0).
+- Yan, S., Wirta, J., Kämäräinen, J.-K.: Anthropometric clothing measurements from 3D body scans. Machine Vision and Applications 31, 7 (2020). NOMO-3D-400 dataset: doi:10.5281/zenodo.3735905.
+- Bojanić, D.: SMPL-Anthropometry (MIT license). https://github.com/DavidBoja/SMPL-Anthropometry
+- Loper, M., Mahmood, N., Romero, J., Pons-Moll, G., Black, M. J.: SMPL: A Skinned Multi-Person Linear Model. ACM Transactions on Graphics 34(6), 248:1–248:16 (2015).

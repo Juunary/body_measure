@@ -10,26 +10,28 @@ All dataset numbers are **agreement against dataset references** (the datasets' 
 
 **Texel — pilot baseline (N=10, portal_mx)**
 
-| Measurement | Mapping | N (total/computed/accepted/review/rejected) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| waist_circumference | exact | 10/10/10/0/0 | -3.6 | 9.4 | 5.9 | 14.4 | 38.6 |
-| across_back_shoulder_width | exact | 10/9/5/4/1 | +58.4 | 58.4 | 53.7 | 29.2 | 86.3 |
+| Measurement | Mapping | N total/computed/accepted/review/rejected | N stats | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| waist_circumference | exact | 10/10/10/0/0 | 10 | -3.6 | 9.4 | 5.9 | 14.4 | 38.6 |
+| across_back_shoulder_width | exact | 10/9/5/4/1 | 5 | +58.4 | 58.4 | 53.7 | 29.2 | 86.3 |
 
 ## Reference comparisons — approximate mappings (definition deviations; not for performance verdicts)
 
-| Measurement | Mapping | N (total/computed/accepted/review/rejected) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| chest_circumference | approximate | 10/10/10/0/0 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
-| neck_circumference | approximate | 10/10/10/0/0 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
-| sleeve_length | approximate | 10/9/5/4/1 | +197.8 | 197.8 | 211.3 | 48.4 | 239.6 |
-| back_length | approximate | 10/9/5/4/1 | +14.2 | 31.0 | 33.3 | 32.8 | 42.5 |
+| Measurement | Mapping | N total/computed/accepted/review/rejected | N stats | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
+| neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
+| sleeve_length | approximate | 10/9/5/4/1 | 5 | +197.8 | 197.8 | 211.3 | 48.4 | 239.6 |
+| back_length | approximate | 10/9/5/4/1 | 5 | +14.2 | 31.0 | 33.3 | 32.8 | 42.5 |
 
 **NOMO — pilot baseline (N=10, male)**
 
-| Measurement | Mapping | N (total/computed/accepted/review/rejected) | Bias | MAE | Median AE | SD | Max AE |
-|---|---|---|---|---|---|---|---|
-| neck_circumference | approximate | 10/10/10/0/0 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
-| chest_circumference | approximate | 10/10/10/0/0 | +14.0 | 48.2 | 37.0 | 66.2 | 170.9 |
+| Measurement | Mapping | N total/computed/accepted/review/rejected | N stats | Bias | MAE | Median AE | SD | Max AE |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| neck_circumference | approximate | 10/10/10/0/0 | 10 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +14.0 | 48.2 | 37.0 | 66.2 | 170.9 |
+
+Bias, MAE, Median AE, SD, and Max AE are computed over the `accepted` sample only (column `N stats`); `manual_review` and `reject` samples are excluded from headline statistics. SD is the sample standard deviation of the signed deltas (`ddof=1`). The sleeve segment audit's N=9 statistics use all computable `accepted + manual_review` values and therefore describe a different population than the headline results.
 
 ## Quality bucket distribution (mutually exclusive; group Ns sum to total)
 
@@ -48,10 +50,10 @@ Sleeve segment audit (n=9): back_neck→shoulder ↔ m36 is a **mismatch** (m36 
 
 | Measurement | Verdict |
 |---|---|
-| waist_circumference | baseline established — good reference agreement (not production-approved) |
+| waist_circumference | baseline established — lowest MAE against references among the six; production verdict deferred until tolerances are agreed |
 | chest_circumference | research stage — depends on the arm-clip approximation; approximate mapping |
 | neck_circumference | research stage — horizontal v1 approximation; large outliers need analysis |
-| across_back_shoulder_width | research stage — acromion-estimate error; manual_review under low orientation confidence |
+| across_back_shoulder_width | definition mapping exact — accepted coverage 50%; deviation and orientation confidence need improvement |
 | sleeve_length | performance verdict deferred (possible definition mismatch) — the offset localizes in the shoulder→wrist segment |
 | back_length | research stage — path and orientation estimation need refinement |
 
@@ -65,8 +67,8 @@ Front/back orientation is estimated by toe_projection with a reported front_back
 
 ## synthetic_agreement — cross-implementation at identical landmark heights
 
-| Measurement | bias (mm) | max |d| (mm) | n |
-|---|---|---|---|
+| Measurement | Bias (mm) | Max AE (mm) | N |
+|---|---:|---:|---:|
 | chest_circumference | -0.8 | 18.5 | 9 |
 | waist_circumference | -1.1 | 5.9 | 9 |
 | neck_circumference | +24.3 | 95.0 | 9 |
@@ -83,8 +85,24 @@ Body measurements and raw scans are NOT public DPP data; they live in the intern
 
 ## Run information
 
-- generated (UTC): 2026-08-17T14:22:03+00:00
-- git commit: f84161e34e4e (dirty)
+- generated (UTC): 2026-08-18T08:07:44+00:00
+- git commit: c2089e3c846f809d28525810bb986aaa39647499 — working tree: clean
+- platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 2 (sha256 59eab70bbd5f348d); thresholds sha256 c26b0c82319bbc3c
-- Texel Part 1 persons: 10
+- spec_version 2; spec SHA-256: 59eab70bbd5f348d3a32dd168a8d67a83885ec0614ea3d29d75c64bfc52f39ed
+- thresholds SHA-256: b82c7404b3af248f9bfb3ef70eac5f0f67b97c1580f691d31645282ed4e39be3
+- pytest: ﻿60 passed in 58.79s
+- random seed (SMPL generation): 20260817
+- commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
+- report paths: reports/validation-results.json; docs/report-formal.ko.md; docs/report-formal.en.md
+- Texel Part 1: 10 persons (extracted in place; original archive hash: part1.7z: 5f1e43f9ff68031c316751dc849c75a15f8d66e0b450502d689d2bca2a303c36)
+- NOMO archive SHA-256: nomo400.zip: a4f99a47225f1cca00f7c53c2680de3e6e7beb762ef27db1d8ba71f4741de2e3
+
+## References
+
+- ISO 8559-1:2017, Size designation of clothes — Part 1: Anthropometric definitions for body measurement.
+- ISO 20685-1:2018, 3-D scanning methodologies for internationally compatible anthropometric databases — Part 1: Evaluation protocol for body dimensions extracted from 3-D body scans.
+- Texel BodyScan Dataset and Texel BodyFit automatic measurements (CC BY-NC 4.0).
+- Yan, S., Wirta, J., Kämäräinen, J.-K.: Anthropometric clothing measurements from 3D body scans. Machine Vision and Applications 31, 7 (2020). NOMO-3D-400 dataset: doi:10.5281/zenodo.3735905.
+- Bojanić, D.: SMPL-Anthropometry (MIT license). https://github.com/DavidBoja/SMPL-Anthropometry
+- Loper, M., Mahmood, N., Romero, J., Pons-Moll, G., Black, M. J.: SMPL: A Skinned Multi-Person Linear Model. ACM Transactions on Graphics 34(6), 248:1–248:16 (2015).

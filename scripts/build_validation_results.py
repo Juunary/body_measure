@@ -74,7 +74,7 @@ def provenance() -> dict:
         "spec_sha256": sha256(PROJECT_ROOT / "measurement-spec.v1.yaml"),
         "thresholds_sha256": sha256(
             PROJECT_ROOT / "body_measure" / "validate" / "thresholds.py"),
-        "pytest_summary": (pytest_file.read_text(encoding="utf-8").strip()
+        "pytest_summary": (pytest_file.read_text(encoding="utf-8-sig").strip()
                            if pytest_file.exists() else "not recorded"),
         "random_seed": 20260817,  # scripts/generate_smpl_bodies.py SEED
         "validation_commands": [
