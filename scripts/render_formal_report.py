@@ -16,8 +16,8 @@ RESULTS = PROJECT_ROOT / "reports" / "validation-results.json"
 
 VERDICTS = {
     "waist_circumference": {
-        "ko": "기준선 확보 — 참조값 일치도 양호 (실사용 승인 전)",
-        "en": "baseline established — good reference agreement (not production-approved)",
+        "ko": "기준선 확보 — 현재 6종 중 참조값 대비 가장 낮은 MAE. 실사용 허용오차 미합의로 제작 적용 판정은 보류",
+        "en": "baseline established — lowest MAE against references among the six; production verdict deferred until tolerances are agreed",
     },
     "chest_circumference": {
         "ko": "연구 단계 — 팔 클리핑 근사 의존, approximate 매핑",
@@ -28,8 +28,8 @@ VERDICTS = {
         "en": "research stage — horizontal v1 approximation; large outliers need analysis",
     },
     "across_back_shoulder_width": {
-        "ko": "연구 단계 — 견봉 추정 오차, 방향 저신뢰 시 manual_review",
-        "en": "research stage — acromion-estimate error; manual_review under low orientation confidence",
+        "ko": "정의 매핑 exact — accepted 산출률 50%, 편차 및 방향 신뢰도 개선 필요",
+        "en": "definition mapping exact — accepted coverage 50%; deviation and orientation confidence need improvement",
     },
     "sleeve_length": {
         "ko": "정의 불일치 가능성으로 성능 판정 보류 — 편차는 shoulder→wrist 구간에 국소화됨",
@@ -50,10 +50,10 @@ def fmt(v, digits=1):
 
 def measurement_table(measures: dict, lang: str, only_mapping=None, exclude_mapping=None):
     header = {
-        "ko": "| 측정 | 매핑 | N (전체/산출/accepted/review/reject) | Bias | MAE | Median AE | SD | Max AE |",
-        "en": "| Measurement | Mapping | N (total/computed/accepted/review/rejected) | Bias | MAE | Median AE | SD | Max AE |",
+        "ko": "| 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |",
+        "en": "| Measurement | Mapping | N total/computed/accepted/review/rejected | N stats | Bias | MAE | Median AE | SD | Max AE |",
     }[lang]
-    lines = [header, "|" + "---|" * 8]
+    lines = [header, "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
     for name, m in measures.items():
         if only_mapping and m["mapping"] not in only_mapping:
             continue
@@ -67,10 +67,26 @@ def measurement_table(measures: dict, lang: str, only_mapping=None, exclude_mapp
         lines.append(
             f"| {name} | {m['mapping']} | "
             f"{s['n_total']}/{s['n_computed']}/{s['n_accepted']}/{s['n_manual_review']}/{s['n_rejected']} | "
+            f"{s['n_accepted']} | "
             f"{fmt(s['bias'])} | {plain(s['mae'])} | {plain(s['median_ae'])} | "
             f"{plain(s['sample_sd'])} | {plain(s['max_ae'])} |"
         )
     return "\n".join(lines) if len(lines) > 2 else ""
+
+
+POPULATION_NOTE = {
+    "ko": ("Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계산하였다"
+           " (`N 통계` 열). `manual_review`와 `reject` 표본은 헤드라인 통계에서 제외하였다."
+           " SD는 signed delta의 표본표준편차(`ddof=1`)이다. 소매 구간 감사의 N=9 통계는"
+           " 산출 가능한 `accepted + manual_review` 전체를 사용했으므로 헤드라인 결과와"
+           " 모집단이 다르다."),
+    "en": ("Bias, MAE, Median AE, SD, and Max AE are computed over the `accepted` sample"
+           " only (column `N stats`); `manual_review` and `reject` samples are excluded"
+           " from headline statistics. SD is the sample standard deviation of the signed"
+           " deltas (`ddof=1`). The sleeve segment audit's N=9 statistics use all"
+           " computable `accepted + manual_review` values and therefore describe a"
+           " different population than the headline results."),
+}
 
 
 def bucket_table(measures: dict, lang: str):
@@ -210,7 +226,8 @@ def render(lang: str, data: dict) -> str:
         if nomo:
             parts += [f"**NOMO — {nomo['label']}**", "",
                       measurement_table(nomo["measurements"], lang, exclude_mapping=set()), ""]
-        parts += [T["buckets"], "", bucket_table(texel["measurements"], lang), "",
+        parts += [POPULATION_NOTE[lang], "",
+                  T["buckets"], "", bucket_table(texel["measurements"], lang), "",
                   sleeve_audit_block(texel["sleeve_segment_audit"], lang), ""]
 
     parts += [T["verdicts"], "",
@@ -226,19 +243,37 @@ def render(lang: str, data: dict) -> str:
     parts += [T["gap"], "", T["orient"], ""]
 
     if tpose.get("available"):
-        rows = [{"ko": "| 측정 | bias (mm) | max |d| (mm) | n |",
-                 "en": "| Measurement | bias (mm) | max |d| (mm) | n |"}[lang], "|---|---|---|---|"]
+        rows = [{"ko": "| 측정 | Bias (mm) | Max AE (mm) | N |",
+                 "en": "| Measurement | Bias (mm) | Max AE (mm) | N |"}[lang],
+                "|---|---:|---:|---:|"]
         for name, s in tpose["summaries"].items():
             rows.append(f"| {name} | {s['bias']:+.1f} | {s['max_ae']:.1f} | {s['n']} |")
         parts += [T["tpose"], "", "\n".join(rows), ""]
 
     parts += [T["inst"], "", T["dpp"], "", T["prov"], ""]
+    tree = {"ko": "clean", "en": "clean"}[lang] if not p["git_dirty"] else "DIRTY"
     parts += [
         f"- generated (UTC): {p['generated_utc']}",
-        f"- git commit: {p['git_commit'][:12]}{' (dirty)' if p['git_dirty'] else ''}",
+        f"- git commit: {p['git_commit']} — working tree: {tree}",
+        f"- platform: {p.get('platform', '—')}",
         f"- python {p['python']}; " + ", ".join(f"{k} {v}" for k, v in p["packages"].items()),
-        f"- spec_version {p['spec_version']} (sha256 {p['spec_sha256']}); thresholds sha256 {p['thresholds_sha256']}",
-        f"- Texel Part 1 persons: {p['texel_part1_persons']}",
+        f"- spec_version {p['spec_version']}; spec SHA-256: {p['spec_sha256']}",
+        f"- thresholds SHA-256: {p['thresholds_sha256']}",
+        f"- pytest: {p.get('pytest_summary', '—')}",
+        f"- random seed (SMPL generation): {p.get('random_seed', '—')}",
+        "- commands: " + "; ".join(p.get("validation_commands", [])),
+        "- report paths: " + "; ".join(p.get("report_paths", [])),
+        f"- Texel Part 1: {p['texel_part1_persons']} persons (extracted in place; original archive hash: {p.get('texel_archive_sha256', 'unavailable')})",
+        f"- NOMO archive SHA-256: {p.get('nomo_archive_sha256', 'unavailable')}",
+        "",
+        {"ko": "## 참고문헌", "en": "## References"}[lang],
+        "",
+        "- ISO 8559-1:2017, Size designation of clothes — Part 1: Anthropometric definitions for body measurement.",
+        "- ISO 20685-1:2018, 3-D scanning methodologies for internationally compatible anthropometric databases — Part 1: Evaluation protocol for body dimensions extracted from 3-D body scans.",
+        "- Texel BodyScan Dataset and Texel BodyFit automatic measurements (CC BY-NC 4.0).",
+        "- Yan, S., Wirta, J., Kämäräinen, J.-K.: Anthropometric clothing measurements from 3D body scans. Machine Vision and Applications 31, 7 (2020). NOMO-3D-400 dataset: doi:10.5281/zenodo.3735905.",
+        "- Bojanić, D.: SMPL-Anthropometry (MIT license). https://github.com/DavidBoja/SMPL-Anthropometry",
+        "- Loper, M., Mahmood, N., Romero, J., Pons-Moll, G., Black, M. J.: SMPL: A Skinned Multi-Person Linear Model. ACM Transactions on Graphics 34(6), 248:1–248:16 (2015).",
         "",
     ]
     return "\n".join(parts)

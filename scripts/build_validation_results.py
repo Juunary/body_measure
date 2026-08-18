@@ -49,20 +49,48 @@ def provenance() -> dict:
         return subprocess.run(["git", *args], cwd=PROJECT_ROOT, capture_output=True,
                               text=True).stdout.strip()
 
-    def sha256(path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    def sha256(path: Path) -> str:  # full 64-hex digest, never a prefix
+        digest = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
+    def archive_hash(*globs: str) -> str:
+        for pattern in globs:
+            for found in sorted(PROJECT_ROOT.glob(pattern)):
+                return f"{found.name}: {sha256(found)}"
+        return "unavailable"
+
+    pytest_file = PROJECT_ROOT / "reports" / "pytest-summary.txt"
     return {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git("rev-parse", "HEAD"),
         "git_dirty": bool(git("status", "--porcelain")),
+        "platform": platform.platform(),
         "python": platform.python_version(),
         "packages": {p: pkg_version(p) for p in ("numpy", "trimesh", "shapely", "scipy")},
         "spec_version": load_spec().version,
         "spec_sha256": sha256(PROJECT_ROOT / "measurement-spec.v1.yaml"),
         "thresholds_sha256": sha256(
             PROJECT_ROOT / "body_measure" / "validate" / "thresholds.py"),
+        "pytest_summary": (pytest_file.read_text(encoding="utf-8").strip()
+                           if pytest_file.exists() else "not recorded"),
+        "random_seed": 20260817,  # scripts/generate_smpl_bodies.py SEED
+        "validation_commands": [
+            "python -m pytest tests",
+            "python scripts/build_validation_results.py",
+            "python scripts/render_formal_report.py",
+        ],
+        "report_paths": [
+            "reports/validation-results.json",
+            "docs/report-formal.ko.md",
+            "docs/report-formal.en.md",
+        ],
         "texel_part1_persons": len(TexelAdapter().persons(TEXEL_ROOT)),
+        "texel_archive_sha256": archive_hash("data/external/texel/*.7z",
+                                             "data/external/texel/*.zip"),
+        "nomo_archive_sha256": archive_hash("data/external/nomo/*.zip"),
     }
 
 
