@@ -238,3 +238,86 @@ public material; committing any dataset file.
 
 **Revisit if:** A dataset's license changes or ITA legal advises
 otherwise.
+
+## 16. A claim is derived from its reference, never typed by hand
+
+**Decided:** `body_measure/validate/claims.py` holds the vocabulary of
+pathways and reference kinds, and the claim category follows from the
+PAIR. The same reference licenses different claims depending on what was
+measured against it: a clothed scan against a body reference yields
+`clothing_offset` (it characterises the garment), an inferred body against
+that same reference yields `reference_surface_agreement` (it characterises
+the inference). Undefined pairs raise rather than defaulting, and
+`manual_reference` is registered as `available=False`, so
+`measurement_accuracy` is unreachable in code until a tape and real
+subjects exist.
+
+**Rules out:** hand-labelling a comparison; an inferred-body agreement
+being presented as accuracy; a provided registration being described as a
+minimal scan.
+
+**Revisit if:** a manual reference becomes obtainable (flip `available`),
+or a new pathway/reference is added — deliberately, as a new entry.
+
+## 17. What SIZER ships is audited before an adapter assumes it
+
+**Decided:** `scripts/audit_sizer_manifest.py` runs before
+`adapters/sizer.py` exists. The published description does not establish
+that every clothed scan has an independent raw minimal scan in 1:1
+correspondence, and "body under clothing" is not the same reference as "a
+provided registration". The audit reports which subjects actually have a
+`raw_minimal_scan` and **downgrades the permitted claim wording** to
+"provided body-reference surface" when they do not. Unrecognised files
+become `unclassified` and are reported, never guessed into a role.
+
+The data model is `Subject ├─ BodyReference 0..N └─ ClothedObservation
+1..N`, not one clothed plus one minimal surface per subject.
+
+**Rules out:** an adapter built on an assumed pairing; a results sentence
+that claims more than the data supports.
+
+**Revisit if:** the real download shows a structure the role patterns miss
+— extend `ROLE_PATTERNS`, do not loosen the classifier.
+
+## 18. Train/test split is subject-disjoint and locked before any statistic
+
+**Decided:** SIZER repeats a subject across garments and sizes, so a
+scan-level random split puts one body shape on both sides. The split is
+subject-disjoint, decided in the audit step, and hashed into
+`reports/split-manifest.json`. Train-only subjects feed the C1b gap
+atlas, the C2 priors and the C3 simulator calibration; test subjects
+contribute to no prior, threshold or calibration.
+
+**Rules out:** computing a clothing offset over all subjects and then
+evaluating on those same subjects.
+
+**Revisit if:** the split policy changes — the hash makes that visible.
+
+## 19. The export path was proven before an architecture was chosen
+
+**Decided:** `scripts/probe_export_path.py` runs a deliberately
+export-hostile throwaway model (runtime kNN, the pattern DGCNN-class
+encoders are built from) through torch.export → ONNX → ONNX Runtime CPU,
+at 4k and 8k points, before any encoder is selected. Measured on this
+machine (torch 2.13.0+cpu): export ok at both sizes, CPU parity 3e-8 to
+6e-8 (float32 noise), dynamic batch ok, ONNX CPU p50 71 ms at 4k and
+224 ms at 8k.
+
+Three environment constraints were found and are recorded in
+`requirements-inference.txt`:
+- export with **batch >= 2** — torch.export specialises a dim it only ever
+  sees as 1 and then refuses the dynamic constraint;
+- `onnxscript` is required by `torch.onnx.export` and is not pulled in;
+- **`PYTHONUTF8=1` on a cp949 console** — the exporter's progress output
+  contains characters cp949 cannot encode and kills the run.
+
+The probe's peak RSS (1.9 GB at 4k, 6.4 GB at 8k) is the cost of its
+O(N^2) distance matrix and is **not** a budget for a real encoder — it is
+the pattern a real encoder must avoid.
+
+**Rules out:** discovering after a GPU training run that the model cannot
+be exported for CPU inference; TorchScript as the primary path (deprecated
+in torch 2.13).
+
+**Revisit if:** the chosen encoder introduces control flow the probe did
+not cover — rerun the probe with that model before training.

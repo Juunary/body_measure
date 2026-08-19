@@ -9,3 +9,14 @@ __pycache__/
 external/
 .omc/
 data/generated/
+
+# 착의 스캔 워크스트림 — LICENSE-G0 참조.
+# 학습 가중치는 CAPE/SIZER 파생물로 취급: 사용 범위 서면 확인 전까지 배포 금지.
+checkpoints/
+*.onnx
+*.pt
+*.pth
+*.ckpt
+# 라이선스 원문은 보관하되 커밋하지 않음 (README 체크리스트만 추적)
+docs/licenses/*
+!docs/licenses/README.md

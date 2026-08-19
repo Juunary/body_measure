@@ -31,7 +31,9 @@ class MeasurementValue:
 class MeasurementResult:
     source_type: str
     source_id: str
-    pathway: str                      # "estimated" | "fitted_vertices"
+    #: one of validate.claims.PATHWAYS — how the measured body was obtained.
+    #: "inferred_*" pathways mean the body was reconstructed, not scanned.
+    pathway: str
     measurements: dict[str, MeasurementValue]
     pose: str = "standing"
     units: str = "mm"

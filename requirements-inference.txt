@@ -1,0 +1,19 @@
+# Clothed-scan body inference (C2 optimization + C4 neural network).
+# The measurement core never imports any of this — torch stays inside
+# body_measure/inference/ and scripts/, the same isolation as
+# requirements-smpl.txt.
+#
+# Install (CPU):
+#   pip install -r requirements-inference.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+#
+# On a Korean (cp949) console, run export scripts with PYTHONUTF8=1 — the
+# ONNX exporter prints characters cp949 cannot encode and the run dies.
+# Verified by scripts/probe_export_path.py.
+torch
+smplx>=0.1.28
+
+# Export path: torch.export -> ONNX -> ONNX Runtime CPU.
+# TorchScript is deprecated in torch 2.13; onnxscript is required by
+# torch.onnx.export and is not pulled in automatically.
+onnxscript
+onnxruntime
