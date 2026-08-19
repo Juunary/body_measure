@@ -321,3 +321,43 @@ in torch 2.13).
 
 **Revisit if:** the chosen encoder introduces control flow the probe did
 not cover — rerun the probe with that model before training.
+
+## 20. A clothed scan loses four of seven measurements — and the core has no human-range bound
+
+**Decided:** The C1 skeleton runs on HSRD-100 (CC BY 4.0), the only
+dataset usable while SIZER licence review is open. HSRD ships **no
+same-subject body reference**, so `HsrdAdapter.fit_references` is empty
+and `scripts/clothing_offset_report.py` emits `offset.status:
+"unavailable"` with a reason instead of a number. The offset itself
+belongs to SIZER.
+
+What the skeleton did establish, on a jacket/jeans/boots scan:
+
+| measurement | clothed result |
+|---|---|
+| neck girth | the only clean one — and the only LOD-stable one (max abs delta 2.8 mm) |
+| chest girth | produced, arm-clipped, LOD delta 154 mm |
+| waist girth | produced, `minimum_at_search_boundary`, LOD delta **808 mm** |
+| upper-arm girth | rejected — `no_arm_loop_in_upper_arm_window` (a jacket merges arm into torso) |
+| shoulder width, sleeve, back length | rejected — `disconnected_surface_path` (the clothed mesh is several shells) |
+
+**The finding that matters most is a gap in the core:** at the coarse LOD
+the pipeline returned a waist of **140.9 mm** and an upper-arm girth of
+**174.7 mm** with disposition `accepted`. No human has those. The
+measurement core has **no plausibility bound at all** — it flags low
+confidence but never asks whether a body could have the number.
+
+The report therefore carries a REPORT-level `implausible` field with a
+generous adult range per measurement, so a future offset table cannot be
+averaged over impossible values. The core was deliberately left unchanged:
+choosing a hard range is a design decision with real cost (unusual bodies,
+children, per-garment inflation) and belongs in its own decision, not in a
+skeleton run.
+
+**Rules out:** computing a clothing offset from HSRD; building the SIZER
+offset table without a plausibility filter; assuming clothed scans degrade
+gracefully — four of seven measurements do not degrade, they disappear.
+
+**Revisit if:** a human-range gate is added to the core (then the report
+filter becomes redundant), or `disconnected_surface_path` is addressed —
+it alone costs all three length measurements on clothed scans.

@@ -56,6 +56,12 @@ class Adapter(ABC):
     #: measurement names (from measurement-spec) this adapter can supply
     #: dataset reference values for. Empty for sources without references.
     provides: frozenset[str] = frozenset()
+    #: Body surfaces this adapter can supply to compare an inferred body
+    #: against — vocabulary from validate.claims.REFERENCE_KINDS. Kept
+    #: ORTHOGONAL to `provides`: a dataset can ship a body registration
+    #: without shipping a single tape measurement, and conflating the two
+    #: is how "agreement with a registration" turns into "accuracy".
+    fit_references: frozenset[str] = frozenset()
 
     @abstractmethod
     def load(self, path: Path, **kwargs) -> NormalizedBodySurface: ...

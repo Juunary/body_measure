@@ -67,4 +67,11 @@ body-part 면 세그멘테이션으로 목만 자르는 차이. 주의: estimate
 2. **3DPatBody**: 공개 저장소에서 PLY+CSV/JSON → `data/external/patbody/`
 3. **NOMO-3D-400**: 아카이브 → `data/external/nomo/` (재배포 금지 — 사본 이동 금지)
 4. **HSRD-100**: 선별 인물의 LOD1(1M)·LOD2(100K)만 → `data/external/hsrd/`
+   실측 확인된 규약 (HSR0015-Body-009): **Z-up, 미터, 바닥 z=0**, LOD 디렉터리별 OBJ 1개.
+   메타데이터 키는 배포 JSON의 Title Case(`"Upper Body Clothing"`)이며 웹 API의
+   snake_case가 아니다. **착의 스캔은 피험자보다 크다** — 부츠·모자가 키를 더하고
+   빼는 요소는 없으므로(관측 +56mm) 단위 검증 허용범위는 한쪽으로 열어 둔다
+   (`STATURE_TOLERANCE_LOW/HIGH = 0.95/1.20`).
+   **정량 근거로는 사용 금지**: 동일인 body-under-clothing 참조가 없어 의류 오프셋을
+   계산할 수 없다(`fit_references` 비어 있음). 공개 그림·실패/기권 데모 전용.
 5. **SMPL**: 등록 후 neutral 모델 → `models/smpl/` (Slice 4에서만 필요)
