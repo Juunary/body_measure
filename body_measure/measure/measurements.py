@@ -272,6 +272,12 @@ def measure_upper_arm_girth(
     return value
 
 
+#: Flags that mean the path was walked successfully but not between the
+#: landmarks it was supposed to connect. The number is real geometry and
+#: is kept, but it is not the measurement, so it never lands as accepted.
+_PATH_NOT_TRUSTED = {"surface_path_detour", "waypoint_off_main_surface"}
+
+
 def _length_value(length: float | None, flags: list[str], method: str) -> MeasurementValue:
     if length is None:
         return MeasurementValue(method=method, quality=flags or ["path_failed"])
@@ -279,7 +285,9 @@ def _length_value(length: float | None, flags: list[str], method: str) -> Measur
         selected_value_mm=float(length),
         method=method,
         quality=flags or ["ok"],
-        disposition="accepted",
+        disposition=(
+            "manual_review" if set(flags) & _PATH_NOT_TRUSTED else "accepted"
+        ),
     )
 
 

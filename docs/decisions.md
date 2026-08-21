@@ -361,3 +361,54 @@ gracefully — four of seven measurements do not degrade, they disappear.
 **Revisit if:** a human-range gate is added to the core (then the report
 filter becomes redundant), or `disconnected_surface_path` is addressed —
 it alone costs all three length measurements on clothed scans.
+
+## 21. `disconnected_surface_path` was a loader defect, not a hole in the body
+
+**Decided:** weld duplicate-position vertices in `canonicalize` (on by
+default, `weld=False` for fixed-topology callers), and make the remaining
+surface-path failures distinguishable from one another.
+
+The flag cost all three length measurements on every clothed scan, and the
+name invited the wrong diagnosis — a jacket looked like it had torn the
+surface. It had not. HSRD's OBJ splits a vertex once per texture chart, so
+the same 3D point arrives under several indices: **1348 vertex-graph
+components at lod2, the largest holding 1.94 % of vertices.** Measured
+directly, 69 % of vertices had a cross-component neighbour at **0.0000 mm**
+— coincident duplicates, not gaps. Merging by position gives one component
+at lod2 and 99.98 % at lod1, with bounds and area unchanged.
+
+It cannot be fixed in the adapter: trimesh keeps UV-split vertices apart
+while texture data is attached. By the time a surface reaches
+`canonicalize` the UVs are gone and position is all that is left to merge
+on. Texel was already effectively connected, so this is a no-op there —
+92 tests passed unchanged before the guards below were added.
+
+**The fix alone would have made the pipeline worse.** A connected mesh
+always yields *some* number, so three measurements went from `null` to a
+`clean` bucket — and two of the new values are impossible (back length
+944 mm, sleeve 1114 mm). A quiet wrong answer is worse than an honest
+refusal, so two guards ship with the weld:
+
+- `surface_path_detour` — path length over straight-line chord above 1.5.
+  A path down the spine exceeds the chord by a little; one that goes
+  *around* the torso because the landmarks are on opposite sides does not.
+  Demoted to `manual_review`, never `accepted`.
+- `waypoint_off_main_surface` / `waypoint_snapped_to_main_component` — a
+  landmark whose nearest vertex sits on a fragment is pinned to the main
+  component if that moves it under 15 mm, and refuses beyond.
+
+**What this exposed:** the connectivity failure was masking a worse one.
+With the surface walkable, the landmarks are visibly wrong on a clothed
+body — lod1 puts the waist at y=759 mm, 45 % of stature, at thigh height;
+lod2 puts the back-neck and back-waist points on opposite sides of the
+torso. **Clothed-scan lengths now produce numbers and those numbers are
+not usable.** Coverage went 3/7 to 6/7 *producing values*; it did not go
+3/7 to 6/7 *working*.
+
+**Rules out:** reporting clothed-scan length coverage as a capability;
+tuning `MAX_PATH_CHORD_RATIO` until it happens to catch lod1's 944 mm back
+length — one scan is not evidence for a threshold, and that failure is a
+landmark error that a ratio test cannot see.
+
+**Revisit if:** landmark estimation is made clothing-aware (the real next
+problem), or a dataset appears whose legitimate paths exceed ratio 1.5.

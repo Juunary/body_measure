@@ -102,3 +102,30 @@ def test_a_clothed_scan_yields_a_canonical_upright_body():
     # Y must be the long axis after canonicalisation (source ships Z-up)
     assert extent[1] == max(extent)
     assert abs(mesh.bounds[0][1]) < 1e-6  # floor at y=0
+
+
+@needs_hsrd
+def test_welding_makes_the_clothed_scan_walkable():
+    """As shipped, HSRD's vertex graph is in four figures of components
+    because the OBJ splits vertices per texture chart. That, not any hole
+    in the body, is what made every surface-path measurement refuse."""
+    from body_measure.canonicalize import canonicalize
+    from body_measure.measure.surface_path import EdgeGraph
+
+    adapter = HsrdAdapter(HSRD_ROOT)
+    for observation in adapter.observations():
+        mesh = canonicalize(adapter.load(observation))
+        assert mesh.metadata["weld"]["merged"] > 0
+        assert EdgeGraph(mesh).main_fraction > 0.99
+
+
+@needs_hsrd
+def test_the_lengths_are_no_longer_lost_to_connectivity():
+    from body_measure.canonicalize import canonicalize
+    from body_measure.measure.measurements import run_estimated_measurements
+
+    adapter = HsrdAdapter(HSRD_ROOT)
+    mesh = canonicalize(adapter.load(adapter.observations()[-1]))
+    measurements, _ = run_estimated_measurements(mesh)
+    for name in ("across_back_shoulder_width", "sleeve_length", "back_length"):
+        assert "disconnected_surface_path" not in measurements[name].quality

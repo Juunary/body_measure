@@ -20,6 +20,7 @@ _LOW_CONFIDENCE_FLAGS = {
     "minimum_at_search_boundary", "maximum_at_search_boundary",
     "single_slice_arm_separation", "front_back_low_confidence",
     "axis_not_inside_any_loop", "orientation_unknown",
+    "surface_path_detour", "waypoint_snapped_to_main_component",
 }
 _FALLBACK_FLAGS = {
     "lateral_axis_pca_fallback", "lateral_axis_default_no_torso",

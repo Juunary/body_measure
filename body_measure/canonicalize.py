@@ -1,6 +1,20 @@
 """Bring a NormalizedBodySurface into the canonical measuring frame:
 Y-up right-handed, floor at y=0. No unit guessing happens here — vertices
-are already millimetres by the adapter contract."""
+are already millimetres by the adapter contract.
+
+Welding also happens here. Photogrammetry OBJs split a vertex once per
+texture chart, so the same 3D point arrives under several indices and the
+mesh, though geometrically continuous, is topologically shattered — HSRD
+ships 1348 vertex-graph components at lod2 with the largest holding under
+2 % of vertices. Nothing that walks the surface can work on that, which is
+what made every surface-path measurement fail on a clothed scan. Merging
+by position is a pure topology repair: coordinates and bounds are
+untouched, only duplicate indices collapse.
+
+It cannot be done in the adapter, because trimesh keeps UV-split vertices
+apart while texture data is attached. By the time a surface reaches here
+the UVs are gone and position is the only thing left to merge on.
+"""
 from __future__ import annotations
 
 import numpy as np
@@ -19,11 +33,32 @@ _Z_UP_TO_Y_UP = np.array(
 )
 
 
-def canonicalize(surface: NormalizedBodySurface, *, up_axis: str = "Y") -> trimesh.Trimesh:
-    """Return a trimesh in the canonical frame (Y-up, floor y=0)."""
+def canonicalize(
+    surface: NormalizedBodySurface, *, up_axis: str = "Y", weld: bool = True
+) -> trimesh.Trimesh:
+    """Return a trimesh in the canonical frame (Y-up, floor y=0).
+
+    `weld` merges duplicate-position vertices so the surface is connected.
+    Leave it on for anything that measures along the surface. Turn it off
+    only for a caller that depends on the incoming vertex indexing — a
+    fixed-topology body model, say — where collapsing indices would break
+    the correspondence rather than repair it.
+
+    What the weld did is recorded in `mesh.metadata["weld"]`; it is a
+    property of the surface a reader may need, not a detail to hide.
+    """
     mesh = trimesh.Trimesh(
         vertices=surface.vertices_mm.copy(), faces=surface.faces.copy(), process=False
     )
+    before = len(mesh.vertices)
+    if weld:
+        mesh.merge_vertices()
+    mesh.metadata["weld"] = {
+        "applied": bool(weld),
+        "vertices_before": before,
+        "vertices_after": int(len(mesh.vertices)),
+        "merged": before - int(len(mesh.vertices)),
+    }
     if surface.transform_to_canonical is not None:
         mesh.apply_transform(surface.transform_to_canonical)
     elif up_axis == "Z":
