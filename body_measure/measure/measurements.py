@@ -275,7 +275,11 @@ def measure_upper_arm_girth(
 #: Flags that mean the path was walked successfully but not between the
 #: landmarks it was supposed to connect. The number is real geometry and
 #: is kept, but it is not the measurement, so it never lands as accepted.
-_PATH_NOT_TRUSTED = {"surface_path_detour", "waypoint_off_main_surface"}
+_PATH_NOT_TRUSTED = {
+    "surface_path_detour",
+    "waypoint_off_main_surface",
+    "shoulder_vertical_asymmetry",
+}
 
 
 def _length_value(length: float | None, flags: list[str], method: str) -> MeasurementValue:
@@ -349,9 +353,14 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         length, flags = surface_path_length_mm(
             graph, [back_neck.position_mm, back_waist.position_mm]
         )
-        measurements["back_length"] = orientation_gate(
-            _length_value(length, flags + facing_flags, METHOD)
-        )
+        # a length anchored on a boundary-flagged waist inherits the doubt:
+        # the path may be flawless while the waist level it walks to is
+        # only where the search ran out of window
+        measurements["back_length"] = orientation_gate(_length_value(
+            length,
+            flags + waist.quality_flags + neck.quality_flags + facing_flags,
+            METHOD,
+        ))
 
     shoulders = estimate_shoulder_points(mesh, armpit) if armpit is not None else None
     if shoulders is not None and back_neck is not None:
@@ -378,7 +387,7 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
             measurements["sleeve_length"] = orientation_gate(_length_value(
                 length,
                 flags + ["elbow_waypoint_omitted_straight_hanging_arm"]
-                + wrist.quality_flags + facing_flags,
+                + shoulder.quality_flags + wrist.quality_flags + facing_flags,
                 METHOD,
             ))
 

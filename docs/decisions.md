@@ -412,3 +412,59 @@ landmark error that a ratio test cannot see.
 
 **Revisit if:** landmark estimation is made clothing-aware (the real next
 problem), or a dataset appears whose legitimate paths exceed ratio 1.5.
+
+## 22. A fallback loop may feed a girth, never a landmark — and #20 is answered
+
+**Decided:** three trust rules in landmark estimation, and a resolution of
+the open question from decision #20: **no absolute human-range gate goes
+into the measurement core.**
+
+The W1 diagnosis (HSRD, jacket/jeans/boots, vs a Texel baseline) reduced
+every "clothed landmarks are wrong" symptom to one mechanism plus one
+window effect:
+
+1. **The 140.9 mm waist was a trust failure, not a range failure.** At one
+   single height (lod2, y=1249) the torso loop fails axis containment and
+   the nearest-centroid fallback picks a 140.9 mm jacket-fold loop —
+   and `_extremum_level` took the argmin over the profile without regard
+   to how each slice was selected, so one conf-0.4 guess beat 25 conf-0.9
+   slices. `torso_girth_profile` now skips non-axis-containment slices
+   outright. Skipped, not down-weighted: one untrusted slice in an argmin
+   poisons the whole profile.
+2. **`estimate_back_point_at` refuses fallback loops.** The most-backward
+   point of a loop that is merely *near* the axis can face anywhere — on
+   HSRD it landed 104 degrees off the back (backness −0.25). No back
+   point beats a wrong one.
+3. **Shoulders carry their doubt.** Shoulder landmarks inherit the armpit
+   flags they stand on, and a vertical step over 5 % of stature between
+   the two "shoulders" (200 mm on lod2 — a collar vs a sleeve; Texel
+   subjects sit within 3 mm) flags `shoulder_vertical_asymmetry`, which
+   demotes every dependent length to manual_review. Anchor-landmark flags
+   now propagate into the lengths built on them (back_length inherits the
+   waist boundary flag; sleeve inherits shoulder flags).
+
+Effect on HSRD: waist LOD spread 808 mm → **0.36 mm**, back-length spread
+350 mm → 7.7 mm, chest 154 mm → 42 mm; the asymmetric-shoulder sleeve
+(1114 mm) is manual_review. Texel: worst change 0.005 mm (= rounding of
+the recorded baseline), so the validated numbers stand.
+
+**Why #20 closes without a core range gate:** both impossible values
+traced to the same mechanical cause — an untrusted loop reaching an
+argmin — which is now removed. A hard mm range would have *masked* that
+defect as "rejected: out of range" instead of exposing it, and it costs
+real coverage on unusual bodies and children. The report-level
+`PLAUSIBLE_MM` net stays, and stays at the report level.
+
+**What remains honestly unusable on clothed scans:** back_length ~944 mm
+is now *flagged* (low_confidence via the inherited boundary flag) but the
+number itself is a garment fact — a jacket hides the natural waist, so
+the search ends at its window boundary near the jeans. That is not a
+landmark bug; it is what "the waist of a dressed body" means, and it is
+exactly the gap the SIZER offset (C1) exists to measure.
+
+**Rules out:** down-weighting fallback slices instead of skipping them;
+per-garment window tuning against one HSRD subject.
+
+**Revisit if:** SIZER's clothed scans show axis-containment failing over
+whole height bands (then profile coverage, not trust, becomes the
+problem), or a legitimate body produces shoulder asymmetry above 5 %.

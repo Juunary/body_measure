@@ -54,6 +54,13 @@ def torso_girth_profile(
         selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
         if selection is None or selection.disposition == "rejected":
             continue
+        if selection.method != "axis_containment":
+            # A nearest-centroid fallback is a guess about which loop is
+            # the torso; a girth extremum taken over guesses is how a
+            # 141 mm jacket-fold "waist" beat 25 trustworthy slices on a
+            # clothed scan. One untrusted slice in the profile poisons
+            # the argmin, so fallback slices are skipped, not down-ranked.
+            continue
         circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
         if circ.selected_value_mm is None:
             continue
@@ -288,6 +295,11 @@ def estimate_back_point_at(
     _, selection = _torso_loop_at(mesh, level_mm)
     if selection is None:
         return None
+    if selection.method != "axis_containment":
+        # the most-backward point of a loop that is merely *near* the
+        # axis can sit anywhere — on HSRD it landed 104 degrees off the
+        # back. No back point beats a wrong one.
+        return None
     pts = selection.loop.points
     backwardness = -(pts[:, [0, 2]] @ facing_xz)
     point = pts[int(np.argmax(backwardness))]
@@ -347,6 +359,15 @@ def estimate_shoulder_points(
     right = side_landmark(pts[int(np.argmax(t_loop))], "shoulder_point_right")
     if left is None or right is None:
         return None
+    # a shoulder search is only as good as the armpit it stands on
+    for lm in (left, right):
+        lm.quality_flags += [f for f in armpit.quality_flags if f not in lm.quality_flags]
+    # anatomical shoulders sit within a few mm of level (3 mm across ten
+    # Texel subjects); a 200 mm step means at least one "shoulder" is a
+    # jacket collar or a sleeve, and there is no telling which
+    if abs(float(left.position_mm[1]) - float(right.position_mm[1])) > 0.05 * height:
+        for lm in (left, right):
+            lm.quality_flags.append("shoulder_vertical_asymmetry")
     return left, right
 
 
