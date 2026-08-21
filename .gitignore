@@ -17,6 +17,11 @@ checkpoints/
 *.pt
 *.pth
 *.ckpt
-# 라이선스 원문은 보관하되 커밋하지 않음 (README 체크리스트만 추적)
+# 라이선스 원문·라이선서 회신은 보관하되 커밋 금지.
+# 우리가 작성한 정책 문서는 버전 관리 대상 (정책은 이력이 남아야 함).
 docs/licenses/*
 !docs/licenses/README.md
+!docs/licenses/scope.md
+!docs/licenses/public-material.md
+!docs/licenses/ethics.md
+!docs/licenses/provenance.md
