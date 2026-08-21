@@ -42,12 +42,16 @@ their own name and is added here first.
 ### Licensed material in scope
 | Source | Licence basis | Status |
 |---|---|---|
-| SMPL | Research licence | Permission stated 2026-08-21 (see `weights-permission.md`) |
-| CAPE | Research licence | Permission stated 2026-08-21 (see `weights-permission.md`) |
-| SIZER | Research licence | **Not obtained.** MPI-INF is a separate institute from MPI-IS; a separate request is required |
-| HSRD-100 | CC BY 4.0 | In use; the only source cleared for public material |
-| Texel BodyScan | CC BY-NC 4.0 | In use (non-commercial) |
-| NOMO-3D-400 | Archive terms, redistribution forbidden | In use, copy never moved |
+| SMPL | Research licence | Granted 2026-08-21, weights sharing included (see `weights-permission.md`) |
+| CAPE | Research licence | Granted 2026-08-21; registration approved, download imminent |
+| SIZER | Research licence | Registration approved 2026-08-21, download imminent |
+| HSRD-100 | CC BY 4.0 | In use; still the only source cleared for public material |
+| Texel BodyScan | CC BY-NC 4.0 | In use; permission confirmed 2026-08-21 (non-commercial terms unchanged) |
+| NOMO-3D-400 | Archive terms, redistribution forbidden | In use; permission confirmed 2026-08-21, copy never moved |
+
+Permission scope note (2026-08-21): the grant covers research use and
+**weights sharing**. It does **not** extend public-material use — figures
+leaving the project remain HSRD-only per `public-material.md`.
 
 ---
 

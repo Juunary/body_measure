@@ -20,7 +20,7 @@ box below is ticked and the evidence is filed in this directory.**
 | 3 | SMPL model licence captured verbatim | ☑ | `smpl-model-licence.txt` |
 | 4 | Research purpose and named user scope documented | ☑ | `scope.md` |
 | 5 | Storage location and access control stated | ☑ | `scope.md` |
-| 6 | **Written** confirmation of what trained weights may be used and shared for | ◐ | `weights-permission.md` |
+| 6 | **Written** confirmation of what trained weights may be used and shared for | ☑* | `weights-permission.md` |
 | 7 | Commercial path documented and disclosed to the licensors | ☑ | `scope.md` |
 | 8 | List of data usable in public material (currently: HSRD-100 only) | ☑ | `public-material.md` |
 | 9 | Ethics/consent scope checked — CAPE asks users to confirm their own IRB position | ☐ | `ethics.md` |
@@ -28,6 +28,11 @@ box below is ticked and the evidence is filed in this directory.**
 Captured 2026-08-21. Items 2 and 3 are the live licence pages as fetched
 on that date, not a capture from the registration flow; if registration
 presents different terms, replace them.
+
+\* Item 6: granted 2026-08-21 per user report, **including weights
+sharing** — verbatim reply text still to be filed in
+`weights-permission.md`. The tick records the decision; the file must
+eventually carry the proof.
 
 ### Item 7 was reworded on 2026-08-21
 
@@ -39,22 +44,15 @@ fails at the moment it is needed. See `scope.md`.
 
 ## What is open
 
-- **Item 1 and SIZER as a whole.** SIZER is MPI-INF; SMPL and CAPE are
-  MPI-IS. The 2026-08-21 research permission does not extend to it.
-  **C0a remains blocked.**
-- **Item 6.** The licence text settles more than expected: training for
-  non-commercial research is inside the grant. What is *not* settled is
-  whether Maß-DPP's industry-partner structure counts as "commercial use
-  of any kind", whether CAPE grants a derivative-works right at all (it is
-  silent where SMPL is explicit), and permission for weights to reach
-  anyone outside this installation. Requests go to
-  `ps-license@tue.mpg.de` (CAPE) and `smpl@max-planck-innovation.de`
-  (SMPL), with Waldemar Lang as sender or in copy.
+- **Item 1.** SIZER registration is approved and download imminent
+  (2026-08-21); capture the terms verbatim during registration
+  (`sizer-terms.txt`, hash in `provenance.md`). **C0a is unblocked the
+  moment the data lands.**
+- **Item 6 evidence.** The grant is recorded; the verbatim reply text
+  still has to be pasted into `weights-permission.md`.
 - **Item 9.** Requires ITA's own position on secondary use of human scan
-  data, and a separate procedure for the future scanner subjects.
-
-Items 6 and 9 bind at C4 and at the scanner respectively. They do not
-block C1–C3 on already-permitted data.
+  data, and a separate procedure for the future scanner subjects. Binds
+  at the scanner, not at C1–C3.
 
 ## Standing rules — now licence-backed, not precautionary
 
