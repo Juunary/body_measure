@@ -257,6 +257,19 @@ class Facing:
         }
 
 
+def provided_facing(direction_xz, *, source: str) -> Facing:
+    """An orientation that is KNOWN rather than estimated — a body model
+    whose frame defines its front (SMPL faces +Z), or a scanner whose
+    booth fixes where the subject stands. The flag records that no
+    estimate was made; the confidence is full because the 180-degree
+    ambiguity does not exist for such a source."""
+    d = np.asarray(direction_xz, dtype=np.float64)
+    n = float(np.linalg.norm(d))
+    if n < 1e-9:
+        raise ValueError("provided facing direction must be non-zero")
+    return Facing(d / n, 1.0, f"provided_by_{source}", ["orientation_provided"])
+
+
 def estimate_facing(mesh: trimesh.Trimesh) -> Facing:
     """The toes extend forward of the body axis, so the centroid of the
     foot slice sits in the facing direction (toe_projection). Missing feet

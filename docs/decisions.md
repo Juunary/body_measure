@@ -468,3 +468,92 @@ per-garment window tuning against one HSRD subject.
 **Revisit if:** SIZER's clothed scans show axis-containment failing over
 whole height bands (then profile coverage, not trust, becomes the
 problem), or a legitimate body produces shoulder asymmetry above 5 %.
+
+## 23. C2 optimisation fitting — first working version, and what its own gates found
+
+**Decided:** `body_measure/inference/` (torch-isolated), a staged shell-fitting
+optimiser, and an 8-case synthetic gate battery
+(`scripts/c2_synthetic_battery.py`). Claim category `synthetic_recovery`,
+derived from (`inferred_smpl_under_clothing`, `synthetic_latent`) — never
+typed by hand.
+
+Four debugging findings fixed the optimiser; a fifth surfaced a real
+limit that stays, by design, unfixed at this layer.
+
+**Face winding cannot be trusted, but it can be repaired.** A per-point
+heuristic ("normal points away from the body axis") silently flipped
+every inward-facing arm normal, so the identity shell — the floor of the
+battery, offset zero, the shell IS the body — failed to fit itself.
+Replaced with `trimesh.repair.fix_normals(multibody=True)`, which treats
+winding as a mesh property to correct once rather than a per-point sign
+to infer.
+
+**Point-to-plane is precise near the solution and wrong far from it.**
+With mismatched correspondences (a badly placed body), a finite-difference
+check found the gradient pointing the wrong way on 5–7 of 10 betas.
+Fixed by staging: two sign-free, normal-free chamfer-distance stages run
+first to get the body onto the shell from anywhere, before the signed
+gap-band objective — which only means anything once correspondences are
+roughly right — takes over.
+
+**Loss units matter as much as loss correctness.** The first version ran
+data terms in m² with a beta prior weighted 0.02, and the prior won:
+betas shrank toward zero, the torso came out ~60 mm thin, and the
+residual looked fine throughout. Every term now runs in mm² with weights
+readable as "cost per mm² of violation", and the docstring on `FitConfig`
+records the failure mode so the next weight change doesn't reintroduce it.
+This is the concrete case for why `fit_quality_score` is never called
+confidence: the run with the lowest residual was the most wrong one.
+
+**A flat gap band is a dead zone.** Once past the outside/band terms, a
+body that reached the band's inner edge during the chamfer stage had no
+further gradient and stopped there — visible as a corner-heavy, ~10 mm
+undersized recovery. A weak pull toward the band's centre (`w_center`,
+two orders of magnitude below the band term) gives the interior a slope.
+This is exactly the job the gap atlas (C1b) is for: its per-part median
+replaces this placeholder centre with a real prior once it exists.
+
+**What the battery actually found, and did not paper over.** On six of
+seven shells, `back_length` recovers 360–390 mm too long. The cause is
+not the optimiser: the recovered body's waist search hits
+`minimum_at_search_boundary` — the exact mechanism decision #22 built
+guards for on clothed HSRD scans — because a body shaped under a coarse,
+uncalibrated gap-band prior can have proportions whose true waist minimum
+falls outside `WAIST_WINDOW`. **Every one of these deltas already carries
+`recovered_bucket: low_confidence`**, propagated by decision #22's flag
+inheritance, with zero C2-specific code. The identity shell (offset 0,
+no prior to be wrong about) recovers back_length within 11 mm and stays
+`clean`. This is the layered claim system working as designed — a defect
+built for one failure mode caught an unrelated one — and it is left
+exactly as it is: the fix belongs in C1b's real gap priors, not in a
+narrower waist window bolted on to make one battery case look better.
+
+**Recovery quality (identity shell, clean-measuring latent body):**
+chest −16 mm, waist −18 mm, neck −5 mm, upper-arm −7 mm, shoulder width
+0 mm, sleeve +19 mm, back length +10 mm; 0% collapse, 1.6% outside
+violation. Multi-start beta spread on the two hardest cases: 0.6–0.8 (of
+comparable size to true betas ~1–2.5) — real disagreement between starts
+on where the body is, which is the diagnostic multi-start exists to
+provide, not a defect to average away.
+
+**A second, unrelated finding en route:** `trimesh.simplify_quadric_decimation`
+imports the compiled `fast_simplification` extension, which Windows
+Defender Application Control blocks on this machine — a system security
+policy, not something to route around with elevated rights. The battery's
+`decimated_shell` case was rewritten to quantise vertices to a voxel grid
+and re-merge (numpy only, reuses the welding this project already relies
+on for photogrammetry OBJs). `body_measure/validate/robustness.py`'s
+`decimate()` has the same dependency and the same exposure — currently
+invisible only because `test_robustness.py` is skipped without a
+generated SMPL body — and is flagged as separate follow-up, out of scope
+for this decision.
+
+**Rules out:** measuring the fitted (scan-matching) pose instead of the
+canonical pose; treating `fit_quality_score` as a per-case accept/reject
+gate before it is calibrated against held-out error; narrowing
+`WAIST_WINDOW` to fix one battery case's back-length delta.
+
+**Revisit if:** C1b lands and `w_center`'s placeholder is replaced by the
+real gap-atlas median; the robustness-battery decimation follow-up lands
+and its result changes what `decimate()` should do here too; multi-start
+spread is calibrated into an actual `fit_confidence`.

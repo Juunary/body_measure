@@ -104,3 +104,23 @@ def test_single_arm_body_propagates_the_pca_fallback_flag(mesh):
             "lateral_axis_pca_fallback" in chest.quality
             or "armpit_not_detected_window_is_stature_relative" in chest.quality
         )
+
+
+def test_a_provided_facing_is_used_and_recorded_not_estimated():
+    """A body model's frame defines its front; the core must take that as
+    given (flagged as such) instead of estimating it from the feet."""
+    import numpy as np
+    import trimesh
+
+    from body_measure.landmarks.estimated import provided_facing
+
+    facing = provided_facing((0.0, 1.0), source="smpl_frame")
+    assert facing.confidence == 1.0
+    assert facing.flags == ["orientation_provided"]
+    assert facing.method == "provided_by_smpl_frame"
+    assert np.allclose(facing.direction, [0.0, 1.0])
+    # direction is normalised, zero is refused
+    assert np.allclose(provided_facing((0.0, 3.0), source="x").direction, [0.0, 1.0])
+    import pytest
+    with pytest.raises(ValueError):
+        provided_facing((0.0, 0.0), source="x")

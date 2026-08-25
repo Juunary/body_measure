@@ -295,9 +295,16 @@ def _length_value(length: float | None, flags: list[str], method: str) -> Measur
     )
 
 
-def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
-    """Full estimated pathway: three circumferences + three surface-path
-    lengths, sharing one landmark set and one edge graph."""
+def run_estimated_measurements(
+    mesh: trimesh.Trimesh, *, facing: "Facing | None" = None
+) -> tuple[dict, dict]:
+    """Full estimated pathway: circumferences + surface-path lengths,
+    sharing one landmark set and one edge graph.
+
+    `facing` may be supplied when the orientation is known from the source
+    (a body model's frame, a scanner booth) — see landmarks.provided_facing.
+    Otherwise it is estimated from the feet, and an unresolved estimate
+    makes every orientation-dependent measurement refuse."""
     from ..landmarks.estimated import (
         estimate_back_point_at,
         estimate_facing,
@@ -316,7 +323,8 @@ def run_estimated_measurements(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
     if waist is None or neck is None:
         return measurements, landmarks
 
-    facing = estimate_facing(mesh)
+    if facing is None:
+        facing = estimate_facing(mesh)
     landmarks["facing"] = facing
     # spec `requires: [front_back_orientation]` — with the 180-degree
     # ambiguity unresolved, every back-neck-dependent measurement refuses
