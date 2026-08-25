@@ -90,3 +90,86 @@ def test_an_untrusted_armpit_disables_clipping_rather_than_using_bad_bounds():
         assert "arm_clipped_at_merged_level" not in chest.quality
         seen += 1
     assert seen > 0, "expected at least one low-confidence armpit in HSRD"
+
+
+# ------------------------------------- the girth profile's own tier gate ---
+def _barrel_with_bridged_slice(radius=150.0, height=600.0, rings=40, sections=64):
+    """A barrel with a wedge of surface missing in one narrow height band.
+    The slice there is an open loop whose closing chord is large enough to
+    be judged manual_review — not clean, not rejected outright."""
+    import trimesh
+
+    ys = np.linspace(0.0, height, rings)
+    th = np.linspace(0.0, 2 * np.pi, sections, endpoint=False)
+    vertices = np.array(
+        [[radius * np.cos(t), y, radius * np.sin(t)] for y in ys for t in th]
+    )
+    faces = []
+    for i in range(rings - 1):
+        for j in range(sections):
+            a, b = i * sections + j, i * sections + (j + 1) % sections
+            faces += [[a, b, b + sections], [a, b + sections, a + sections]]
+    mesh = trimesh.Trimesh(vertices=vertices, faces=np.array(faces), process=False)
+    centres = mesh.triangles_center
+    angle = np.arctan2(centres[:, 2], centres[:, 0])
+    cut = (np.abs(centres[:, 1] - 300.0) < 20.0) & (np.abs(angle) < 0.40)
+    mesh.update_faces(~cut)
+    mesh.remove_unreferenced_vertices()
+    return mesh
+
+
+def test_a_manual_review_slice_never_reaches_a_girth_extremum():
+    """A manual_review slice is one the gap-closure tier already judged too
+    bridged to stand alone; letting it into an argmin makes that judgement
+    on its behalf. On NOMO male_0001 such a slice — 15.5% of its loop
+    replaced by a closing chord — won the waist with a 675mm girth on a
+    1725mm subject."""
+    from body_measure.canonicalize import body_axis_point
+    from body_measure.landmarks.estimated import torso_girth_profile
+    from body_measure.measure.slicing import (
+        project_axis_to_plane,
+        select_torso_loop,
+        slice_mesh,
+    )
+
+    mesh = _barrel_with_bridged_slice()
+    up = np.array([0.0, 1.0, 0.0])
+    origin = np.array([0.0, 300.0, 0.0])
+    selection = select_torso_loop(
+        slice_mesh(mesh, origin, up),
+        project_axis_to_plane(body_axis_point(mesh), origin, up),
+    )
+    # the fixture is only meaningful if it really is the middle tier
+    assert selection.disposition == "manual_review"
+    assert not selection.loop.closed
+
+    heights = [round(h) for h, _ in torso_girth_profile(mesh, 200.0, 400.0, 20.0)]
+    # the wedge spans y 280-320, so those three slices are bridged and go
+    assert not {280, 300, 320} & set(heights)
+    # and nothing outside the damaged band is touched
+    assert {200, 220, 240, 260, 340, 360, 380, 400} <= set(heights)
+
+
+def test_an_intact_barrel_keeps_every_slice():
+    """The gate removes bridged slices, not slices in general."""
+    import trimesh
+
+    from body_measure.landmarks.estimated import torso_girth_profile
+
+    ys = np.linspace(0.0, 600.0, 40)
+    th = np.linspace(0.0, 2 * np.pi, 64, endpoint=False)
+    vertices = np.array(
+        [[150.0 * np.cos(t), y, 150.0 * np.sin(t)] for y in ys for t in th]
+    )
+    faces = []
+    for i in range(39):
+        for j in range(64):
+            a, b = i * 64 + j, i * 64 + (j + 1) % 64
+            faces += [[a, b, b + 64], [a, b + 64, a + 64]]
+    intact = trimesh.Trimesh(vertices=vertices, faces=np.array(faces), process=False)
+
+    heights = [round(h) for h, _ in torso_girth_profile(intact, 200.0, 400.0, 20.0)]
+    assert 300 in heights
+    damaged = [round(h) for h, _ in torso_girth_profile(
+        _barrel_with_bridged_slice(), 200.0, 400.0, 20.0)]
+    assert len(heights) == len(damaged) + 3

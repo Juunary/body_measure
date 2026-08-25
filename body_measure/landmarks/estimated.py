@@ -52,7 +52,16 @@ def torso_girth_profile(
         origin = np.array([0.0, height, 0.0])
         loops = slice_mesh(mesh, origin, _UP)
         selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
-        if selection is None or selection.disposition == "rejected":
+        if selection is None or selection.disposition != "accepted":
+            # Not just "not rejected": a manual_review slice is one the
+            # gap-closure tier already judged too bridged to stand on its
+            # own, and an extremum makes exactly that judgement on its
+            # behalf. On NOMO male_0001 a slice with 15.5 % of its loop
+            # replaced by a closing chord won the waist argmin with a
+            # 675 mm girth on a 1725 mm subject; excluding it costs one
+            # sample of 52 and moves the waist to 961 mm at 0.674 H,
+            # where every other subject's sits. No Texel or HSRD result
+            # moves at all.
             continue
         if selection.method != "axis_containment":
             # A nearest-centroid fallback is a guess about which loop is

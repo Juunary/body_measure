@@ -709,3 +709,71 @@ bounds from a landmark too uncertain to place.
 (a cape, arms folded), in which case the single-split model is wrong
 rather than merely noisy — the flag would be firing for a real reason and
 the profile would need segmenting instead.
+
+## 26. Sweep: every extremum in the core, checked for untrusted inputs
+
+**Decided:** `torso_girth_profile` admits only `accepted` slices, not
+merely non-`rejected` ones. The rest of the sweep found no further live
+instance, and what it did find is recorded here so the next reader does
+not repeat it.
+
+Decisions #21, #22, #24 and #25 were all the same defect wearing
+different clothes: a sample the pipeline had already judged unreliable
+was allowed into an `argmin`/`argmax`/`max`, and the extremum silently
+promoted it over trustworthy neighbours. This is the sweep of every
+remaining extremum in the measurement core.
+
+**Found and fixed — the gap-closure tier was only half-enforced.**
+`torso_girth_profile` skipped `disposition == "rejected"` and let
+`manual_review` through. A manual_review slice is one the gap-closure
+tier already judged too bridged to stand on its own, and an extremum
+makes exactly that judgement on its behalf.
+
+Measured across NOMO's first 40 subjects: 16 have at least one open slice
+in the waist profile, and in 6 an open slice wins the argmin. Five of
+those six are harmless — `gap_ratio` 0.0, meaning the loop is open by
+index but has no geometric gap, which is why the tier accepted them.
+The sixth is not: NOMO male_0001's winner had **15.5 % of its loop
+replaced by a closing chord** and disposition `manual_review`, giving a
+**675 mm waist on a 1725 mm subject** at the search boundary.
+
+Requiring `accepted` costs that subject one sample of 52 and moves its
+waist to 961 mm at 0.674 H, where every other subject's sits. **Texel
+moves 0 subjects, HSRD moves 0, no profile is emptied** — the filter
+distinguishes bridged loops from technically-open ones exactly as the
+tier intended.
+
+**Checked and clear — the armpit-extent sites.** Four places take the
+lateral `min`/`max` of the torso loop at the armpit: shoulder seeding,
+the chest clip bounds, wrist arm-separation, and the upper-arm window.
+None checks the loop's selection tier, so a nearest-centroid fallback
+would silently define a body's width. Probed across Texel, NOMO and
+HSRD: **every case returns `axis_containment` at confidence 0.9.** The
+hazard is real but unrealised, and adding a guard now would be untested
+code defending against something no data produces. Left alone
+deliberately, and written down so it is a known gap rather than an
+oversight.
+
+This also corrects an attribution in #25. HSRD lod2's 289 mm clip window
+against lod1's 420 mm was blamed there on loop quality; both loops are in
+fact `axis_containment` at 0.9. The difference comes from the armpit
+*level* differing by 11 mm between LODs and the jacket's torso genuinely
+having different extents there. The confidence guard shipped in #25 is
+still the right one — it keys on the armpit landmark's confidence, which
+is what was actually low — but the reason given was wrong.
+
+**Checked and clear — the rest.** `estimate_back_point_at` and
+`torso_girth_profile` already gate on tier (#22).
+`measure_chest_circumference` now decides one method per profile (#25).
+`select_torso_loop`'s own `max(area)` and `min(distance)` operate within
+a single tier by construction. `surface_path`'s `argmax(component sizes)`
+compares like with like. The fitter's `min`/`argmin` calls are distance
+lookups, not quality judgements.
+
+**Rules out:** treating "not rejected" as "trustworthy" anywhere a tier
+exists; adding tier guards to the armpit-extent sites without data that
+exercises them.
+
+**Revisit if:** any dataset produces a nearest-centroid selection at the
+armpit level — the four sites above become live and need the same gate
+`torso_girth_profile` has.
