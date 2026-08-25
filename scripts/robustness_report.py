@@ -18,7 +18,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from body_measure.adapters.mesh_file import MeshFileAdapter  # noqa: E402
 from body_measure.adapters.texel import TexelAdapter  # noqa: E402
 from body_measure.canonicalize import canonicalize  # noqa: E402
-from body_measure.landmarks.estimated import estimate_waist_level  # noqa: E402
+from body_measure.landmarks.estimated import (  # noqa: E402
+    estimate_armpit_level,
+    estimate_waist_level,
+)
 from body_measure.validate.robustness import expand_waist, measure_all, run_battery  # noqa: E402
 
 TEXEL = PROJECT_ROOT / "data" / "external" / "texel"
@@ -49,7 +52,7 @@ def main() -> int:
             cells = [f"{d:+.1f}" if d is not None else "—" for d in deltas.values()]
             print(f"| {pname} | " + " | ".join(cells) + " |")
 
-        waist = estimate_waist_level(mesh)
+        waist = estimate_waist_level(mesh, estimate_armpit_level(mesh))
         if waist is not None:
             # NOTE: the estimated waist itself may legitimately move off an
             # expanded band (minimum-girth definition), so the sanity check

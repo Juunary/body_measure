@@ -88,7 +88,7 @@ def test_clothed_waist_is_no_longer_a_jacket_fold():
     levels = {}
     for observation in adapter.observations():
         mesh = canonicalize(adapter.load(observation))
-        waist = estimate_waist_level(mesh)
+        waist = estimate_waist_level(mesh, estimate_armpit_level(mesh))
         assert waist is not None
         height = float(mesh.bounds[1][1])
         fraction = float(waist.position_mm[1]) / height
@@ -109,7 +109,7 @@ def test_clothed_back_point_is_actually_on_the_back():
     for observation in adapter.observations():
         mesh = canonicalize(adapter.load(observation))
         facing = estimate_facing(mesh)
-        waist = estimate_waist_level(mesh)
+        waist = estimate_waist_level(mesh, estimate_armpit_level(mesh))
         point = estimate_back_point_at(
             mesh, float(waist.position_mm[1]), facing.direction, "back_waist_point"
         )

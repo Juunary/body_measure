@@ -43,6 +43,12 @@ COARSE_JOINTS = (0, 1, 2, 3, 4, 5, 8, 12, 15, 16, 17, 18)
 #: shell to be measured against (hole, missing limb) and gets weight 0
 COVERAGE_RADIUS_M = 0.12
 
+#: how far below the fitted body's lowest included vertex the shell still
+#: counts as "covered by it" — the hip/crotch boundary is not sharp, and a
+#: hard cut at the exact minimum would penalise the last centimetres of
+#: torso for the trousers hanging just under them
+Y_MASK_MARGIN_M = 0.05
+
 
 @dataclass
 class FitConfig:
@@ -64,6 +70,18 @@ class FitConfig:
                                 # (C1b), which is what a real prior provides.
     w_beta: float = 0.05        # on mean(β²): ~0.1 at |β|~1.5, vs data terms of several mm²
     w_pose: float = 50.0        # on mean((θ−θ_canon)²) rad²
+    #: Per-part data weight. The garment is an upper garment and the
+    #: subject's lower half is whatever they happened to wear, so legs are
+    #: excluded from the data term outright. This is not a tuning knob:
+    #: SMPL betas are global, so every millimetre of leg the optimiser
+    #: chases is spent out of the same budget the torso needs. Measured on
+    #: the uniform-15 mm shell — leg weight 1.0 gives back_length +360 mm
+    #: and waist -32 mm, 0.25 gives +362/-34 (no help at all), and 0.0
+    #: gives +105/-11. Partial down-weighting does nothing; only exclusion
+    #: works, which is what makes it a scope decision rather than a knob.
+    part_weights: dict = field(default_factory=lambda: {
+        "torso": 1.0, "arm": 1.0, "head": 1.0, "leg": 0.0,
+    })
     iters_coarse: int = 120
     iters_pose: int = 60
     iters_shape: int = 120
@@ -142,12 +160,29 @@ class ShellTarget:
         n = self.normals[nearest]
         return ((q - body_xyz) * n).sum(dim=1), covered
 
-    def chamfer(self, body_xyz: torch.Tensor) -> torch.Tensor:
+    def chamfer(self, body_xyz: torch.Tensor, y_lo: torch.Tensor | None = None) -> torch.Tensor:
         """Bidirectional point-to-point distance, metres. Sign-free and
         normal-free, so it pulls a badly placed body toward the shell from
-        anywhere — the coarse stages run on this."""
+        anywhere — the coarse stages run on this.
+
+        `y_lo` drops shell points below a height from the shell-to-body
+        direction. It is required whenever the body passed in is partial:
+        that direction asks "does every piece of shell have body near it?",
+        and a leg-excluded body cannot answer for the shell's legs. Without
+        the mask the shell's trouser points have no body to match and drag
+        the torso down onto them — measured as a uniform shrink, worst on
+        the identity shell where the answer should be exact (chest -16 mm
+        before the mask existed, -37 mm after legs were excluded without
+        it). The body-to-shell direction needs no mask: each body vertex
+        finds its own nearest shell point regardless."""
         d = torch.cdist(body_xyz, self.points)
-        return d.min(dim=1).values.mean() + d.min(dim=0).values.mean()
+        forward = d.min(dim=1).values.mean()
+        if y_lo is None:
+            return forward + d.min(dim=0).values.mean()
+        keep = self.points[:, 1] >= y_lo
+        if not bool(keep.any()):
+            return forward
+        return forward + d[:, keep].min(dim=0).values.mean()
 
 
 # ------------------------------------------------------------------ fit ---
@@ -157,8 +192,10 @@ def _band_tensors(part_of_vertex: np.ndarray, band_mm: dict[str, tuple[float, fl
     return torch.as_tensor(lo, dtype=torch.float32), torch.as_tensor(hi, dtype=torch.float32)
 
 
-def _loss_terms(gap, covered, lo, hi, params, cfg) -> dict[str, torch.Tensor]:
+def _loss_terms(gap, covered, lo, hi, params, cfg, part_w=None) -> dict[str, torch.Tensor]:
     w = covered.float()
+    if part_w is not None:
+        w = w * part_w
     gap_mm, lo_mm, hi_mm = gap * 1000.0, lo * 1000.0, hi * 1000.0
     outside = (torch.relu(-gap_mm) ** 2 * w).sum() / w.sum().clamp(min=1)
     band = ((torch.relu(lo_mm - gap_mm) ** 2 + torch.relu(gap_mm - hi_mm) ** 2) * w).sum() / w.sum().clamp(min=1)
@@ -204,6 +241,14 @@ def fit_shell(
     sub = torch.as_tensor(np.sort(rng.choice(body.n_vertices, cfg.n_body_subsample, replace=False)))
     lo_all, hi_all = _band_tensors(body.part_of_vertex, gap_band_mm)
     lo, hi = lo_all[sub], hi_all[sub]
+    part_w_all = torch.as_tensor(
+        np.array([cfg.part_weights.get(p, 1.0) for p in body.part_of_vertex]),
+        dtype=torch.float32,
+    )
+    part_w = part_w_all[sub]
+    if float(part_w.sum()) == 0.0:
+        raise ValueError("part_weights excludes every sampled vertex")
+    full_body = bool((part_w_all > 0).all())
 
     pose_mask = torch.zeros(1, 69)
     for j in COARSE_JOINTS:
@@ -218,12 +263,16 @@ def fit_shell(
             opt.zero_grad()
             verts = body.forward(params)[sub]
             if mode == "chamfer":
-                data = target.chamfer(verts) * 1000.0   # mm
+                included = verts[part_w > 0]
+                # the shell is only asked to be covered where the body we
+                # are actually fitting reaches
+                y_lo = None if full_body else included[:, 1].min().detach() - Y_MASK_MARGIN_M
+                data = target.chamfer(included, y_lo) * 1000.0   # mm
                 loss = data + cfg.w_beta * (params.betas ** 2).mean()                     + cfg.w_pose * ((params.body_pose - canonical_body_pose()) ** 2).mean()
                 last = {"chamfer_mm": float(data.detach())}
             else:
                 gap, covered = target.gap(verts)
-                terms = _loss_terms(gap, covered, lo, hi, params, cfg)
+                terms = _loss_terms(gap, covered, lo, hi, params, cfg, part_w)
                 loss = sum(terms.values())
                 last = {k: float(v.detach()) for k, v in terms.items()}
             loss.backward()
@@ -252,10 +301,17 @@ def fit_shell(
         verts = body.forward(params)
         gap, covered = target.gap(verts)
         g = gap.numpy() * 1000.0
-        c = covered.numpy()
+        included = part_w_all.numpy() > 0
+        # coverage is "how much of what we are fitting has shell to fit
+        # against", so it is a fraction of the INCLUDED vertices. Dividing
+        # by the whole body instead silently charged the score for the
+        # legs we chose not to model and tripped low_shell_coverage on a
+        # perfect fit.
+        c = covered.numpy() & included
         hi_mm = hi_all.numpy() * 1000.0
         score = {
-            "coverage_fraction": float(c.mean()),
+            "scored_parts": sorted(p for p, w in cfg.part_weights.items() if w > 0),
+            "coverage_fraction": float(c.sum() / max(included.sum(), 1)),
             "outside_fraction": float(((g < -2.0) & c).sum() / max(c.sum(), 1)),
             "mean_abs_outside_mm": float(np.abs(np.minimum(g[c], 0)).mean()) if c.any() else None,
             "collapse_fraction": float(((g > hi_mm + 20.0) & c).sum() / max(c.sum(), 1)),

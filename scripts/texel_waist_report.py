@@ -15,7 +15,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from body_measure.adapters.texel import TexelAdapter  # noqa: E402
 from body_measure.canonicalize import canonicalize  # noqa: E402
-from body_measure.landmarks.estimated import estimate_waist_level  # noqa: E402
+from body_measure.landmarks.estimated import (  # noqa: E402
+    estimate_armpit_level,
+    estimate_waist_level,
+)
 from body_measure.measure.measurements import measure_waist_circumference  # noqa: E402
 
 ROOT = PROJECT_ROOT / "data" / "external" / "texel"
@@ -35,7 +38,7 @@ def main() -> int:
         gt = adapter.checked_dataset_reference(person)
         aux = adapter.aux_reference(person)
 
-        waist = estimate_waist_level(mesh)
+        waist = estimate_waist_level(mesh, estimate_armpit_level(mesh))
         if waist is None:
             rows.append((person.name, None, None, None, None, None, ["no_waist_found"]))
             continue

@@ -568,3 +568,80 @@ gate before it is calibrated against held-out error; narrowing
 real gap-atlas median; the robustness-battery decimation follow-up lands
 and its result changes what `decimate()` should do here too; multi-start
 spread is calibrated into an actual `fit_confidence`.
+
+## 24. Scope: the garment is an upper garment, and the scan's lower half is not evidence
+
+**Decided:** the subject may wear anything below the waist, so the lower
+body is excluded from the fit and may not anchor an upper-body landmark.
+Recorded in the spec as `priority` (spec v4) and in the fitter as
+`part_weights`.
+
+The scope statement is about the **input**, not just the output. None of
+the seven measurements was ever a leg measurement, so "we don't need
+lower-body numbers" changes nothing. What changes things is that the
+lower half of a clothed scan is a skirt, or baggy trousers, or a coat
+hanging to the knee — and two parts of the pipeline were quietly leaning
+on it.
+
+**`priority` on each measurement (spec v4).** `core` for the six the
+shirt needs; `deferred` for `sleeve_length`, the only measurement whose
+route reaches past the elbow (it ends at the wrist). Priority is scope,
+not difficulty: sleeve_length works, it is simply outside a short-sleeve
+product. Extending to long sleeve means flipping one line back — the
+definition and implementation stay.
+
+**The waist floor is anchored on the armpit.** The waist search ran from
+0.45 H, which is thigh height, and was floored by the crotch — a landmark
+a skirt does not have. The floor is now the strictest of three: the
+stature bound, the crotch when one exists, and armpit − 0.28 H. Each
+guards something different and none subsumes the others.
+
+Only the floor moved. Lowering the *ceiling* to an armpit-relative height
+was tried and rejected on evidence: NOMO male_0007's true minimum sits at
+0.657 H, an armpit-relative ceiling cut it off, and the returned girth
+was 28.6 mm larger — by the spec's own definition ("minimum torso
+girth"), the wrong answer. On 15 real scans the floor change moves 13 by
+0.00 mm and two by ≤0.21 mm; the one real move (NOMO male_0001, +12.3 mm)
+is boundary-flagged both before and after, so nothing changes silently.
+The validated Texel pathway moves 0.005 mm — the rounding of the recorded
+baseline.
+
+**Legs are excluded from the fit, not down-weighted.** SMPL's betas are
+global: every millimetre of trouser the optimiser chases is spent from
+the same budget the torso needs. Measured on the uniform-15 mm shell, leg
+weight 1.0 gives back_length +360 mm and waist −32 mm; 0.25 gives
++362/−34, no help whatever; 0.0 gives +105/−11. A knob with no useful
+middle is not a knob — it is a scope decision, and it is stored as one.
+
+**Excluding a body part means excluding the shell that covers it.** The
+first implementation dropped leg *vertices* and left the chamfer's
+shell-to-body direction asking whether every piece of shell — trousers
+included — had body near it. With no legs to answer, the torso was
+dragged down onto them: a uniform shrink, worst exactly where it should
+have been exact (identity shell chest −16 mm before, −37 mm after). The
+shell-to-body direction is now masked to the fitted body's own height
+range. The body-to-shell direction needs no mask, since each body vertex
+finds its own nearest shell point regardless.
+
+**And a metric that charged for the exclusion.** `coverage_fraction`
+divided by the whole body, so removing 20 % of vertices scored as 20 %
+missing coverage and tripped `low_shell_coverage` on a good fit. It is a
+fraction of the *included* vertices.
+
+**Result across the eight-shell battery** (all core measurements, worst
+absolute error over cases): back_length 386 mm → 47 mm, and the identity
+shell recovers it exactly. chest 82 → 56, waist 34 → 48, neck 24 → 25,
+upper-arm 14 → 26, shoulder width 27 → 25. Coverage 1.00, collapse 0 %,
+outside violation 2 %. The one measurement that got clearly worse is
+`sleeve_length` (±104 mm) — the deferred one, whose endpoint is the
+wrist, on the part of the arm this decision declares out of scope. That
+it degraded exactly where scope was withdrawn is the expected shape of
+the result, not a surprise.
+
+**Rules out:** using the crotch as the only waist floor; down-weighting
+rather than excluding the lower body; masking body vertices without
+masking the shell they were answering for.
+
+**Revisit if:** the product extends to long sleeve (flip `sleeve_length`
+back to `core` and restore full-arm evaluation), or trousers enter scope
+(legs return to `part_weights` and the crotch floor regains its value).

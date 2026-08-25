@@ -176,7 +176,13 @@ def run_estimated_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
     measurements: dict[str, MeasurementValue] = {}
     landmarks: dict[str, Landmark] = {}
 
-    waist = estimate_waist_level(mesh)
+    # the armpit comes first: it floors the waist search, keeping it inside
+    # the torso instead of letting it reach down into the hips
+    armpit = estimate_armpit_level(mesh)
+    if armpit is not None:
+        landmarks["armpit_level"] = armpit
+
+    waist = estimate_waist_level(mesh, armpit)
     if waist is None:
         measurements["waist_circumference"] = MeasurementValue(
             method="plane_slice", quality=["waist_estimation_failed"]
@@ -184,10 +190,6 @@ def run_estimated_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         return measurements, landmarks
     landmarks["waist_level"] = waist
     measurements["waist_circumference"] = measure_circumference_at_landmark(mesh, waist)
-
-    armpit = estimate_armpit_level(mesh)
-    if armpit is not None:
-        landmarks["armpit_level"] = armpit
 
     chest_value, chest_landmark = measure_chest_circumference(mesh, waist, armpit)
     measurements["chest_circumference"] = chest_value

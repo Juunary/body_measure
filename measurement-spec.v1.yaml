@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 3          # v3: upper_arm_girth 추가 (1단계 제품이 반팔로 확정)
+spec_version: 4          # v4: priority 필드 추가 (상의·반팔로 범위 확정, 2026-08-25)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -11,6 +11,15 @@ posture_default: standing
 # 반팔은 소매 끝이 위팔에 직접 닿으므로 upper_arm_girth 가 필수이고,
 # sleeve_length 는 신체 치수라기보다 디자인 선택에 가까워져 허용오차가 느슨하다.
 # sleeve_length 는 제거하지 않는다 — 이미 구현돼 있고 긴팔 확장 시 필요하다.
+#
+# 범위 (2026-08-25): 착의 상태에서 다루는 대상은 상의로 한정한다. 반팔이므로
+# 팔꿈치 아래는 우선순위가 낮다. priority 필드가 이를 기록한다:
+#   core     — 이 옷을 만드는 데 반드시 필요. 실패하면 슬라이스가 막힌다.
+#   deferred — 지금 제품에는 불필요. 실패해도 슬라이스를 막지 않지만
+#              조용히 빠지지도 않는다 (보고서에 항상 표기).
+# priority 는 난이도가 아니라 범위다. sleeve_length 는 잘 작동하지만
+# 손목까지 가는 유일한 측정이라 지금 제품 밖에 있다. 긴팔로 확장하면
+# 여기만 core 로 되돌리면 된다 — 정의도 구현도 그대로 남아 있다.
 
 measurements:
   chest_circumference:
@@ -22,6 +31,7 @@ measurements:
     known_deviations:
       - arm_interference_requires_torso_loop_selection
       - arms_merged_above_armpit_are_clipped_at_torso_x_range   # 실데이터 자세 대응, 항상 플래그
+    priority: core
     implementation_status: implemented_v1
     no_reference: false          # SMPL-Anthropometry chest circumference와 대조 (T-pose 트랙)
 
@@ -32,6 +42,7 @@ measurements:
     plane: horizontal
     landmarks: [waist_level]
     known_deviations: []
+    priority: core
     implementation_status: implemented_v1
     no_reference: false
 
@@ -43,6 +54,7 @@ measurements:
     landmarks: [neck_base_level]
     known_deviations:
       - horizontal_slice_v1_iso_defines_inclined_plane_through_c7
+    priority: core
     implementation_status: implemented_v1
     no_reference: false
 
@@ -56,6 +68,7 @@ measurements:
     known_deviations:
       - horizontal_slice_v1_a_relaxed_arm_may_not_be_vertical
       - search_window_bounded_by_armpit_and_wrist_no_elbow_landmark
+    priority: core
     implementation_status: plane_slice_v1
     no_reference: false             # Texel m15 (5.3.16), NOMO Bicep_Circ
 
@@ -68,6 +81,7 @@ measurements:
     known_deviations:
       - edge_graph_approximation
       - acromion_approximated_as_highest_point_above_armpit_crease
+    priority: core
     implementation_status: implemented_v1
     no_reference: true           # 레퍼런스의 shoulder breadth는 직선거리 — 정의 불일치, 비교 금지
 
@@ -82,6 +96,7 @@ measurements:
       - approximated_in_a_pose_straight_arm_underestimates_bent_elbow
       - edge_graph_approximation
       - elbow_waypoint_omitted_in_v1_systematic_overshoot_observed   # Part 1: +197mm 평균
+    priority: deferred   # 손목까지 가는 유일한 측정 — 긴팔 확장 시 core 로
     implementation_status: implemented_v1
     no_reference: true           # 레퍼런스의 arm length는 정의 상이 — 비교 금지
 
@@ -93,5 +108,6 @@ measurements:
     requires: [front_back_orientation, back_neck_point]
     known_deviations:
       - implemented_as_edge_graph_geodesic_v1_not_sagittal_slice
+    priority: core
     implementation_status: implemented_v1
     no_reference: true

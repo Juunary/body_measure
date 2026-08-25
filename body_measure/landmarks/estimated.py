@@ -125,12 +125,49 @@ def estimate_crotch_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> float
     return None
 
 
-def estimate_waist_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landmark | None:
+#: The natural waist is never more than about this far below the armpit.
+#: Used as a FLOOR on the search, not as the window itself: the garment
+#: being built is an upper garment, and the lower body of a clothed scan
+#: is whatever the subject happened to wear — a skirt has no crotch to
+#: anchor on and baggy trousers have no reliable hip. Anchoring the floor
+#: to the armpit keeps the search inside the torso the shirt has to fit.
+ARMPIT_TO_WAIST_MAX_FRACTION = 0.28
+
+
+def estimate_waist_level(
+    mesh: trimesh.Trimesh,
+    armpit: Landmark | None = None,
+    step_mm: float = 10.0,
+) -> Landmark | None:
+    """Minimum torso girth, searched between a floor and WAIST_WINDOW's top.
+
+    The floor is the strictest of three: the stature window's bottom, the
+    crotch (when a crotch exists), and a fixed reach below the armpit.
+    Each guards something different and none subsumes the others — the
+    crotch stops a thigh loop winning on a body with legs, the armpit
+    keeps the search out of the hips on a body whose proportions put its
+    narrowest point there, and the stature bound is the fallback when
+    neither landmark is available.
+
+    Only the floor is anchored. Lowering the ceiling was tried and
+    rejected: on NOMO male_0007 an armpit-relative ceiling cut off the
+    true minimum at 0.657 H and returned a girth 28.6 mm larger, which by
+    the spec's own definition is the wrong answer."""
     height = float(mesh.bounds[1][1])
     lo = WAIST_WINDOW[0] * height
+    flags: list[str] = []
+
+    if armpit is not None:
+        lo = max(lo, float(armpit.position_mm[1]) - ARMPIT_TO_WAIST_MAX_FRACTION * height)
+    else:
+        flags.append("armpit_not_available_waist_floor_is_stature_relative")
+
     crotch = estimate_crotch_level(mesh, step_mm)
     if crotch is not None:
         lo = max(lo, crotch + 20.0)
+    else:
+        flags.append("crotch_not_detected")
+
     waist = _extremum_level(
         mesh,
         "waist_level",
@@ -140,8 +177,8 @@ def estimate_waist_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landma
         method="minimum_torso_circumference",
         step_mm=step_mm,
     )
-    if waist is not None and crotch is None:
-        waist.quality_flags.append("crotch_not_detected")
+    if waist is not None:
+        waist.quality_flags += flags
     return waist
 
 

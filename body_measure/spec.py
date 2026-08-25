@@ -29,6 +29,10 @@ class MeasurementSpec:
     landmarks: tuple[str, ...]
     implementation_status: str
     requires: tuple[str, ...] = ()
+    #: how much this measurement matters to the garment currently being
+    #: built. "core" must work; "deferred" may fail without blocking a
+    #: slice. Scope, not difficulty — see the spec header.
+    priority: str = "core"
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,12 @@ class Spec:
     @property
     def names(self) -> tuple[str, ...]:
         return tuple(self.measurements)
+
+    @property
+    def core_names(self) -> tuple[str, ...]:
+        """Measurements the current garment actually needs. Reporting may
+        summarise over these; nothing may silently drop the rest."""
+        return tuple(n for n, m in self.measurements.items() if m.priority == "core")
 
 
 def default_spec_path() -> Path:
@@ -72,6 +82,7 @@ def load_spec(path: Path | None = None) -> Spec:
             landmarks=tuple(entry.get("landmarks", ())),
             implementation_status=entry.get("implementation_status", "not_implemented"),
             requires=tuple(entry.get("requires", ())),
+            priority=str(entry.get("priority", "core")),
         )
     return Spec(
         version=int(raw.get("spec_version", 0)),
