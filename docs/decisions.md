@@ -536,6 +536,17 @@ comparable size to true betas ~1–2.5) — real disagreement between starts
 on where the body is, which is the diagnostic multi-start exists to
 provide, not a defect to average away.
 
+**A decimation case that was not decimating.** The voxel size chosen when
+routing around the blocked native library (below) was 6 mm, against a
+shell whose median edge is 18 mm: it merged almost nothing, 94 % of faces
+survived, and the "coarse scanner" case silently tested nothing at all
+for one battery run. Found only by exporting the meshes to look at them,
+which is itself the lesson — a case that reports a number every run can
+still be measuring nothing, and no assertion in the battery would have
+caught it. Now 30 mm (13776 -> 5429 faces, 61 % removed), and the case
+turns out to be one of the easier ones: chest -3 mm, upper-arm +2 mm,
+back_length +115 mm against +360 mm for the other offset shells.
+
 **A second, unrelated finding en route:** `trimesh.simplify_quadric_decimation`
 imports the compiled `fast_simplification` extension, which Windows
 Defender Application Control blocks on this machine — a system security

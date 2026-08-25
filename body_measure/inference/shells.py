@@ -111,7 +111,7 @@ def holed_shell(body: trimesh.Trimesh, part: np.ndarray, rng: np.random.Generato
                      {"faces_removed": int((~keep).sum())})
 
 
-def decimated_shell(body: trimesh.Trimesh, part: np.ndarray, voxel_mm: float = 6.0) -> ShellCase:
+def decimated_shell(body: trimesh.Trimesh, part: np.ndarray, voxel_mm: float = 30.0) -> ShellCase:
     """Uniform shell at coarse resolution — a coarse scanner.
 
     Decimated by quantising vertices to a voxel grid and re-merging, not
@@ -121,7 +121,13 @@ def decimated_shell(body: trimesh.Trimesh, part: np.ndarray, voxel_mm: float = 6
     file") — a system security policy, not a bug to route around with
     admin rights. Quantise-and-merge needs nothing beyond numpy plus the
     welding this project already relies on (canonicalize.py), and produces
-    the same thing the test needs: a materially coarser watertight mesh."""
+    the same thing the test needs: a materially coarser mesh.
+
+    `voxel_mm` has to be read against the source density, not guessed. The
+    SMPL shell's median edge is ~18 mm, so the first value tried (6 mm)
+    merged almost nothing — 94 % of faces survived and the case silently
+    stopped testing resolution at all. 30 mm removes ~62 % of faces, which
+    is a coarse scanner rather than a rounding error."""
     base = uniform_shell(body, part)
     quantised = np.round(base.mesh.vertices / voxel_mm) * voxel_mm
     mesh = trimesh.Trimesh(vertices=quantised, faces=base.mesh.faces.copy(), process=False)
