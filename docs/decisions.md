@@ -645,3 +645,67 @@ masking the shell they were answering for.
 **Revisit if:** the product extends to long sleeve (flip `sleeve_length`
 back to `core` and restore full-arm evaluation), or trousers enter scope
 (legs return to `part_weights` and the crotch floor regains its value).
+
+## 25. A chest profile may be measured one way, not two
+
+**Decided:** the arm-merge height is decided once per profile and the
+chest samples are all produced by the same method. Clipping is refused
+outright when the armpit that defines its bounds is not trustworthy.
+
+`measure_chest_circumference` chose per height between measuring the
+torso loop directly (arms are their own loops) and clipping the merged
+loop at the armpit's lateral extent (arms are not), then took the maximum
+over the mixture. The two branches measure different things, so the
+maximum was answering *which method returned the larger number*. This is
+decision #22's defect in a second place: an extremum taken over samples
+that are not comparable.
+
+**What made it visible.** HSRD's chest read 1366 mm `clean` at lod1 and
+1293 mm `arm_clipped` at lod2 — 72 mm apart on the same scan. The chest
+*level* was identical (0.718 H in both) and a direct slice at that height
+gives 1367.3 mm on lod2 against 1365.6 on lod1. The geometry agreed to
+2 mm; only the branch disagreed.
+
+**The branch test is sound on skin and not on cloth.** Writing out the
+per-height sequence of "are the arms separate?", all ten Texel subjects
+flip exactly once — separate below the merge, joined above, which is the
+physical story the function was written for. HSRD flips **eight times at
+both LODs**: a jacket sleeve touches and leaves the torso as the
+triangulation happens to fall. So the fix is not to pick a better
+threshold but to stop treating a noisy sequence as if each sample were an
+independent decision.
+
+The merge index is now the split that best matches "separate below,
+merged above" — exactly the flip point when the sequence is already
+monotone, so **all ten Texel subjects and every one of their seven
+measurements move 0.0000 mm with no flag change**, and the least-wrong
+single split when it is not. A sequence that flips more than once carries
+`arm_merge_height_unstable`, which buckets as low confidence. HSRD is now
+low confidence at both LODs, which is what it should always have been.
+
+**Untrusted clip bounds are refused, not used.** The clip window comes
+from the torso loop at the armpit. HSRD lod2's armpit is confidence 0.4
+(`single_slice_arm_separation`) and produced a 289 mm window against
+lod1's 420 mm — a 131 mm error inherited by every clipped sample. Below
+confidence 0.5 the clip branch is disabled and the flag says so.
+
+**Effect on HSRD:** chest LOD spread 72.5 mm → 40.5 mm, and both LODs now
+report low confidence instead of one of them reading clean. The remaining
+40 mm is real disagreement between a clipped and an unclipped reading of
+a jacket, correctly labelled as unreliable rather than resolved by
+accident.
+
+**Also found and left alone:** the clip branch can return values no body
+has — 33.4 mm at one HSRD height, `None` at another. They never won the
+maximum, so they never surfaced. They are still possible, and the
+report-level plausibility net (#20) remains the only thing that would
+catch one.
+
+**Rules out:** tuning the `n_closed >= 3` threshold; taking an extremum
+over a profile whose samples come from different methods; using clip
+bounds from a landmark too uncertain to place.
+
+**Revisit if:** a garment class makes the merge genuinely non-monotone
+(a cape, arms folded), in which case the single-split model is wrong
+rather than merely noisy — the flag would be firing for a real reason and
+the profile would need segmenting instead.

@@ -69,6 +69,25 @@ def measure_circumference_at_landmark(mesh: trimesh.Trimesh, landmark: Landmark)
 measure_waist_circumference = measure_circumference_at_landmark
 
 
+def _merge_index(arms_separate: list[bool]) -> int:
+    """First height at and above which the arms count as merged.
+
+    Chosen as the split that best matches the ideal shape "separate below,
+    merged above" — the majority vote that a single flip would produce
+    exactly, and the least-wrong single flip when the raw sequence is
+    noisy. Returning len() means the arms never merge and no clipping is
+    needed; returning 0 means they are merged throughout."""
+    if not arms_separate:
+        return 0
+    n = len(arms_separate)
+    best_index, best_score = 0, -1
+    for index in range(n + 1):
+        score = sum(arms_separate[:index]) + sum(1 for v in arms_separate[index:] if not v)
+        if score > best_score:
+            best_index, best_score = index, score
+    return best_index
+
+
 def measure_chest_circumference(
     mesh: trimesh.Trimesh, waist: Landmark, armpit: Landmark | None
 ) -> tuple[MeasurementValue, Landmark | None]:
@@ -102,7 +121,12 @@ def measure_chest_circumference(
     else:
         hi = 0.78 * height
 
-    samples: list[tuple[float, "MeasurementValue"]] = []
+    # Pass 1: what the topology looks like at each height. Arms separate
+    # from the torso below the merge and join it above, so the sequence of
+    # "are the arms their own loops?" answers should flip exactly once.
+    levels: list[float] = []
+    selections = []
+    arms_separate: list[bool] = []
     for level in np.arange(waist_y + 10.0, hi, 10.0):
         origin = np.array([0.0, float(level), 0.0])
         loops = slice_mesh(mesh, origin, _UP)
@@ -111,8 +135,40 @@ def measure_chest_circumference(
             continue
         if selection.disposition == "rejected":
             continue  # rejected torso candidate: skip the height, never re-shop
-        n_closed = sum(1 for lp in loops if lp.closed)
-        if n_closed >= 3 or lo_t is None:
+        levels.append(float(level))
+        selections.append(selection)
+        arms_separate.append(sum(1 for lp in loops if lp.closed) >= 3)
+
+    # The two branches below measure different things — a torso loop with
+    # the arms already excluded, versus a merged loop with the arms cut
+    # off at the armpit's lateral extent — so a max taken across a mixture
+    # of them answers "which method happened to return the largest number"
+    # rather than "where is the chest". Decision #22 forbade exactly this
+    # for the waist; the same rule applies here.
+    #
+    # The merge height is therefore decided ONCE, and the profile is made
+    # monotone around it: arms separate below, merged above. On unclothed
+    # bodies the raw sequence already is monotone — all ten Texel subjects
+    # flip exactly once. A jacket is different: its sleeve touches and
+    # leaves the torso as the triangulation happens to fall, and HSRD's
+    # raw sequence flips eight times at both LODs. That instability is
+    # reported, not smoothed away in silence.
+    merge_flips = sum(1 for a, b in zip(arms_separate, arms_separate[1:]) if a != b)
+    topology_flags: list[str] = []
+    if merge_flips > 1:
+        topology_flags.append("arm_merge_height_unstable")
+    merge_index = _merge_index(arms_separate)
+
+    if lo_t is not None and armpit is not None and armpit.confidence < 0.5:
+        # the clip bounds come from the torso loop at the armpit; an armpit
+        # this uncertain gave HSRD lod2 a 289 mm clip window against
+        # lod1's 420 mm, and every clipped value inherited the error
+        lo_t = hi_t = None
+        topology_flags.append("clip_bounds_untrusted_low_confidence_armpit")
+
+    samples: list[tuple[float, "MeasurementValue"]] = []
+    for index, (level, selection) in enumerate(zip(levels, selections)):
+        if index < merge_index or lo_t is None:
             circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
         else:  # arms merged into the torso loop — clip them away
             circ = clipped_circumference_xz(
@@ -126,7 +182,7 @@ def measure_chest_circumference(
             selected_value_mm=circ.selected_value_mm,
             selection_method=circ.selection_method,
             method="plane_slice",
-            quality=(circ.quality_flags + selection.quality_flags) or ["ok"],
+            quality=(circ.quality_flags + selection.quality_flags + topology_flags) or ["ok"],
             disposition=selection.disposition,
             gap=(
                 {"chord_mm": selection.gap_chord_mm, "ratio": selection.gap_ratio}

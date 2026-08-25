@@ -22,6 +22,7 @@ _LOW_CONFIDENCE_FLAGS = {
     "axis_not_inside_any_loop", "orientation_unknown",
     "surface_path_detour", "waypoint_snapped_to_main_component",
     "shoulder_vertical_asymmetry",
+    "arm_merge_height_unstable", "clip_bounds_untrusted_low_confidence_armpit",
 }
 _FALLBACK_FLAGS = {
     "lateral_axis_pca_fallback", "lateral_axis_default_no_torso",
