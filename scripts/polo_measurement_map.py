@@ -44,6 +44,10 @@ from body_measure.measure.slicing import (  # noqa: E402
     select_torso_loop,
     slice_mesh,
 )
+from body_measure.garment_prototypes import (  # noqa: E402
+    SLEEVE_END_FRACTION,
+    run_prototypes,
+)
 from body_measure.spec import load_spec  # noqa: E402
 from body_measure.validate.stats import quality_bucket  # noqa: E402
 
@@ -69,151 +73,6 @@ class Result:
     flags: list[str] = field(default_factory=list)
     note: str = ""
     level_mm: float | None = None    # where a horizontal girth was taken
-
-
-# ----------------------------------------------------------- prototypes ---
-def torso_girth_at(mesh, level_mm):
-    """(girth, selection) at a height, or (None, None). Same tier rule the
-    core uses: a fallback loop selection is not a measurement."""
-    axis = body_axis_point(mesh)
-    origin = np.array([0.0, float(level_mm), 0.0])
-    selection = select_torso_loop(
-        slice_mesh(mesh, origin, UP), project_axis_to_plane(axis, origin, UP)
-    )
-    if selection is None or selection.method != "axis_containment":
-        return None, None
-    circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
-    return circ.selected_value_mm, selection
-
-
-def hem_girth(mesh, waist, crotch):
-    """Torso girth where a polo hem falls — taken here as the widest torso
-    level between the crotch and the waist, i.e. the hip. A real hem
-    position is a garment length decision; this is the body underneath it."""
-    if waist is None:
-        return Result("hem_girth", "Hem girth (hip level)", None, "unavailable",
-                      note="no waist landmark to search below")
-    lo = (crotch + 20.0) if crotch is not None else 0.45 * float(mesh.bounds[1][1])
-    hi = float(waist.position_mm[1]) - 20.0
-    best = (None, None)
-    for level in np.arange(lo, hi, 10.0):
-        girth, _ = torso_girth_at(mesh, level)
-        if girth is not None and (best[0] is None or girth > best[0]):
-            best = (girth, float(level))
-    if best[0] is None:
-        return Result("hem_girth", "Hem girth (hip level)", None, "unavailable",
-                      note="no trustworthy torso loop between crotch and waist")
-    return Result("hem_girth", "Hem girth (hip level)", best[0], "prototype",
-                  note="widest torso level below the waist; hem height is a garment choice",
-                  level_mm=best[1])
-
-
-def sleeve_opening_girth(mesh, armpit, wrist):
-    """Arm girth where a short sleeve ends. The height is a design choice,
-    so it is parameterised, not defined."""
-    if armpit is None:
-        return Result("sleeve_opening_girth", "Sleeve opening girth", None, "unavailable",
-                      note="no armpit landmark")
-    armpit_y = float(armpit.position_mm[1])
-    if wrist is not None:
-        level = armpit_y - SLEEVE_END_FRACTION * (armpit_y - float(wrist.position_mm[1]))
-    else:
-        level = armpit_y - 0.08 * float(mesh.bounds[1][1])
-    loops, flags = E.arm_loops_at(mesh, level, armpit)
-    if not loops:
-        return Result("sleeve_opening_girth", "Sleeve opening girth", None, "unavailable",
-                      flags=list(flags), note="no arm loop at the sleeve-end height",
-                      level_mm=level)
-    values = []
-    for loop in loops.values():
-        circ = measure_circumference(loop, close_gap=not loop.closed)
-        if circ.selected_value_mm is not None:
-            values.append(circ.selected_value_mm)
-    if not values:
-        return Result("sleeve_opening_girth", "Sleeve opening girth", None, "unavailable",
-                      flags=list(flags), level_mm=level)
-    return Result("sleeve_opening_girth", "Sleeve opening girth", float(np.mean(values)),
-                  "prototype", flags=list(flags),
-                  note=f"arm girth {int(SLEEVE_END_FRACTION*100)} % down armpit-to-wrist "
-                       f"({len(values)} arm(s)); the hem height is a design parameter",
-                  level_mm=level)
-
-
-def armhole_depth(shoulders, armpit):
-    if shoulders is None or armpit is None:
-        return Result("armhole_depth", "Armhole depth", None, "unavailable",
-                      note="needs both shoulder points and the armpit level")
-    tops = [float(s.position_mm[1]) for s in shoulders]
-    return Result("armhole_depth", "Armhole depth", float(np.mean(tops)) - float(armpit.position_mm[1]),
-                  "prototype",
-                  flags=[f for s in shoulders for f in s.quality_flags],
-                  note="vertical shoulder-to-armpit drop, mean of both sides")
-
-
-def shoulder_slope(shoulders, back_neck):
-    """Angle below horizontal from the neck point out to the shoulder tip.
-    This is the measurement a tape cannot take and a scan can."""
-    if shoulders is None or back_neck is None:
-        return Result("shoulder_slope", "Shoulder slope", None, "unavailable",
-                      note="needs the back neck point and both shoulder points")
-    neck = back_neck.position_mm
-    angles = []
-    for tip in shoulders:
-        d = tip.position_mm - neck
-        horizontal = float(np.linalg.norm(d[[0, 2]]))
-        if horizontal < 1e-6:
-            continue
-        angles.append(np.degrees(np.arctan2(neck[1] - tip.position_mm[1], horizontal)))
-    if not angles:
-        return Result("shoulder_slope", "Shoulder slope", None, "unavailable")
-    return Result("shoulder_slope", "Shoulder slope", float(np.mean(angles)), "prototype",
-                  note="degrees below horizontal, mean of both sides — reported in DEGREES, not mm")
-
-
-def front_back_width(mesh, chest_level, armpit, facing, chest_flags):
-    """The chest loop split at its lateral extremes: how much of the girth
-    is in front of the body and how much behind.
-
-    Which half is the front is decided by the measured facing direction,
-    never by the sign of an arbitrary perpendicular — that is a coin flip,
-    and it read the back as the front on the first run."""
-    if chest_level is None or armpit is None:
-        return Result("front_back_width", "Front / back width", None, "unavailable",
-                      note="needs the chest level and the armpit")
-    if facing is None or "orientation_unknown" in facing.flags:
-        return Result("front_back_width", "Front / back width", None, "unavailable",
-                      note="front and back are not distinguishable on this scan")
-    if "arm_clipped_at_merged_level" in chest_flags:
-        # the loop's lateral extremes are then the outer edges of the arms,
-        # so the split lands inside the sleeves rather than at the sides
-        return Result("front_back_width", "Front / back width", None, "unavailable",
-                      flags=["arms_merged_at_chest_level"],
-                      note="arms are merged into the chest loop, so its lateral extremes "
-                           "are sleeve edges, not body sides",
-                      level_mm=chest_level)
-    girth, selection = torso_girth_at(mesh, chest_level)
-    if selection is None:
-        return Result("front_back_width", "Front / back width", None, "unavailable",
-                      note="no trustworthy torso loop at chest level", level_mm=chest_level)
-    lateral, _ = E.body_lateral_axis(mesh, float(armpit.position_mm[1]))
-    pts = selection.loop.points
-    t = pts[:, [0, 2]] @ lateral
-    forward = pts[:, [0, 2]] @ facing.direction        # + is toward the front
-    a, b = sorted((int(np.argmin(t)), int(np.argmax(t))))
-    seg1, idx1 = pts[a:b + 1], slice(a, b + 1)
-    seg2 = np.vstack([pts[b:], pts[:a + 1]])
-    fwd2 = np.concatenate([forward[b:], forward[:a + 1]])
-
-    def arc(points):
-        return float(np.sum(np.linalg.norm(np.diff(points, axis=0), axis=1)))
-
-    front, back = ((arc(seg1), arc(seg2)) if forward[idx1].mean() > fwd2.mean()
-                   else (arc(seg2), arc(seg1)))
-    return Result("front_back_width", "Front / back width", front - back, "prototype",
-                  flags=list(facing.flags),
-                  note=f"front arc {front:.0f} mm - back arc {back:.0f} mm at chest level; "
-                       "positive means the front is the wider half",
-                  level_mm=chest_level)
 
 
 # ------------------------------------------------------------- pipeline ---
@@ -248,25 +107,14 @@ def collect(mesh, facing=None):
             level_mm=level,
         ))
 
-    armpit = landmarks.get("armpit_level")
-    waist = landmarks.get("waist_level")
-    chest = landmarks.get("chest_level")
-    back_neck = landmarks.get("back_neck_point")
-    shoulders = None
-    if "shoulder_point_left" in landmarks and "shoulder_point_right" in landmarks:
-        shoulders = (landmarks["shoulder_point_left"], landmarks["shoulder_point_right"])
-    wrist = landmarks.get("wrist_point_right") or landmarks.get("wrist_point_left")
-    crotch = E.estimate_crotch_level(mesh)
-
-    results += [
-        hem_girth(mesh, waist, crotch),
-        sleeve_opening_girth(mesh, armpit, wrist),
-        armhole_depth(shoulders, armpit),
-        shoulder_slope(shoulders, back_neck),
-        front_back_width(mesh, None if chest is None else float(chest.position_mm[1]), armpit,
-                         landmarks.get("facing"),
-                         [f for f in values["chest_circumference"].quality]),
-    ]
+    # the five prototypes now live in body_measure/garment_prototypes.py so
+    # the CLI and both figures share one implementation
+    for value in run_prototypes(mesh, values, landmarks).values():
+        results.append(Result(
+            value.key, value.label, value.value,
+            "prototype" if value.available else "unavailable",
+            flags=list(value.flags), note=value.note, level_mm=value.level_mm,
+        ))
     return results, landmarks
 
 
@@ -368,7 +216,7 @@ def draw(mesh, results, landmarks, title, subtitle, out_path):
             if r.value_mm is None:
                 shown = "—"
             elif r.key == "shoulder_slope":
-                shown = f"{r.value_mm:.1f}°"
+                shown = f"{r.value_mm:.1f} deg"
             elif r.key == "front_back_width":
                 shown = f"{r.value_mm:+.0f} mm"
             else:

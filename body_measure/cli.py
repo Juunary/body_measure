@@ -1,10 +1,13 @@
 """CLI: measure | validate.
 
-Slice 0: `measure` loads a mesh (explicit unit required), canonicalizes,
-and emits the full result schema. All six measurements start as null /
-not_implemented; passing --waist-height exercises the real slice ->
-torso-loop -> circumference path for waist_circumference.
-`validate` arrives with the validation harness slice.
+`measure` loads a mesh (explicit unit required), canonicalizes it, and
+reports the spec's measurements. It prints a table by default and JSON
+with --format json; --out always writes JSON, because that is the result
+schema other tools read.
+
+--view renders the scan in 3-D with each measurement drawn where it was
+actually taken. --garment polo adds the garment prototypes, which are NOT
+in the spec and are labelled as such everywhere they appear.
 """
 from __future__ import annotations
 
@@ -36,6 +39,12 @@ def _build_parser() -> argparse.ArgumentParser:
                          help="measure waist_circumference at this canonical height (mm)")
     measure.add_argument("--estimate", action="store_true",
                          help="estimate landmarks (topology-agnostic pathway)")
+    measure.add_argument("--format", choices=["table", "json"], default="table",
+                         help="stdout format; --out always writes JSON")
+    measure.add_argument("--garment", choices=["none", "polo"], default="none",
+                         help="add garment prototypes — NOT in the spec, unvalidated")
+    measure.add_argument("--view", nargs="?", const="", default=None, metavar="PNG",
+                         help="render a 3-D view; optional path, else next to the mesh")
     measure.add_argument("--out", type=Path, default=None)
 
     validate = sub.add_parser(
@@ -87,6 +96,37 @@ def _validate(args: argparse.Namespace) -> int:
     return EXIT_OK if failures == 0 else EXIT_ERROR
 
 
+def _print_table(spec, result, prototypes, mesh_path) -> None:
+    """Terminal report. Values are millimetres unless the row says otherwise."""
+    from .validate.stats import quality_bucket
+
+    width = max(len(name) for name in spec.names)
+    print(f"\n{mesh_path}")
+    print(f"{'measurement':{width}s} {'value':>12s}  {'quality':14s} flags")
+    print("-" * (width + 46))
+    for name in spec.names:
+        value = result.measurements[name]
+        shown = "—" if value.selected_value_mm is None else f"{value.selected_value_mm:9.1f} mm"
+        flags = ",".join(f for f in value.quality if f != "ok")
+        priority = spec.measurements[name].priority
+        marker = " " if priority == "core" else "."
+        print(f"{name:{width}s} {shown:>12s}  {quality_bucket(value):14s} {flags[:46]}{marker}")
+
+    if prototypes:
+        print(f"\n{'garment prototype':{width}s} {'value':>12s}   NOT in the spec — no definition")
+        print("-" * (width + 46) + "   audit, no reference, no battery")
+        for value in prototypes.values():
+            if value.value is None:
+                shown = "—"
+            elif value.unit == "deg":
+                shown = f"{value.value:9.1f} °"
+            else:
+                shown = f"{value.value:9.1f} mm"
+            note = value.note or ",".join(value.flags[:2])
+            print(f"{value.key:{width}s} {shown:>12s}  {note[:52]}")
+    print("\n. = deferred priority (outside the current garment)")
+
+
 def _measure(args: argparse.Namespace) -> int:
     spec = load_spec()
     try:
@@ -101,6 +141,7 @@ def _measure(args: argparse.Namespace) -> int:
     )
     result.meta["input"] = {"path": str(args.mesh), "unit": args.input_unit, "up_axis": args.up_axis}
 
+    measurements, landmarks = {}, {}
     if args.estimate:
         from .measure.measurements import run_estimated_measurements
 
@@ -121,11 +162,38 @@ def _measure(args: argparse.Namespace) -> int:
             "quality_flags": [],
         }
 
-    payload = result.to_json()
+    prototypes = None
+    if args.garment == "polo":
+        if not args.estimate:
+            print("error: --garment needs --estimate; the prototypes are built on "
+                  "the estimated landmarks", file=sys.stderr)
+            return EXIT_ERROR
+        from .garment_prototypes import run_prototypes
+
+        prototypes = run_prototypes(mesh, measurements, landmarks)
+        # kept out of `measurements`: the result schema is exactly the spec
+        result.meta["garment_prototypes"] = {
+            key: value.to_dict() for key, value in prototypes.items()
+        }
+
     if args.out:
-        args.out.write_text(payload, encoding="utf-8")
+        args.out.write_text(result.to_json(), encoding="utf-8")
+    elif args.format == "json":
+        print(result.to_json())
     else:
-        print(payload)
+        _print_table(spec, result, prototypes, args.mesh)
+
+    if args.view is not None:
+        if not args.estimate:
+            print("error: --view needs --estimate; there is nothing to draw without "
+                  "landmarks", file=sys.stderr)
+            return EXIT_ERROR
+        from .viewer import render
+
+        png = Path(args.view) if args.view else args.mesh.with_suffix(".measured.png")
+        n = render(mesh, result.measurements, landmarks, png,
+                   prototypes=prototypes, subtitle=str(args.mesh))
+        print(f"\n{n} measured curves drawn -> {png}")
     return EXIT_OK
 
 
