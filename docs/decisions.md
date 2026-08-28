@@ -777,3 +777,57 @@ exercises them.
 **Revisit if:** any dataset produces a nearest-centroid selection at the
 armpit level — the four sites above become live and need the same gate
 `torso_girth_profile` has.
+
+## 27. A size is assigned from a cited chart, or not at all
+
+**Decided:** `body_measure/sizing.py` maps a measured body to a
+ready-to-wear size (`--size-chart en13402|lacoste`). Charts carry their
+source and the date it was checked; a chart without one does not go in.
+
+**Why the source matters more than the numbers.** An invented band looks
+exactly like a standard one once it is in a table, and the difference
+only surfaces when someone is asked where the number came from — by which
+time garments have been cut. So a chart is a record with provenance, not
+a constant.
+
+The bands are **EN 13402-3**'s men's letter codes: S 86-94, M 94-102,
+L 102-110, XL 110-118, XXL 118-129 cm chest girth. That is the European
+standard for the market this line produces for, and each letter spans two
+adjacent 4 cm size steps. A Lacoste chart is kept beside it as a
+cross-check rather than an authority; the useful fact is that its
+published S-XXL body span (86-117 cm) agrees with the standard to within
+a centimetre, so a brand and the standard do not disagree enough to
+change a size. Where Lacoste publishes only the span and not the per-size
+cut points, the note says so rather than inventing them.
+
+**Four refusals, each for a different reason.**
+
+- **Clothed.** A dressed subject's chest girth is the garment's, so a size
+  from it is the garment's size. `--clothed` records the
+  `measured_clothed` pathway and the assignment refuses. A mesh file does
+  not announce that its subject was dressed, so the caller says.
+- **Outside the chart.** HSRD's jacket reads 132.6 cm, past XXL.
+  Extending a chart beyond its published bands is inventing sizes.
+- **A measurement the pipeline itself will not accept.** `rejected` or
+  `manual_review` chest, no size. Anything short of `clean` still assigns
+  but carries the bucket as a flag.
+- **The wrong population.** EN 13402 designates the same letter by *bust*
+  girth for women and *chest* girth for men, so a men's band on a female
+  body reads the wrong dimension — not a size out, a category error. A
+  mesh does not say who it is, so an unstated population is flagged rather
+  than assumed, and a stated mismatch refuses.
+
+**Band edges are reported, not resolved.** A chest within 10 mm of an edge
+names the neighbouring size too. This pipeline's girth error is tens of
+millimetres on a clothed scan and single millimetres at best, so a 4 mm
+difference deciding S against M is a decision the measurement cannot
+support. Naming both is the honest output.
+
+**Rules out:** extrapolating a chart past its bands; assigning from a
+clothed girth; a chart whose provenance is not in the file; silently
+picking a side at a band edge.
+
+**Revisit if:** a women's chart is added (it needs bust girth, which is
+not the same measurement as chest and is not in the spec), or the line
+moves to true made-to-measure, where a size label stops being the output
+and the girths themselves are the pattern input.
