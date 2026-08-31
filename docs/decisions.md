@@ -831,3 +831,47 @@ picking a side at a band edge.
 not the same measurement as chest and is not in the spec), or the line
 moves to true made-to-measure, where a size label stops being the output
 and the girths themselves are the pattern input.
+
+## 28. Whether the line can run on size labels is a coverage question
+
+**Decided:** `scripts/size_report.py` reports what a single assignment
+cannot — coverage, refusal reasons, boundary rate, and how much a size
+label leaves undetermined. Over 40 unclothed subjects (10 Texel, 30 NOMO)
+with EN 13402-3:
+
+| | |
+|---|---|
+| coverage | **31 / 40 (78 %)** |
+| on a band boundary | **8 of 31 (26 %)** |
+| refused | 5 women against a men's chart, 2 `manual_review` chest, 1 no value, 1 chest 134.4 cm past XXL |
+
+**The boundary rate is the number that matters.** A quarter of the
+subjects that do get a size sit within 10 mm of a band edge, which is
+inside this pipeline's own girth error. For those the label is a coin
+toss, and a coin toss on a garment is a return. That is a property of
+8 cm-wide bands meeting millimetre-scale bodies, not a defect to fix.
+
+**What a size label does not say.** Among subjects sharing one label, the
+other measurements still span: waist 168 mm within L and 184 mm within
+XL, neck up to 115 mm, upper arm up to 83 mm. A chest band fixes one
+girth and leaves the rest free, so a polo cut to the label fits the middle
+of each range and compromises at both ends. That is the made-to-measure
+argument stated in this project's own numbers rather than asserted.
+
+**A defect found in this report, of the kind it exists to catch.** The
+spreads were first computed over every value regardless of its bucket,
+and they were dominated by our own failures rather than by human
+variation — XL back length read 441 mm before filtering and 33 mm after,
+size-M waist 137 mm before and 23 mm after. Ranges are now taken over
+accepted buckets only, with excluded subjects marked. This is decisions
+#22 and #26 a third time: an untrusted sample reaching a statistic.
+`arm_clipped` is kept because it is a documented systematic
+approximation; `manual_review` and `rejected` are not.
+
+**Rules out:** quoting a within-size spread without saying which buckets
+it was taken over; treating the boundary rate as a bug rather than a
+property of banded sizing.
+
+**Revisit if:** the scanner arrives and the girth error is measured
+against a tape — the 10 mm boundary margin is currently an estimate of our
+error, and a measured one would move the boundary rate up or down.
