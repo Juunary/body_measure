@@ -5,10 +5,11 @@ v3까지의 계획은 `.claude/plans/`에만 있어 버전 관리되지 않았�
 채 보고서에 유령 항목으로 떴다. 계획 문서는 이제 저장소 안에 있고, 상태가
 바뀌면 커밋으로 남는다.
 
-**2026-08-31 확인 결과: SIZER는 막힌 것이 아니라 아직 요청하지 않은 상태다.**
-`github.com/garvita-tiwari/sizer_dataset` 기준 접근 경로는 열려 있다 —
-Google Form 작성 후 `gtiwari@mpi-inf.mpg.de`로 비밀번호를 요청하면 MPI
-Nextcloud에서 받는다. 요청서 초안은 `docs/sizer-access-request-draft.md`.
+**2026-08-31 확인 결과: SIZER는 막힌 것이 아니라 연락처가 낡은 상태다.**
+`github.com/garvita-tiwari/sizer_dataset`의 절차는 Google Form 작성 후 비밀번호
+요청이지만, README에 적힌 `gtiwari@mpi-inf.mpg.de`는 **반송된다** — 저자가
+MPI-INF를 떠났고 Real Virtual Humans 그룹이 튀빙겐 대학으로 옮겼기 때문이다.
+현행 수신처와 요청서는 `docs/sizer-access-request-draft.md`에 있다.
 
 ---
 
