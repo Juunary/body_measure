@@ -1,12 +1,31 @@
 # SIZER 데이터 접근 요청 — 이메일 초안
 
-수신: Garvita Tiwari `gtiwari@mpi-inf.mpg.de` (MPI-INF, Saarbrücken)
+## 수신처 — 저장소에 적힌 주소는 죽었다
+
+`gtiwari@mpi-inf.mpg.de`는 **반송된다** (2026-08-31 확인). 저자가 MPI-INF를
+떠났기 때문이다: Garvita Tiwari는 Real Virtual Humans 페이지에 `Alumni_PhD`로
+표시돼 있고, 그룹 자체가 **튀빙겐 대학**으로 옮겼다. 저장소 README의 주소는
+갱신되지 않았다.
+
+| 역할 | 주소 | 비고 |
+|---|---|---|
+| **To** — 제1저자 | `garvita.tiwari@uni-tuebingen.de` | 현 소속. 다만 졸업생이라 응답 보장 없음 |
+| **Cc** — 교신/그룹장 | `gerard.pons-moll@uni-tuebingen.de` | SIZER 시니어 저자이자 그룹장. **가장 안정적** |
+| Cc — 행정 | `violaine.le-guily@graphics.uni-tuebingen.de` | 위 둘 모두 무응답일 때만 |
+
+제2저자 Bharat Lal Bhatnagar도 졸업 후 Meta Reality Labs로 옮겼으므로
+MPI 주소로 보내지 않는다.
+
+**제1저자가 졸업생이므로 Pons-Moll을 반드시 참조에 넣는다.** 그가 그룹장이자
+데이터셋의 시니어 저자이고, 라이선스·산업 맥락 질문(아래 4번)에 답할 권한이
+있는 쪽도 그다.
+
 발신: **Waldemar Lang이 발신자이거나 참조** — `weights-permission.md` 규칙.
 개인 앞으로 온 회신은 ITA를 구속하지도 보호하지도 않는다.
 
 절차 (`github.com/garvita-tiwari/sizer_dataset`):
 1. 저장소에 링크된 Google Form 작성 — **먼저**
-2. 아래 메일로 비밀번호 요청
+2. 위 주소로 비밀번호 요청
 3. MPI Nextcloud에서 다운로드
 
 ---
@@ -27,13 +46,17 @@
 
 Subject: SIZER dataset access request — RWTH Aachen ITA
 
-Dear Dr. Tiwari,
+Dear Dr. Tiwari, dear Prof. Pons-Moll,
 
 I am writing from the Institut für Textiltechnik (ITA) at RWTH Aachen
 University, where we are developing a body-measurement pipeline for
 made-to-measure garments as part of a Digital Product Passport project. We
 have completed the access form on the SIZER GitHub page and would like to
 request the download password.
+
+(The address given on the repository page, gtiwari@mpi-inf.mpg.de, no
+longer accepts mail — you may want to update the README. I am writing to
+the Tübingen addresses instead.)
 
 Our intended use is non-commercial research: estimating body dimensions
 from 3D scans of dressed subjects, for which SIZER's paired clothed and
