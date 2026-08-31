@@ -50,6 +50,9 @@ def _build_parser() -> argparse.ArgumentParser:
     measure.add_argument("--clothed", action="store_true",
                          help="the subject is dressed; records the measured_clothed "
                               "pathway, so the numbers read as the garment's")
+    measure.add_argument("--pattern", choices=["none", "polo"], default="none",
+                         help="check the body against what a pattern draft "
+                              "consumes, and report what is missing")
     measure.add_argument("--population", choices=["men", "women"], default=None,
                          help="who the subject is; a mesh does not say, and the "
                               "size charts are men's")
@@ -157,6 +160,39 @@ def _print_size(sizing) -> None:
     print(f"    checked    {chart.checked}")
 
 
+def _print_readiness(readiness) -> None:
+    print()
+    print(f"  pattern readiness — {readiness.garment}: "
+          f"{readiness.verdict.replace('_', ' ')}")
+    print(f"    {len(readiness.draftable)} of {len(readiness.statuses)} "
+          "dimensions can carry a drafted line\n")
+    width = max(len(s.requirement.key) for s in readiness.statuses)
+    for status in readiness.statuses:
+        mark = "+" if status.draftable else "-"
+        shown = ("—" if status.value is None
+                 else f"{status.value:9.1f} {status.unit}")
+        print(f"    {mark} {status.requirement.key:{width}s} {shown:>14s}  "
+              f"{status.bucket:14s} {status.note[:44]}")
+    print()
+    for note in readiness.notes:
+        for line in _wrap(note, 92):
+            print(f"    {line}")
+        print()
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    words, lines, current = text.split(), [], ""
+    for word in words:
+        if len(current) + len(word) + 1 > width:
+            lines.append(current)
+            current = word
+        else:
+            current = f"{current} {word}".strip()
+    if current:
+        lines.append(current)
+    return lines
+
+
 def _measure(args: argparse.Namespace) -> int:
     spec = load_spec()
     try:
@@ -230,6 +266,20 @@ def _measure(args: argparse.Namespace) -> int:
             args.out.write_text(result.to_json(), encoding="utf-8")
         elif args.format != "json":
             _print_size(sizing)
+
+    if args.pattern != "none":
+        if not args.estimate:
+            print("error: --pattern needs --estimate; readiness is judged on "
+                  "measured dimensions", file=sys.stderr)
+            return EXIT_ERROR
+        from .pattern_readiness import assess
+
+        readiness = assess(result.measurements, prototypes, garment=args.pattern)
+        result.meta["pattern_readiness"] = readiness.to_dict()
+        if args.out:
+            args.out.write_text(result.to_json(), encoding="utf-8")
+        elif args.format != "json":
+            _print_readiness(readiness)
 
     if args.view is not None:
         if not args.estimate:

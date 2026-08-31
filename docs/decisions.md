@@ -928,3 +928,54 @@ two populations.
 **Revisit if:** the ISO 8559-1 text is obtained and m5's height rule is
 checked — the `approximate` rating and the flag it produces both rest on
 the audit's reading, and `definition_verified` is still false.
+
+## 30. The pattern gate reports what is missing, and refuses to say "ready"
+
+**Decided:** `body_measure/pattern_readiness.py` checks a measured body
+against what a polo draft consumes (`--pattern polo`). Its best possible
+verdict is `complete_unverified`. **`ready` is not among the verdicts**,
+and a test pins that the module offers no such string.
+
+The reason is the same one that makes `measurement_accuracy` unreachable
+in `claims.py`: no value here has been compared against a trained
+measurer's tape. A gate that could return "ready" would be claiming
+exactly the thing this project has spent every slice refusing to claim.
+
+**Why the gate comes before the drafting code.** A size band is 80 mm
+wide, so a chest can be tens of millimetres out and still land on the
+right letter. A pattern draws a line at the number. The accuracy a draft
+needs is roughly four times tighter than the accuracy a size label needs,
+and we have not established the looser one. Writing a drafting routine
+first would produce precise lines through numbers of unknown accuracy.
+
+**What it found on a clean unclothed scan (Texel Man0): 4 of 15.**
+
+| | count | why |
+|---|---|---|
+| draftable | 4 | chest, waist, neck, upper arm |
+| blocked on quality | 3 | across-back, back length, sleeve — `manual_review` |
+| present but unvalidated | 5 | the garment prototypes |
+| not implemented | 3 | centre-front length, armhole girth, across front |
+
+A prototype having a number does not make it draftable. It has no
+definition audit and no reference, and presence is not permission to cut
+cloth — so the gate reports the value and withholds the licence.
+
+**The requirement list is itself a claim.** Twelve entries come from
+polo-line-sim's measurement list, which already records that the Maß-DPP
+plan lists no body measurements and that its own list is derived from
+pattern practice and ISO 8559-1. Three more were identified while reading
+that list against what a draft needs and are marked `unsourced`, because
+they have not been checked against a named drafting system (M. Müller &
+Sohn, Aldrich's menswear block). A gate that hid the provenance of its own
+requirements would be the failure it exists to catch.
+
+**Rules out:** writing pattern-drafting code before the measurements it
+would consume are complete and validated; treating a prototype's presence
+as fitness to draft from; a requirement list without provenance.
+
+**Revisit if:** the three unimplemented dimensions are added (the gate
+then measures quality rather than absence), or the scanner and ISO
+20685-1 validation arrive — at which point a `ready` verdict becomes
+definable for the first time, gated on a measured tolerance rather than
+on a bucket.
