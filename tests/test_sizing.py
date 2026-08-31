@@ -42,13 +42,45 @@ def test_a_chest_lands_in_its_band(chest_cm, expected):
     assert result.label == expected
 
 
-def test_the_bands_are_contiguous_and_ordered():
-    """A gap between bands would silently refuse a real body; an overlap
-    would make the assignment depend on iteration order."""
+def test_the_bands_are_ordered_and_never_overlap():
+    """An overlap would make the assignment depend on iteration order.
+    A gap is allowed — the published women's table has one — but it must
+    be a gap, not a reversal."""
     for chart in CHARTS.values():
         for lower, upper in zip(chart.bands, chart.bands[1:]):
-            assert lower.chest_max_cm == upper.chest_min_cm
             assert lower.chest_min_cm < lower.chest_max_cm
+            assert lower.chest_max_cm <= upper.chest_min_cm
+
+
+def test_the_womens_table_gap_is_recorded_not_smoothed():
+    """EN 13402-3's women's table leaves 106-107 cm uncovered. Closing it
+    would make the table tidier and no longer the published table, so a
+    bust in the gap is refused with that as the reason."""
+    from body_measure.sizing import EN_13402_3_WOMEN
+
+    labels = {b.label: (b.chest_min_cm, b.chest_max_cm) for b in EN_13402_3_WOMEN.bands}
+    assert labels["L"][1] == 106.0 and labels["XL"][0] == 107.0
+
+    result = assign(chest(1065.0), chart=EN_13402_3_WOMEN, population="women")
+    assert not result.assigned
+    assert "between_bands" in result.flags
+    assert "gap" in result.reason
+
+
+def test_the_womens_chart_sizes_a_womans_body():
+    from body_measure.sizing import EN_13402_3_WOMEN
+
+    result = assign(chest(900.0), chart=EN_13402_3_WOMEN, population="women")
+    assert result.label == "M"
+
+
+def test_every_assignment_carries_the_iso_definition_caveat():
+    """chest_circumference maps to ISO m5 'Bust/Chest Girth' only
+    approximately — ISO fixes the height at the bust point, this pipeline
+    searches for the maximum. Every size says so."""
+    for chart_key, population in (("en13402", "men"), ("en13402-women", "women")):
+        result = assign(chest(950.0), chart=CHARTS[chart_key], population=population)
+        assert "chest_definition_approximate_iso_m5" in result.flags
 
 
 def test_every_chart_states_its_source_and_what_it_measures():

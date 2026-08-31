@@ -97,7 +97,33 @@ LACOSTE_MEN = SizeChart(
     ),
 )
 
-CHARTS = {chart.key: chart for chart in (EN_13402_3, LACOSTE_MEN)}
+EN_13402_3_WOMEN = SizeChart(
+    key="en13402-women",
+    name="EN 13402-3 letter codes, women",
+    source="EN 13402-3 (European size designation), letter-code table for women, "
+           "bust girth in cm — via onlineconversion.com/clothing_en13402_standard.htm",
+    checked="2026-08-28",
+    dimension_kind="body",
+    population="women",
+    note="Two irregularities are recorded AS PUBLISHED rather than smoothed. "
+         "L ends at 106 cm and XL begins at 107, leaving a 1 cm gap that no "
+         "letter covers; a bust in it is refused, which is what a chart that "
+         "does not cover a body should do. And XL and XXL span 12 cm where the "
+         "smaller letters span 8, so the two-step rule the men's table follows "
+         "does not hold across this one. Closing the gap or evening the widths "
+         "would make the table tidier and no longer the published table.",
+    bands=(
+        SizeBand("XS", 74.0, 82.0),
+        SizeBand("S", 82.0, 90.0),
+        SizeBand("M", 90.0, 98.0),
+        SizeBand("L", 98.0, 106.0),
+        SizeBand("XL", 107.0, 119.0),
+        SizeBand("XXL", 119.0, 131.0),
+    ),
+)
+
+CHARTS = {chart.key: chart
+          for chart in (EN_13402_3, EN_13402_3_WOMEN, LACOSTE_MEN)}
 DEFAULT_CHART = EN_13402_3.key
 
 
@@ -170,6 +196,13 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
             flags=flags)
     if bucket != "clean":
         flags.append(f"primary_measurement_{bucket}")
+    # docs/measurement-audit.md maps chest_circumference to ISO 8559-1 m5
+    # "Bust/Chest Girth" — one item for both populations — and rates the
+    # mapping `approximate` because ISO fixes the height at the bust point
+    # while this pipeline searches for the maximum girth. The height rule
+    # matters more on a female body, where the bust point is a named
+    # anatomical location rather than wherever the torso is widest.
+    flags.append("chest_definition_approximate_iso_m5")
 
     if population is None:
         flags.append(f"population_unverified_chart_is_for_{chart.population}")
@@ -192,9 +225,23 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
                    "published bands would be inventing sizes",
             flags=flags)
 
-    band = next(b for b in chart.bands
-                if b.chest_min_cm <= chest_cm < b.chest_max_cm
-                or b is chart.bands[-1] and chest_cm <= b.chest_max_cm)
+    # The last band's top edge is inclusive so the chart's stated maximum
+    # gets a size. That exception must still require the band's minimum:
+    # without it any value below the last band fell through to it, which
+    # only became visible once a chart with a gap existed — the women's
+    # table put 106.5 cm in XXL.
+    band = next((b for b in chart.bands
+                 if b.chest_min_cm <= chest_cm < b.chest_max_cm
+                 or (b is chart.bands[-1]
+                     and b.chest_min_cm <= chest_cm <= b.chest_max_cm)), None)
+    if band is None:
+        # inside the chart's outer range but between two of its bands — the
+        # women's table has a 1 cm gap where no letter applies
+        return SizeAssignment(
+            chart, None, chest_mm,
+            reason=f"{chest_cm:.1f} cm falls in a gap between the chart's bands; "
+                   "the published table covers no letter there",
+            flags=flags + ["between_bands"])
 
     alternative = None
     for edge, neighbour in ((band.chest_min_cm, -1), (band.chest_max_cm, +1)):

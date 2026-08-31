@@ -43,7 +43,8 @@ def _build_parser() -> argparse.ArgumentParser:
                          help="stdout format; --out always writes JSON")
     measure.add_argument("--garment", choices=["none", "polo"], default="none",
                          help="add garment prototypes — NOT in the spec, unvalidated")
-    measure.add_argument("--size-chart", choices=["none", "en13402", "lacoste"],
+    measure.add_argument("--size-chart",
+                         choices=["none", "en13402", "en13402-women", "lacoste"],
                          default="none",
                          help="assign a ready-to-wear size from the measured body")
     measure.add_argument("--clothed", action="store_true",

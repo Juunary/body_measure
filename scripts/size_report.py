@@ -90,13 +90,21 @@ def main() -> int:
     chart = CHARTS[args.chart]
     spec = load_spec()
     rows = []
+    # a subject is sized against the chart for their own population; the
+    # men's and women's tables are different bands read off ISO's single
+    # Bust/Chest Girth item, so mixing them is a category error
+    by_population = {c.population: c for c in CHARTS.values()
+                     if c.key.startswith("en13402")}
 
     for source, population, mesh in list(texel_subjects()) + list(nomo_subjects(args.nomo)):
         measurements, _ = run_estimated_measurements(mesh)
-        sizing = assign(measurements, chart=chart, population=population)
+        subject_chart = (chart if chart.population == population
+                         else by_population.get(population, chart))
+        sizing = assign(measurements, chart=subject_chart, population=population)
         rows.append({
             "subject": source,
             "population": population,
+            "chart": subject_chart.key,
             "size": sizing.label,
             "alternative": sizing.alternative,
             "chest_mm": sizing.chest_mm,
@@ -119,9 +127,14 @@ def main() -> int:
     refused = [r for r in rows if not r["size"]]
     boundary = [r for r in assigned if r["alternative"]]
 
-    print(f"\n{chart.name}   ·   {len(rows)} unclothed subjects "
-          f"(Texel CC BY-NC, NOMO research-only)")
-    print(f"source: {chart.source}\n")
+    charts_used = sorted({r["chart"] for r in rows})
+    print(f"\n{len(rows)} unclothed subjects (Texel CC BY-NC, NOMO research-only), "
+          f"each against the chart for their own population")
+    for key in charts_used:
+        used = CHARTS[key]
+        print(f"  {used.name}  ({sum(1 for r in rows if r['chart'] == key)} subjects)")
+        print(f"    {used.source}")
+    print()
 
     print(f"{'coverage':22s} {len(assigned):3d} / {len(rows)}  "
           f"({100 * len(assigned) / len(rows):.0f} %)")
@@ -130,12 +143,18 @@ def main() -> int:
           f"({100 * len(boundary) / max(len(assigned), 1):.0f} % of the assigned) "
           f"— the label could flip under this pipeline's own error")
 
-    print("\nsize distribution")
-    for band in chart.bands:
-        n = sum(1 for r in assigned if r["size"] == band.label)
-        bar = "#" * n
-        print(f"  {band.label:8s} {band.chest_min_cm:5.0f}-{band.chest_max_cm:3.0f} cm  "
-              f"{n:3d}  {bar}")
+    # per chart: the men's M and the women's M are different bands read off
+    # the same ISO item, so counting them in one column would invent a size
+    for key in charts_used:
+        used = CHARTS[key]
+        group = [r for r in assigned if r["chart"] == key]
+        if not group:
+            continue
+        print(f"\nsize distribution — {used.name}  ({len(group)} sized)")
+        for band in used.bands:
+            n = sum(1 for r in group if r["size"] == band.label)
+            print(f"  {band.label:8s} {band.chest_min_cm:5.0f}-{band.chest_max_cm:3.0f} cm  "
+                  f"{n:3d}  {'#' * n}")
 
     if refused:
         print("\nrefusals")
@@ -147,12 +166,15 @@ def main() -> int:
             print(f"  {n:3d}  {reason}")
 
     # ---- what the label does not say -------------------------------------
-    print("\nwhat a size label leaves open — spread of the other measurements "
-          "among subjects sharing one label")
+    # this table covers one chart only — the --chart one — because a spread
+    # taken across two populations would be a spread of populations
+    print(f"\nwhat a size label leaves open — spread within one label, "
+          f"{chart.name}")
     print(f"  {'size':8s} {'n':>3s}  " + "  ".join(f"{n[:12]:>12s}" for n in SECONDARY))
     spreads: dict[str, dict] = {}
     for band in chart.bands:
-        group = [r for r in assigned if r["size"] == band.label]
+        group = [r for r in assigned
+                 if r["size"] == band.label and r["chart"] == chart.key]
         if len(group) < 2:
             continue
         cells, record = [], {}

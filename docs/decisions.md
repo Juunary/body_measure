@@ -875,3 +875,56 @@ property of banded sizing.
 **Revisit if:** the scanner arrives and the girth error is measured
 against a tape — the 10 mm boundary margin is currently an estimate of our
 error, and a measured one would move the boundary rate up or down.
+
+## 29. The women's chart needed no new measurement — the audit already said so
+
+**Decided:** `EN_13402_3_WOMEN` sizes female bodies from the same
+`chest_circumference` the men's chart uses, against the standard's
+women's bands. Coverage over the 40-subject set goes 78 % → 90 %.
+
+**The measurement question answered itself from the audit.** The plan was
+to add a `bust_girth` measurement first, since EN 13402 designates women's
+tops by bust girth and men's by chest girth. But
+`docs/measurement-audit.md` already maps `chest_circumference` to ISO
+8559-1 **m5 "Bust/Chest Girth"** — ISO carries one item for both — and the
+code's own docstring was already written as "the true chest/bust level".
+Adding a second measurement would have created two names for one geometric
+operation, which is the name-based thinking this project's founding rule
+forbids. What differs between the populations is the *bands*, not the
+dimension.
+
+The audit's `approximate` rating comes along: ISO fixes the height at the
+bust point while this pipeline searches for the maximum girth. That matters
+more on a female body, where the bust point is a named anatomical location
+rather than wherever the torso happens to be widest, so every assignment
+now carries `chest_definition_approximate_iso_m5` rather than leaving the
+caveat in a document nobody reads at assignment time.
+
+**Two irregularities in the published women's table are recorded, not
+smoothed.** L ends at 106 cm and XL begins at 107, leaving a centimetre no
+letter covers; XL and XXL span 12 cm where the smaller letters span 8, so
+the two-adjacent-steps rule the men's table follows does not hold across
+this one. A bust in the gap is refused with `between_bands`. Closing the
+gap would make the table tidier and no longer the published table.
+
+**The gap exposed a latent bug.** The band search made the last band's top
+edge inclusive so a chart's stated maximum gets a size, but the exception
+did not also require that band's *minimum* — so any value matching no band
+fell through to the last one. With contiguous men's bands nothing ever
+fell through and the bug was invisible; the women's 1 cm gap put 106.5 cm
+in XXL. A chart with a hole in it turned out to be a test the code had
+never been given.
+
+**Reports size per population.** The men's M and the women's M are
+different bands read off the same ISO item, so `size_report.py` counts them
+in separate distributions and the within-size spread table names the one
+chart it covers. Summing them into one column would invent a size that
+neither chart defines.
+
+**Rules out:** a separate `bust_girth` measurement while ISO keeps one item;
+editing a published table to make it regular; one size distribution across
+two populations.
+
+**Revisit if:** the ISO 8559-1 text is obtained and m5's height rule is
+checked — the `approximate` rating and the flag it produces both rest on
+the audit's reading, and `definition_verified` is still false.
