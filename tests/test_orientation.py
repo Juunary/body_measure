@@ -35,9 +35,38 @@ def test_the_spec_declares_orientation_dependencies():
 
 def test_facing_reports_direction_confidence_and_method(mesh):
     facing = estimate_facing(mesh)
-    assert facing.method == "toe_projection"
+    assert facing.method == "toe_extent_about_leg"
     assert 0.0 <= facing.confidence <= 1.0
     assert abs(np.linalg.norm(facing.direction) - 1.0) < 1e-9
+
+
+def test_the_estimate_points_at_the_front_of_a_body_whose_front_is_known(mesh):
+    """The only mesh here with a ground-truth orientation: SMPL's frame
+    defines the front as +Z. Nothing else in this file pins the SIGN, and
+    the earlier toe_projection method was 180 degrees out on every dataset
+    while passing every other test (decision #31)."""
+    facing = estimate_facing(mesh)
+    assert facing.direction[1] > 0.9, (
+        f"facing points at {facing.direction}, but SMPL's front is +Z")
+    assert "orientation_unknown" not in facing.flags
+    assert facing.confidence > 0.5
+
+
+def test_a_yawed_body_is_followed_rather_than_re_estimated_from_scratch(mesh):
+    """Rotating the body must rotate the estimate with it. A method that
+    reads a fixed world axis instead of the anatomy would not."""
+    for degrees in (37.0, 90.0, 180.0, 233.0):
+        radians = np.radians(degrees)
+        turned = mesh.copy()
+        turned.apply_transform(
+            trimesh.transformations.rotation_matrix(radians, [0, 1, 0]))
+        got = estimate_facing(turned).direction
+        c, s = np.cos(radians), np.sin(radians)
+        # rotation about +Y takes (x, z) to (x cos + z sin, -x sin + z cos)
+        base = estimate_facing(mesh).direction
+        want = np.array([base[0] * c + base[1] * s,
+                         -base[0] * s + base[1] * c])
+        assert np.dot(got, want) > 0.98, f"{degrees} deg: {got} vs {want}"
 
 
 def test_missing_feet_null_all_orientation_dependent_measurements(mesh):

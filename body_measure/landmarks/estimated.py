@@ -316,26 +316,137 @@ def provided_facing(direction_xz, *, source: str) -> Facing:
     return Facing(d / n, 1.0, f"provided_by_{source}", ["orientation_provided"])
 
 
+#: Everything below this fraction of stature is foot rather than ankle.
+FOOT_TOP_FRACTION = 0.04
+#: The band the reference centre is taken from: the lower leg directly
+#: above the foot. Named for what it is rather than for the ankle joint,
+#: which on a standing body sits below this at roughly 4 % of stature.
+LOWER_LEG_BAND_FRACTION = (0.06, 0.09)
+#: A foot outline needs enough points for its long axis to mean anything.
+MIN_FOOT_VERTICES = 30
+#: The leg centre is one mean position, so it needs far fewer points than
+#: the outline does. SMPL carries 6890 vertices for a whole body and puts
+#: about 20 in this band; a scan puts hundreds.
+MIN_LEG_VERTICES = 8
+#: Toe reach over heel reach about the ankle. Below this the outline is too
+#: symmetric to say which end is the toe, so the sign is not resolved.
+MIN_TOE_HEEL_RATIO = 1.15
+#: Cosine between the two feet's directions. Feet point roughly the same
+#: way; a disagreement means at least one outline was not a foot.
+MIN_FEET_AGREEMENT = 0.80
+#: Above this cosine the two feet corroborate each other outright.
+GOOD_FEET_AGREEMENT = 0.95
+
+
+def _foot_toe_direction(foot_xz: np.ndarray, leg_xz: np.ndarray):
+    """Unit XZ direction from the leg centre toward the toes, and the
+    toe/heel reach ratio that says how firmly the sign is decided.
+
+    The foot's long axis is heel-to-toe; the leg meets it far nearer the
+    heel than the toes, so about that point the toe end reaches further
+    — on the scans here by a factor of three to six. That is
+    anatomy and holds at any slice height, unlike the centroid of a single
+    horizontal cut, which points forward only while the cut is low enough
+    to still contain toes (about 2 % of stature) and reverses above it.
+    """
+    rel = foot_xz - leg_xz
+    _, _, vt = np.linalg.svd(rel - rel.mean(axis=0), full_matrices=False)
+    axis = vt[0] / np.linalg.norm(vt[0])
+    projection = rel @ axis
+    forward, backward = float(projection.max()), float(-projection.min())
+    if backward > forward:
+        axis, forward, backward = -axis, backward, forward
+    ratio = forward / backward if backward > 1e-6 else float("inf")
+    return axis, ratio
+
+
 def estimate_facing(mesh: trimesh.Trimesh) -> Facing:
-    """The toes extend forward of the body axis, so the centroid of the
-    foot slice sits in the facing direction (toe_projection). Missing feet
-    leave the front/back 180-degree ambiguity unresolved ->
-    orientation_unknown with confidence 0."""
-    height = float(mesh.bounds[1][1])
-    axis_xz = body_axis_point(mesh)
-    loops = slice_mesh(mesh, np.array([0.0, 0.03 * height, 0.0]), _UP)
-    if not loops:
-        return Facing(np.array([0.0, 1.0]), 0.0, "toe_projection",
+    """Front-back orientation from the asymmetry of each foot about the
+    leg above it (toe_extent_about_leg).
+
+    Confidence comes from corroboration — the two feet agreeing with each
+    other, and each outline being lopsided enough to tell toe from heel —
+    rather than from the magnitude of any single sample. The earlier
+    toe_projection method read the centroid of one horizontal cut at 3 % of
+    stature; toes are only ~25 mm tall, so that cut holds heel and Achilles
+    instead and pointed backwards, the more strongly the higher it was cut
+    (decision #31).
+
+    Missing feet leave the 180-degree ambiguity unresolved ->
+    orientation_unknown with confidence 0.
+    """
+    METHOD = "toe_extent_about_leg"
+    # Only vertices the faces actually use: a mesh may carry orphans, and a
+    # surface that has been cropped away is gone whether or not its
+    # vertices were also deleted.
+    referenced = mesh.referenced_vertices
+    vertices = np.asarray(mesh.vertices, dtype=np.float64)[referenced]
+    if not len(vertices):
+        return Facing(np.array([0.0, 1.0]), 0.0, METHOD,
                       ["orientation_unknown", "no_foot_slice"])
-    points = np.vstack([lp.points for lp in loops])
-    offset = np.array([points[:, 0].mean(), points[:, 2].mean()]) - axis_xz
-    norm = float(np.linalg.norm(offset))
-    if norm < 5.0:  # 180-degree ambiguity effectively unresolved
-        return Facing(np.array([0.0, 1.0]), 0.0, "toe_projection",
-                      ["orientation_unknown", "toe_offset_below_threshold"])
-    confidence = min(0.9, norm / 60.0)
-    flags = ["front_back_low_confidence"] if norm < 30.0 else []
-    return Facing(offset / norm, confidence, "toe_projection", flags)
+    floor = float(vertices[:, 1].min())
+    height = float(vertices[:, 1].max()) - floor
+    y = vertices[:, 1] - floor
+    xz = vertices[:, [0, 2]]
+
+    foot_mask = y < FOOT_TOP_FRACTION * height
+    lo, hi = LOWER_LEG_BAND_FRACTION
+    leg_mask = (y > lo * height) & (y < hi * height)
+    if foot_mask.sum() < MIN_FOOT_VERTICES or leg_mask.sum() < MIN_LEG_VERTICES:
+        return Facing(np.array([0.0, 1.0]), 0.0, METHOD,
+                      ["orientation_unknown", "no_foot_slice"])
+
+    # Separate the two legs along the line between them rather than along
+    # world x: a scanner may deliver the subject at any yaw, and splitting
+    # on the wrong axis cuts each foot in half instead of parting the pair.
+    legs = xz[leg_mask]
+    _, _, vt = np.linalg.svd(legs - legs.mean(axis=0), full_matrices=False)
+    across = vt[0] / np.linalg.norm(vt[0])
+    leg_projection = legs @ across
+    midline = 0.5 * (float(leg_projection.min()) + float(leg_projection.max()))
+    foot_projection = xz[foot_mask] @ across
+    groups = [(foot_projection < midline, leg_projection < midline),
+              (foot_projection >= midline, leg_projection >= midline)]
+    # Feet close together leave no real separation to split on, so one
+    # combined reading is honest where two invented ones would not be.
+    centres = [legs[leg].mean(axis=0) for _, leg in groups
+               if leg.sum() >= MIN_LEG_VERTICES]
+    if len(centres) < 2 or float(np.linalg.norm(centres[0] - centres[1])) < 40.0:
+        groups = [(np.ones(foot_mask.sum(), bool), np.ones(leg_mask.sum(), bool))]
+
+    feet, directions, ratios = xz[foot_mask], [], []
+    for foot_side, leg_side in groups:
+        foot, leg = feet[foot_side], legs[leg_side]
+        if len(foot) < MIN_FOOT_VERTICES or len(leg) < MIN_LEG_VERTICES:
+            continue
+        direction, ratio = _foot_toe_direction(foot, leg.mean(axis=0))
+        if ratio < MIN_TOE_HEEL_RATIO:
+            continue  # too symmetric to name an end; not evidence
+        directions.append(direction)
+        ratios.append(ratio)
+
+    if not directions:
+        return Facing(np.array([0.0, 1.0]), 0.0, METHOD,
+                      ["orientation_unknown", "foot_outline_not_lopsided"])
+
+    if len(directions) == 1:
+        # One foot is a real reading but nothing corroborates it.
+        return Facing(directions[0], 0.4, METHOD,
+                      ["front_back_low_confidence", "single_foot_orientation"])
+
+    mean = np.mean(directions, axis=0)
+    norm = float(np.linalg.norm(mean))
+    agreement = float(min(np.dot(d, mean / norm) for d in directions)) \
+        if norm > 1e-9 else -1.0
+    if agreement < MIN_FEET_AGREEMENT:
+        # The two feet disagree, so at least one outline was not a foot.
+        return Facing(np.array([0.0, 1.0]), 0.0, METHOD,
+                      ["orientation_unknown", "feet_disagree_on_orientation"])
+
+    confidence = min(0.9, agreement * min(1.0, min(ratios) / 2.0))
+    flags = [] if agreement >= GOOD_FEET_AGREEMENT \
+        else ["front_back_low_confidence"]
+    return Facing(mean / norm, confidence, METHOD, flags)
 
 
 def _torso_loop_at(mesh: trimesh.Trimesh, level_mm: float):

@@ -979,3 +979,88 @@ then measures quality rather than absence), or the scanner and ISO
 20685-1 validation arrive — at which point a `ready` verdict becomes
 definable for the first time, gated on a measured tolerance rather than
 on a bucket.
+
+---
+
+## 31. Front and back were swapped, and confidence was measuring the wrong thing
+
+**Date:** 2026-08-31 · **Status:** accepted · **Supersedes part of #1's
+`toe_projection` method note**
+
+Three measurements — `across_back_shoulder_width`, `back_length`,
+`sleeve_length` — were landing in `manual_review` on clean Texel data.
+They moved together on all ten subjects, which pointed at one shared
+cause rather than three. The cause was `estimate_facing`, and it was
+worse than a gating problem: **the estimate was 180 degrees out.**
+
+The method took one horizontal cut at 3 % of stature and used the
+centroid of the foot slice, on the reasoning that the toes extend forward
+of the body axis. Toes are about 25 mm tall. At 3 % of stature — roughly
+50 mm — they are already gone, and the cut holds heel and Achilles, which
+sit *behind* the axis. On the generated SMPL body, whose frame defines the
+front as +Z, the offset is +Z at 0.5–2 % of stature and reverses to −Z
+from 3 % up:
+
+```
+ 0.5%  (  -1.5, +91.4) mm   +Z  front
+ 2.0%  (  +2.9, +12.1) mm   +Z  front
+ 3.0%  (  +1.2,  -7.7) mm   -Z  back    <- the height the method sampled
+ 8.0%  (  -1.0, -34.9) mm   -Z  back
+```
+
+The magnitude grows the further past the crossover you cut, so the
+method was *more* confident the *more* certainly it was backwards. That
+is why the five Texel subjects it marked `clean` (offset 40–59 mm) were
+the most firmly inverted, while the five it flagged merely sat near the
+crossover. The confidence number ranked subjects by how wrong they were.
+
+So `back_length` was measuring the front torso, `across_back_shoulder_width`
+the front, and `sleeve_length` starting from the front neck point — on
+every scan this project has measured.
+
+**Decision.** Orientation comes from the asymmetry of each foot about the
+leg above it (`toe_extent_about_leg`). The foot's long axis is heel-to-toe
+and the leg meets it far nearer the heel, so about that point the toe end
+reaches further — by a factor of 3–6 on the scans here. That is anatomy,
+and unlike a horizontal cut it does not depend on choosing a height.
+Confidence comes from **corroboration**: the two feet agreeing with each
+other, and each outline being lopsided enough to name an end. A single
+sample's magnitude is no longer allowed to stand in for certainty.
+
+**Evidence.**
+
+| check | old | new |
+|---|---|---|
+| SMPL frame (front = +Z, ground truth) | (+0.16, −0.99) wrong | (−0.00, +1.00) correct |
+| Texel: agreement among the 10 subjects | scattered | within 9.7° |
+| Texel `back_length` MAE vs dataset reference | 39.2 mm (n=9) | **21.9 mm (n=10)** |
+| Texel `sleeve_length` MAE | 198.9 mm | 172.8 mm |
+| Texel `across_back_shoulder_width` MAE | 34.5 mm | 44.8 mm |
+| the three measurements' buckets, Texel | clean 5 / review 4 / rejected 1 | **clean 10** |
+| the three, NOMO (n=30) | review 12–13 each | review 0 |
+
+Three further cues on the Texel women, projected on the new front
+direction, all agree with it: the bust reaches forward (1.01–1.35×), the
+buttocks reach backward (hip forward/backward 0.66–0.96), and the
+forefoot reaches forward (1.05–1.60×).
+
+**`across_back_shoulder_width` got worse, and that is left standing.**
+Its error went from scattered (−5 to +86 mm) to systematically short
+(−16 to −61 mm on 9 of 10). A consistent sign is a definition or
+landmark offset that can be found; a scattered one is noise. The likely
+reading is that the shoulder points sit too medially once the path
+actually runs across the back — which is a separate defect that the old
+inversion was masking, not a reason to keep measuring the wrong side.
+
+**Rules out:** deriving front/back confidence from the magnitude of one
+sample; sampling anatomy at a height without checking that the feature
+being relied on is still present there.
+
+**Revisit if:** a scan arrives with the feet cropped or the subject
+seated, where no foot cue exists — orientation then has to come from the
+source (`provided_facing`) or the measurements refuse, as they already do.
+
+**Note on the record.** Every length measurement this project has
+reported before this commit was taken with the inverted orientation. The
+KW35 deck, `reports/dataset_agreement_texel.md`, and the clothing-offset
+figures all predate the fix and are superseded.

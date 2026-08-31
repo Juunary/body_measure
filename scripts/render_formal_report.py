@@ -151,9 +151,14 @@ def render(lang: str, data: dict) -> str:
                     "루프를 재탐색하지 않고 null을 반환한다. NOMO에서는 7/10 피험자에서 몸통 "
                     "단면 선택과 인체 범위 내 측정값 산출을 복구했으며, 정확도는 별도로 "
                     "검증되지 않았다."),
-            "orient": ("전후 방향은 toe_projection으로 추정하며 front_back_confidence를 "
-                       "보고한다. 발 스캔이 없으면 orientation_unknown으로 등목점 의존 측정 "
-                       "3종을 null 처리하고, 저신뢰면 manual_review로 강등한다."),
+            "orient": ("전후 방향은 toe_extent_about_leg으로 추정한다. 발은 발목 위 다리를 "
+                       "기준으로 뒤꿈치보다 발가락 쪽으로 3~6배 멀리 뻗으며, 이 비대칭이 "
+                       "방향의 부호를 준다. front_back_confidence는 단일 표본의 크기가 아니라 "
+                       "양발이 서로 일치하는 정도에서 나온다. 발 스캔이 없으면 "
+                       "orientation_unknown으로 등목점 의존 측정 3종을 null 처리하고, "
+                       "저신뢰면 manual_review로 강등한다. 이전 toe_projection 방식은 신장 3% "
+                       "단면의 중심을 썼으나 그 높이에는 발가락이 없어 방향이 180° 반대였다 "
+                       "(결정 #31); 그 이전에 보고된 길이 수치는 모두 대체되었다."),
             "inst": ("## 기관 확인 필요 사항\n\n"
                      "- Texel BodyScan은 CC BY-NC 4.0 — ColorDigital이 참여하는 산업 프로젝트 "
                      "문맥에서의 사용 범위를 기관에 확인 필요. 현재는 로컬 연구 검증 전용, 배포 금지.\n"
@@ -193,10 +198,17 @@ def render(lang: str, data: dict) -> str:
                     "reject returns null and never re-shops among other loops. On NOMO this "
                     "restored torso-section selection and human-range values for 7/10 "
                     "subjects; accuracy is not separately validated."),
-            "orient": ("Front/back orientation is estimated by toe_projection with a reported "
-                       "front_back_confidence. Missing feet set orientation_unknown and null "
-                       "the three back-neck-dependent measurements; low confidence demotes "
-                       "them to manual_review."),
+            "orient": ("Front/back orientation is estimated by toe_extent_about_leg: about "
+                       "the leg above it, a foot reaches three to six times further toward "
+                       "the toes than the heel, and that asymmetry gives the sign. "
+                       "front_back_confidence comes from the two feet corroborating each "
+                       "other rather than from the magnitude of any single sample. Missing "
+                       "feet set orientation_unknown and null the three back-neck-dependent "
+                       "measurements; low confidence demotes them to manual_review. The "
+                       "earlier toe_projection method read the centroid of a cut at 3 % of "
+                       "stature, where the toes are no longer present, and was 180 degrees "
+                       "out (decision #31); length values reported before that fix are "
+                       "superseded."),
             "inst": ("## Items requiring institutional confirmation\n\n"
                      "- Texel BodyScan is CC BY-NC 4.0 — usage scope within an industry "
                      "project involving ColorDigital must be confirmed. Currently local "

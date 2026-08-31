@@ -63,7 +63,7 @@ Across tested yaw angles [45, 90, 180, 270]°, the maximum |Δ| of the three cir
 
 Scan-hole handling: the torso candidate is identified first, then tiered (accept ≤30 mm AND ≤5% / manual_review ≤120 mm AND ≤20% / reject); a reject returns null and never re-shops among other loops. On NOMO this restored torso-section selection and human-range values for 7/10 subjects; accuracy is not separately validated.
 
-Front/back orientation is estimated by toe_projection with a reported front_back_confidence. Missing feet set orientation_unknown and null the three back-neck-dependent measurements; low confidence demotes them to manual_review.
+Front/back orientation is estimated by toe_extent_about_leg: about the leg above it, a foot reaches three to six times further toward the toes than the heel, and that asymmetry gives the sign. front_back_confidence comes from the two feet corroborating each other rather than from the magnitude of any single sample. Missing feet set orientation_unknown and null the three back-neck-dependent measurements; low confidence demotes them to manual_review. The earlier toe_projection method read the centroid of a cut at 3 % of stature, where the toes are no longer present, and was 180 degrees out (decision #31); length values reported before that fix are superseded.
 
 ## synthetic_agreement — cross-implementation at identical landmark heights
 

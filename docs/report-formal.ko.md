@@ -63,7 +63,7 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 스캔 구멍 처리: 몸통 후보를 먼저 식별한 뒤 3등급(accept ≤30 mm AND ≤5% / manual_review ≤120 mm AND ≤20% / reject)으로 판정하며, reject 시 다른 루프를 재탐색하지 않고 null을 반환한다. NOMO에서는 7/10 피험자에서 몸통 단면 선택과 인체 범위 내 측정값 산출을 복구했으며, 정확도는 별도로 검증되지 않았다.
 
-전후 방향은 toe_projection으로 추정하며 front_back_confidence를 보고한다. 발 스캔이 없으면 orientation_unknown으로 등목점 의존 측정 3종을 null 처리하고, 저신뢰면 manual_review로 강등한다.
+전후 방향은 toe_extent_about_leg으로 추정한다. 발은 발목 위 다리를 기준으로 뒤꿈치보다 발가락 쪽으로 3~6배 멀리 뻗으며, 이 비대칭이 방향의 부호를 준다. front_back_confidence는 단일 표본의 크기가 아니라 양발이 서로 일치하는 정도에서 나온다. 발 스캔이 없으면 orientation_unknown으로 등목점 의존 측정 3종을 null 처리하고, 저신뢰면 manual_review로 강등한다. 이전 toe_projection 방식은 신장 3% 단면의 중심을 썼으나 그 높이에는 발가락이 없어 방향이 180° 반대였다 (결정 #31); 그 이전에 보고된 길이 수치는 모두 대체되었다.
 
 ## synthetic_agreement — 동일 랜드마크 높이의 구현 간 비교
 
