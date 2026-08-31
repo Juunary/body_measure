@@ -1064,3 +1064,67 @@ source (`provided_facing`) or the measurements refuse, as they already do.
 reported before this commit was taken with the inverted orientation. The
 KW35 deck, `reports/dataset_agreement_texel.md`, and the clothing-offset
 figures all predate the fix and are superseded.
+
+---
+
+## 32. A shoulder search with room to slide will slide
+
+**Date:** 2026-08-31 · **Status:** accepted · **Follows #31**
+
+Correcting the front/back inversion left `across_back_shoulder_width`
+systematically short: −16 to −61 mm on 9 of 10 Texel subjects, MAE
+44.8 mm. A consistent sign is a landmark offset, and it was.
+
+`estimate_shoulder_points` took the highest surface point in a ±25 mm
+lateral column above the armpit crease. Profiling the shoulder ridge
+shows why that cannot work. Walking outward from the midline, the top
+surface is the **head** until it falls off a cliff — 197 mm on Man1 —
+and from there the ridge declines *monotonically* out to the arm. There
+is no acromion break to find. So an argmax over height inside a lateral
+window returns the window's medial edge, always. It did: on 19 of 20
+Texel shoulders the chosen point sat within 4 mm of the medial edge,
+costing 25 mm a side and 50 mm on the width — which is the deficit that
+was measured.
+
+**Decision.** The lateral station is taken from the armpit crease and
+not searched: the shoulder point is the top of the surface in a ±6 mm
+slab at the crease's own lateral coordinate. Four constructions were
+scored against Texel's reference before choosing:
+
+| construction | MAE | note |
+|---|---|---|
+| ±25 mm column argmax (old) | 44.8 mm | short on 9 of 10 |
+| **slab at the crease** | **20.5 mm** | errors −24…+21, balanced |
+| slab 10 mm outboard | 30.0 mm | overshoots |
+| walk out to a 25 mm ridge drop | 117.4 mm | walks onto the arm |
+
+Over the nine subjects the pipeline accepts, MAE is 13.6 mm.
+
+The tenth, Woman4, now reports itself. Her left shoulder lands 0.6 mm
+below the vertical search ceiling — the window's lid, not her body —
+while the right sits 102 mm below it. That 102 mm step clears the
+existing `shoulder_vertical_asymmetry` threshold, so she becomes
+`manual_review` instead of silently contributing +84 mm. A new
+`shoulder_at_search_ceiling` flag catches the case asymmetry cannot: both
+shoulders pinned to the lid at once.
+
+**A stale spec flag was found and corrected.** `measurement-spec.v1.yaml`
+carried `no_reference: true` for this measurement — "레퍼런스의 shoulder
+breadth는 직선거리, 비교 금지" — written 2026-08-17 in the first commit.
+`docs/measurement-audit.md`, written the next day, maps it to Texel m1
+"Across Back Shoulder Width (**through the back neck point**)" and rules
+it **exact**, which is why it is a headline measurement in
+`validate/stats.py`. The audit is the definition-based verdict and wins;
+the YAML flag had simply outlived it. Nothing reads the field in logic
+today, which is how it survived. `sleeve_length` carries the same flag
+and has NOT been changed — the audit rates it `approximate`
+(reference-only), which is a weaker claim, and it deserves its own look.
+
+**Rules out:** giving an extremum a search window along an axis the
+surface varies monotonically in; treating a definition note in the spec
+as authoritative over the audit.
+
+**Revisit if:** a real acromion becomes available — a palpated landmark
+from a trained measurer, or a scanner that marks it — at which point
+"above the armpit crease" stops being the approximation and becomes
+something to check against.

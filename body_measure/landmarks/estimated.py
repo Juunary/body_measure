@@ -482,14 +482,38 @@ def estimate_back_point_at(
     )
 
 
+#: Half-width of the lateral slab the shoulder top is read from. Narrow on
+#: purpose: the station is fixed by the armpit crease, and any width given
+#: to an argmax over height is width it spends sliding medially, because
+#: the shoulder ridge falls away monotonically outward (decision #32).
+SHOULDER_SLAB_HALF_MM = 6.0
+#: Front-back half-window about the crease, keeping the slab on the
+#: shoulder rather than on the chest or the shoulder blade.
+SHOULDER_DEPTH_HALF_MM = 45.0
+#: How far above the armpit the shoulder top is looked for.
+SHOULDER_CEILING_FRACTION = 0.15
+#: A top found this close to the ceiling was cut off by the window rather
+#: than found on the body.
+SHOULDER_CEILING_MARGIN_MM = 5.0
+
+
 def estimate_shoulder_points(
     mesh: trimesh.Trimesh, armpit: Landmark
 ) -> tuple[Landmark, Landmark] | None:
-    """Shoulder (acromion-ish) point per side: the HIGHEST surface point in
-    the vertical column above the armpit crease. With hanging arms the
-    lateral silhouette extreme is the arm, not the shoulder — the column
-    above the crease tops out on the shoulder ridge instead. Flagged as an
-    approximation; the ISO acromion is a palpated bony landmark."""
+    """Shoulder (acromion-ish) point per side: the top of the surface
+    directly above the armpit crease.
+
+    The lateral station is taken from the crease and not searched. A
+    search would be worse than useless here: the shoulder ridge declines
+    monotonically from the neck out to the arm with no acromion break in
+    it, so an argmax over height inside a lateral window always returns
+    the window's medial edge. The earlier version used a +/-25 mm column
+    and did exactly that on 19 of 20 Texel shoulders, landing within 4 mm
+    of the medial edge each time and reading the width 50 mm short
+    (decision #32).
+
+    Flagged as an approximation; the ISO acromion is a palpated bony
+    landmark, and "above the armpit crease" is a stand-in for it."""
     armpit_y = float(armpit.position_mm[1])
     _, selection = _torso_loop_at(mesh, armpit_y)
     if selection is None:
@@ -504,25 +528,32 @@ def estimate_shoulder_points(
     t_vert = vertices[:, [0, 2]] @ lateral
     o_vert = vertices[:, [0, 2]] @ ortho
 
+    ceiling = armpit_y + SHOULDER_CEILING_FRACTION * height
+
     def side_landmark(crease: np.ndarray, name: str) -> Landmark | None:
         crease_t = crease[[0, 2]] @ lateral
         crease_o = crease[[0, 2]] @ ortho
         mask = (
-            (np.abs(t_vert - crease_t) < 25.0)
-            & (np.abs(o_vert - crease_o) < 45.0)
+            (np.abs(t_vert - crease_t) < SHOULDER_SLAB_HALF_MM)
+            & (np.abs(o_vert - crease_o) < SHOULDER_DEPTH_HALF_MM)
             & (vertices[:, 1] > armpit_y)
-            & (vertices[:, 1] < armpit_y + 0.15 * height)
+            & (vertices[:, 1] < ceiling)
         )
         if not mask.any():
             return None
         column = vertices[mask]
         top = column[int(np.argmax(column[:, 1]))]
+        flags = ["acromion_approximation"] + lateral_flags
+        if ceiling - float(top[1]) < SHOULDER_CEILING_MARGIN_MM:
+            # the slab ran out before the surface stopped rising, so this
+            # is the window's own lid — hair and a raised arm both do it
+            flags.append("shoulder_at_search_ceiling")
         return Landmark(
             name,
             np.asarray(top, dtype=np.float64),
             0.5,
-            "highest_point_above_armpit_crease",
-            ["acromion_approximation"] + lateral_flags,
+            "top_of_surface_above_armpit_crease",
+            flags,
         )
 
     left = side_landmark(pts[int(np.argmin(t_loop))], "shoulder_point_left")

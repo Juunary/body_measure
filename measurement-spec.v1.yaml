@@ -80,10 +80,13 @@ measurements:
     requires: [front_back_orientation, back_neck_point, shoulder_points]
     known_deviations:
       - edge_graph_approximation
-      - acromion_approximated_as_highest_point_above_armpit_crease
+      - acromion_approximated_as_top_of_surface_above_armpit_crease
     priority: core
     implementation_status: implemented_v1
-    no_reference: true           # 레퍼런스의 shoulder breadth는 직선거리 — 정의 불일치, 비교 금지
+    no_reference: false          # Texel m1 "Across Back Shoulder Width (through the
+                                 # back neck point)" — 경유점까지 정의 일치, 감사 판정 exact.
+                                 # 2026-08-17에 '직선거리라 비교 금지'로 적었으나
+                                 # 2026-08-18 measurement-audit.md가 이를 뒤집음 (결정 #32)
 
   sleeve_length:
     definition: back_neck_point_to_wrist_length_over_shoulder_and_elbow

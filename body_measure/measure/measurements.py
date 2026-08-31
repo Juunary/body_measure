@@ -337,6 +337,9 @@ _PATH_NOT_TRUSTED = {
     "surface_path_detour",
     "waypoint_off_main_surface",
     "shoulder_vertical_asymmetry",
+    # a shoulder pinned to its search ceiling is the window's lid, not the
+    # body; asymmetry catches one side doing it, this catches both
+    "shoulder_at_search_ceiling",
 }
 
 

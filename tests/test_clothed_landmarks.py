@@ -139,3 +139,98 @@ def test_collar_shoulders_carry_the_asymmetry_flag():
         assert flagged == (dy > 0.05 * float(mesh.bounds[1][1]))
         checked += 1
     assert checked > 0
+
+
+# ------------------------------------------- the shoulder station (#32) ---
+_SMPL_OBJ = (
+    __import__("pathlib").Path(__file__).resolve().parents[1]
+    / "data" / "generated" / "smpl_neutral0_apose.obj"
+)
+needs_smpl = pytest.mark.skipif(
+    not _SMPL_OBJ.exists(), reason="generated SMPL body absent")
+
+
+@pytest.fixture(scope="module")
+def smpl_body():
+    from body_measure.adapters.mesh_file import MeshFileAdapter
+
+    return canonicalize(MeshFileAdapter().load(_SMPL_OBJ, unit="m"))
+
+
+@needs_smpl
+def test_the_shoulder_station_comes_from_the_crease_and_is_not_searched(smpl_body):
+    """The shoulder ridge declines monotonically from the neck out to the
+    arm, so an argmax over height inside a lateral window returns the
+    window's medial edge rather than the shoulder. The lateral station is
+    therefore fixed by the armpit crease (decision #32)."""
+    from body_measure.landmarks.estimated import (
+        SHOULDER_SLAB_HALF_MM, _torso_loop_at, body_lateral_axis)
+
+    armpit = estimate_armpit_level(smpl_body)
+    assert armpit is not None
+    armpit_y = float(armpit.position_mm[1])
+    left, right = estimate_shoulder_points(smpl_body, armpit)
+
+    _, selection = _torso_loop_at(smpl_body, armpit_y)
+    lateral, _ = body_lateral_axis(smpl_body, armpit_y)
+    t_loop = selection.loop.points[:, [0, 2]] @ lateral
+    for landmark, crease_t in ((left, t_loop.min()), (right, t_loop.max())):
+        t = float(landmark.position_mm[[0, 2]] @ lateral)
+        assert abs(t - float(crease_t)) <= SHOULDER_SLAB_HALF_MM, (
+            f"{landmark.name} drifted {t - float(crease_t):+.1f} mm off the "
+            "crease station")
+
+
+def _ring_stack(radius=150.0, height=1600.0, step=4.0, sections=48):
+    """A vertical tube whose surface never stops rising, sampled finely
+    enough that the search ceiling — not the vertex spacing — is what the
+    top point lands on."""
+    ys = np.arange(0.0, height + step, step)
+    angles = np.linspace(0.0, 2.0 * np.pi, sections, endpoint=False)
+    ring = np.stack([radius * np.cos(angles), np.zeros_like(angles),
+                     radius * np.sin(angles)], axis=1)
+    vertices = np.vstack([ring + np.array([0.0, y, 0.0]) for y in ys])
+    faces = []
+    for i in range(len(ys) - 1):
+        lower, upper = i * sections, (i + 1) * sections
+        for j in range(sections):
+            k = (j + 1) % sections
+            faces += [[lower + j, lower + k, upper + k],
+                      [lower + j, upper + k, upper + j]]
+    return trimesh.Trimesh(vertices=vertices, faces=np.array(faces),
+                           process=False)
+
+
+def test_a_shoulder_pinned_to_the_search_ceiling_says_so():
+    """A ceiling that cuts a still-rising surface returns the window's lid.
+    Hair does this, and so does a raised arm; the value must not pass as a
+    shoulder just because an argmax returned something."""
+    from body_measure.landmarks.estimated import Landmark
+
+    mesh = _ring_stack()
+    height = float(mesh.bounds[1][1])
+    armpit = Landmark("armpit_level", np.array([0.0, 0.40 * height, 0.0]),
+                      0.9, "test_fixture", [])
+    shoulders = estimate_shoulder_points(mesh, armpit)
+    assert shoulders is not None
+    for landmark in shoulders:
+        assert "shoulder_at_search_ceiling" in landmark.quality_flags
+
+
+@needs_smpl
+def test_a_real_shoulder_is_not_flagged_as_hitting_the_ceiling(smpl_body):
+    """The counterpart: on a body whose shoulder the window comfortably
+    contains, the flag must stay off, or it says nothing."""
+    armpit = estimate_armpit_level(smpl_body)
+    for landmark in estimate_shoulder_points(smpl_body, armpit):
+        assert "shoulder_at_search_ceiling" not in landmark.quality_flags
+
+
+@needs_smpl
+def test_the_ceiling_flag_sends_the_width_to_manual_review(smpl_body):
+    """The flag is only worth having if it reaches the disposition."""
+    from body_measure.measure.measurements import _PATH_NOT_TRUSTED
+
+    assert "shoulder_at_search_ceiling" in _PATH_NOT_TRUSTED
+    value = _length_value(400.0, ["shoulder_at_search_ceiling"], "surface_path")
+    assert value.disposition == "manual_review"

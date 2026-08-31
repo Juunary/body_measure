@@ -21,7 +21,7 @@ _LOW_CONFIDENCE_FLAGS = {
     "single_slice_arm_separation", "front_back_low_confidence",
     "axis_not_inside_any_loop", "orientation_unknown",
     "surface_path_detour", "waypoint_snapped_to_main_component",
-    "shoulder_vertical_asymmetry",
+    "shoulder_vertical_asymmetry", "shoulder_at_search_ceiling",
     "arm_merge_height_unstable", "clip_bounds_untrusted_low_confidence_armpit",
 }
 _FALLBACK_FLAGS = {
