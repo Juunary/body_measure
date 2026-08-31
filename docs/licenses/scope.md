@@ -43,8 +43,8 @@ their own name and is added here first.
 | Source | Licence basis | Status |
 |---|---|---|
 | SMPL | Research licence | Granted 2026-08-21, weights sharing included (see `weights-permission.md`) |
-| CAPE | Research licence | Granted 2026-08-21; registration approved, download imminent |
-| SIZER | Research licence | Registration approved 2026-08-21, download imminent |
+| CAPE | Research licence | Granted 2026-08-21; terms captured. **Not yet downloaded** (2026-08-31) |
+| SIZER | Terms not yet obtained | **Not yet requested** (2026-08-31). Access is a form plus a password email; see `docs/sizer-access-request-draft.md` |
 | HSRD-100 | CC BY 4.0 | In use; still the only source cleared for public material |
 | Texel BodyScan | CC BY-NC 4.0 | In use; permission confirmed 2026-08-21 (non-commercial terms unchanged) |
 | NOMO-3D-400 | Archive terms, redistribution forbidden | In use; permission confirmed 2026-08-21, copy never moved |

@@ -44,10 +44,15 @@ fails at the moment it is needed. See `scope.md`.
 
 ## What is open
 
-- **Item 1.** SIZER registration is approved and download imminent
-  (2026-08-21); capture the terms verbatim during registration
-  (`sizer-terms.txt`, hash in `provenance.md`). **C0a is unblocked the
-  moment the data lands.**
+- **Item 1.** SIZER has **not been requested** (checked 2026-08-31). The
+  earlier note here said registration was approved and the download
+  imminent, dated 2026-08-21; that was never true and went unchecked for
+  ten days because the plan lived outside the repository. Access is a
+  Google Form plus a password request to `gtiwari@mpi-inf.mpg.de`, and the
+  repository page carries no licence text — so the terms have to be asked
+  for in the same mail rather than captured from a registration screen.
+  Draft: `docs/sizer-access-request-draft.md`. **C0a stays blocked until
+  the terms are on file**, not merely until the data lands.
 - **Item 6 evidence.** The grant is recorded; the verbatim reply text
   still has to be pasted into `weights-permission.md`.
 - **Item 9.** Requires ITA's own position on secondary use of human scan

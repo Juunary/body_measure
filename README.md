@@ -90,7 +90,8 @@ These are enforced in code, not in documentation:
 - `body_measure/validate/` — claim taxonomy, statistics, robustness battery
 - `scripts/` — dataset reports, the SIZER manifest audit, the export probe
 - `docs/decisions.md` — every decision in *decided / rules out / revisit if*
-  form; `docs/datasets.md` — provenance and download procedures;
+  form; `docs/plan.md` — the current work plan and what blocks what;
+  `docs/datasets.md` — provenance and download procedures;
   `docs/licenses/` — the LICENSE-G0 gate
 
 ## Clothed-scan work stream

@@ -1128,3 +1128,49 @@ as authoritative over the audit.
 from a trained measurer, or a scanner that marks it — at which point
 "above the armpit crease" stops being the approximation and becomes
 something to check against.
+
+---
+
+## 33. The plan lives in the repository
+
+**Date:** 2026-08-31 · **Status:** accepted
+
+`docs/licenses/scope.md` recorded SIZER as "registration approved,
+download imminent" on 2026-08-21. On 2026-08-31 that line was still there
+and still wrong: SIZER had never been requested. Ten days of status
+reports carried it as a pending arrival, and a work plan branch — C0b,
+C1, C1.5, C1b — sat marked "waiting for data" that nothing was going to
+deliver.
+
+The cause is structural rather than careless. The plan existed only in
+`.claude/plans/`, outside the repository, so it was never reviewed
+alongside the code it governed and no commit ever had to justify it.
+Dataset *status* was written into the licence documents, which are about
+permissions and are not read when deciding what to work on next.
+
+**Decision.** The work plan is `docs/plan.md`, committed. A dataset's
+status line names what has actually happened and when it was last
+checked, not what is expected. "Imminent" is not a status.
+
+Two corrections follow immediately:
+
+- SIZER is **not blocked** — the access route is a Google Form plus a
+  password request to `gtiwari@mpi-inf.mpg.de`. Its page describes 100
+  subjects, ~2,000 scans, 10 garment classes across sizes, and raw scans
+  alongside minimally-clothed body scans. If the pairing holds, decision
+  #17's claim downgrade is not needed. `docs/sizer-access-request-draft.md`
+  asks for the terms, the pairing and the industry-context position in one
+  mail, because the repository page carries no licence text at all.
+- CAPE is licence-cleared and simply undownloaded. It is the C3 synthetic
+  factory's material, **not** a substitute for SIZER in C1: its clothed
+  surfaces are SMPL-topology registrations, its body reference is a
+  canonical T-pose registration, and it has 15 subjects to SIZER's 100.
+  Building C1 on it would force the downgrade that SIZER may avoid.
+
+**Rules out:** a plan that only exists in tooling state; a dataset status
+written as an expectation; treating CAPE and SIZER as interchangeable
+because both are clothed-body datasets from Max Planck institutes.
+
+**Revisit if:** SIZER's terms turn out to forbid the industry context the
+project runs in — CAPE then becomes the fallback, with the downgraded
+claim wording stated up front rather than discovered later.
