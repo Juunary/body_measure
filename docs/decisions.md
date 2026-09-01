@@ -1286,3 +1286,70 @@ garment boundary off an axis the garment does not vary along.
 
 **Revisit if:** the core gains a human-range gate (decision #20), which
 would turn the 3808 mm into a refusal instead of a number nobody checked.
+
+---
+
+## 35. A short sleeve's length is chosen, not measured
+
+**Date:** 2026-09-01 · **Status:** accepted
+
+`sleeve_length` was reported as the pipeline's worst dimension — usable on
+9 of 40 subjects, with a +173 mm bias on the ones that produce a value —
+and picked as the next thing to fix. It was the wrong target, on three
+counts, and the investigation is worth keeping because each count was
+already written down somewhere nobody read.
+
+**1. The 30 NOMO refusals are correct.** NOMO ships **segmented** meshes:
+across all 30 subjects the mesh has 5–13 connected components with the
+largest holding only 0.491–0.570 of the vertices (median 0.538). A typical
+subject is torso+head 54 %, each leg 15 %, each arm ~8 %, plus fragments
+under the feet. Welding (decision #21) merges a median of **zero**
+vertices, because unlike HSRD's texture-chart duplicates these are
+genuinely separate surfaces. The wrist therefore sits 172–191 mm from the
+main component, and a path from the neck to it cannot exist. Texel, by
+contrast, is one component at 1.000 on all ten. So the honest figure is
+not 9/40: it is **9 of 10 on the dataset that can carry the measurement,
+and structurally impossible on the other 30.**
+
+**2. The +173 mm was already known and already forbidden to compare.**
+The spec records `elbow_waypoint_omitted_in_v1_systematic_overshoot_observed`
+with "+197 mm 평균" against Part 1, and carries `no_reference: true` for
+this measurement because the reference's arm length is a different
+definition. Re-deriving a documented deviation is not progress.
+
+**3. A polo does not consume this measurement.** The spec defines
+`sleeve_length` as back neck point to **wrist** and marks it
+`priority: deferred` — scope, not difficulty, recorded when the product
+was scoped to short sleeves on 2026-08-25. Meanwhile
+`garment_prototypes.py` already says the right thing: "A short sleeve ends
+part-way down the upper arm. Where exactly is a garment design choice, so
+this is a parameter, not a definition."
+
+**The actual defect was in the gate.** `POLO_REQUIREMENTS` listed
+`sleeve_length` as drafting "short sleeve length", so the readiness gate
+demanded a measurement to the wrist in order to draft a sleeve that stops
+above the elbow — and reported `NOT_READY` partly for that reason. It is
+the same shape of error as the stale `no_reference` flag in decision #32:
+two files disagreeing, with the wrong one driving behaviour.
+
+**Decision.** `sleeve_length` is removed from `POLO_REQUIREMENTS`. The arm
+is drafted from `upper_arm_girth` (spec, clean on all 40) and
+`sleeve_opening_girth` (prototype); the length itself is
+`SLEEVE_END_FRACTION`, a parameter the gate names as a choice rather than
+pretending to measure. The measurement, its implementation and its tests
+all stay — extending to long sleeves needs only the spec's `priority`
+flipped back to `core`.
+
+**The invariant is now enforced rather than remembered.**
+`test_the_gate_never_requires_a_measurement_the_spec_defers` asserts that
+every spec-provisioned requirement in the gate is `priority: core`. The
+gate can no longer demand something the product was scoped out of.
+
+**Rules out:** choosing work from a coverage number without checking what
+the measurement is for; a garment requirement list that disagrees with the
+spec's scope; treating a refusal forced by a dataset's topology as a
+pipeline defect.
+
+**Revisit if:** the product extends to long sleeves — flip `priority` to
+`core`, restore the requirement, and the elbow waypoint (the known cause
+of the overshoot) becomes worth implementing.

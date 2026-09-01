@@ -115,6 +115,29 @@ def test_the_spec_requirements_are_all_real_spec_keys():
             assert requirement.key in names
 
 
+def test_the_gate_never_requires_a_measurement_the_spec_defers():
+    """`priority` in the spec is scope, not difficulty: `deferred` means the
+    dimension is outside the garment being built. A gate that demanded one
+    would report NOT_READY for something the product does not need, which is
+    how sleeve_length -- a measurement to the WRIST -- came to be listed as
+    drafting a short sleeve (decision #35)."""
+    from body_measure.spec import load_spec
+
+    spec = load_spec()
+    for requirement in POLO_REQUIREMENTS:
+        if requirement.provision == "spec":
+            assert spec.measurements[requirement.key].priority == "core", (
+                f"{requirement.key} is {spec.measurements[requirement.key].priority}"
+                " in the spec but required by the polo gate")
+
+
+def test_a_short_sleeves_length_is_named_as_a_design_choice():
+    readiness = assess(measured())
+    joined = " ".join(readiness.notes)
+    assert "chosen, not measured" in joined
+    assert "sleeve_length" not in {r.key for r in POLO_REQUIREMENTS}
+
+
 # -------------------------------------------------------------- verdict ---
 def test_a_body_missing_a_dimension_is_not_ready():
     assert assess(measured()).verdict == NOT_READY

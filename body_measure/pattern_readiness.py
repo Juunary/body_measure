@@ -65,8 +65,12 @@ POLO_REQUIREMENTS = (
                 "spec", "polo-line-sim measurement list"),
     Requirement("upper_arm_girth", "sleeve width",
                 "spec", "polo-line-sim measurement list"),
-    Requirement("sleeve_length", "short sleeve length",
-                "spec", "polo-line-sim measurement list"),
+    # `sleeve_length` is deliberately NOT here. The spec defines it as
+    # back neck point to WRIST and marks it `priority: deferred`; a short
+    # sleeve stops part-way down the upper arm, and where it stops is a
+    # design choice (garment_prototypes.SLEEVE_END_FRACTION), not a body
+    # dimension. Listing it made the gate demand a long-sleeve measurement
+    # to draft a short sleeve — see decision #35.
     Requirement("hem_girth", "hem width",
                 "prototype", "polo-line-sim measurement list"),
     Requirement("sleeve_opening_girth", "rib cuff length",
@@ -201,6 +205,11 @@ def assess(measurements, prototypes=None, *, garment: str = "polo",
         "accuracy a pattern needs is roughly four times tighter than the one "
         "a size label needs. That gap, not the drafting maths, is what stands "
         "between this pipeline and made-to-measure.",
+        "A short sleeve's length is not on this list because it is not a body "
+        "dimension: the sleeve stops part-way down the upper arm and where it "
+        "stops is chosen, not measured. The arm is drafted from upper_arm_girth "
+        "and sleeve_opening_girth instead. The spec's `sleeve_length` runs to "
+        "the wrist and is `priority: deferred` for this garment.",
     ]
     unsourced = [s for s in statuses if "unsourced" in s.requirement.source]
     if unsourced:
