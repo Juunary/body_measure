@@ -7,7 +7,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 external/
-.omc/
 data/generated/
 
 # 착의 스캔 워크스트림 — LICENSE-G0 참조.

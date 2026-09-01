@@ -1142,9 +1142,9 @@ reports carried it as a pending arrival, and a work plan branch — C0b,
 C1, C1.5, C1b — sat marked "waiting for data" that nothing was going to
 deliver.
 
-The cause is structural rather than careless. The plan existed only in
-`.claude/plans/`, outside the repository, so it was never reviewed
-alongside the code it governed and no commit ever had to justify it.
+The cause is structural rather than careless. The plan existed only
+outside version control, so it was never reviewed alongside the code it
+governed and no commit ever had to justify it.
 Dataset *status* was written into the licence documents, which are about
 permissions and are not read when deciding what to work on next.
 
