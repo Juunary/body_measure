@@ -25,3 +25,11 @@ docs/licenses/*
 !docs/licenses/public-material.md
 !docs/licenses/ethics.md
 !docs/licenses/provenance.md
+
+# Dataset archives — licensed material, never committed regardless of where
+# they are unpacked or staged (CAPE, SIZER, and anything else that arrives
+# as a zip). See docs/licenses/.
+*.zip
+*.7z
+*.tar.gz
+cape_release/
