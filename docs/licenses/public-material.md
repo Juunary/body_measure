@@ -25,6 +25,36 @@ No mesh, rendering, screenshot, cross-section, or derived image from
 holds even where the licence permits research use: research use is not
 publication, and a rendering of a scan is a redistribution of it.
 
+## Narrower than public — AI-Hub is not viewable by ITA at all
+
+**AI-Hub datasets sit outside this document's usual axis.** The approval
+obtained on 2026-09-01 covers **one named individual's personal use for
+this project**. Third-party viewing was explicitly **not** granted, and
+the AI-Hub policy forbids it: "승인을 받지 않은 다른 법인, 단체 또는 개인에게
+열람하게 하거나 제공, 양도, 대여, 판매하여서는 안됩니다."
+
+Every other restricted source here can at least be shown to the named
+users in `scope.md`. This one cannot. Waldemar cannot look at it. A
+reviewer cannot look at it. A colleague cannot re-run a script on it.
+
+**Therefore no result derived from AI-Hub may serve as project evidence.**
+Not in `reports/validation-results.json`, not in a report, not in a
+decision's evidence table, not in an internal review — because evidence
+that no second person may audit is not evidence, whatever its licence
+says. This is a stricter rule than the aggregate-numbers case below, and
+it comes from the reviewability the project rests on rather than from the
+licence text.
+
+What it may do is **steer**. A private check against AI-Hub can tell the
+one permitted user *where to look* — say, that a girth reads
+systematically high against a real tape. That direction is then pursued,
+and demonstrated, on data a second person can open. The dataset points;
+it never testifies.
+
+Practically: AI-Hub-derived numbers stay out of `reports/`, and any
+finding it prompts is written up citing the data that confirmed it, not
+the data that suggested it.
+
 ## The subtle case — aggregate numbers
 
 Statistics computed from a restricted dataset are not the dataset. A line
