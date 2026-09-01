@@ -203,6 +203,14 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
     # matters more on a female body, where the bust point is a named
     # anatomical location rather than wherever the torso is widest.
     flags.append("chest_definition_approximate_iso_m5")
+    # The gap is measured, not merely acknowledged (decision #36): across
+    # Texel Part 1 the search peaks at 0.732 +/- 0.017 of stature while the
+    # reference matches this pipeline's own profile at 0.708 +/- 0.014,
+    # about 42 mm lower, reading +26.8 mm high on average. A band is 80 mm
+    # wide, so a third of a band is spent before the body is considered,
+    # and the label moved on 3 of those 10 subjects. A reader of this size
+    # needs the direction, not just the word "approximate".
+    flags.append("chest_reads_high_vs_iso_definition_mean_27mm_texel_n10")
 
     if population is None:
         flags.append(f"population_unverified_chart_is_for_{chart.population}")

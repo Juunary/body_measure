@@ -74,6 +74,17 @@ def test_the_womens_chart_sizes_a_womans_body():
     assert result.label == "M"
 
 
+def test_every_assignment_says_which_way_the_definition_gap_runs():
+    """"Approximate" does not tell a reader whether the label is likely one
+    size high or one size low. The gap is measured and signed: this
+    pipeline's maximum sits ~42 mm above the height the reference matches
+    and reads ~27 mm high, a third of an 80 mm band (decision #36)."""
+    result = assign(chest(1000.0), population="men")
+    signed = [f for f in result.flags if "reads_high" in f]
+    assert signed, result.flags
+    assert "27mm" in signed[0] and "texel" in signed[0]
+
+
 def test_every_assignment_carries_the_iso_definition_caveat():
     """chest_circumference maps to ISO m5 'Bust/Chest Girth' only
     approximately — ISO fixes the height at the bust point, this pipeline

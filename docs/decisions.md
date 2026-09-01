@@ -1353,3 +1353,79 @@ pipeline defect.
 **Revisit if:** the product extends to long sleeves — flip `priority` to
 `core`, restore the requirement, and the elbow waypoint (the known cause
 of the overshoot) becomes worth implementing.
+
+---
+
+## 36. The chest is measured correctly, and it is the wrong dimension
+
+**Date:** 2026-09-01 · **Status:** accepted
+
+`chest_circumference` looked like the pipeline's weakest measurement:
+`clean` on 0 of 40 subjects, and a +26.8 mm mean bias against Texel's
+reference. Both readings were misleading, and what is underneath is worse
+than either.
+
+**`clean` on 0 of 40 is by design.** With arms hanging naturally the bust
+sits *above* the height where the arm loops merge into the torso loop, so
+the girth there is taken with the arms clipped at the torso's lateral
+extent — a documented tape approximation that is always flagged and is in
+`DRAFTABLE_BUCKETS` for exactly that reason. All ten Texel subjects are
+`arm_clipped`; the degraded NOMO buckets are the segmentation of decision
+#35, not a chest problem.
+
+**The +26.8 mm is not error.** Two candidate causes were tested and both
+ruled out:
+
+- *Extremum-over-samples inflation* (the family in #22, #26, #31, #32).
+  The peak is never at the search boundary on any subject, and only 2–4
+  of ~28 samples sit within 5 mm of it, spanning 10–30 mm of height. The
+  profile is peaked, not flat, so the max is not floating on noise.
+- *The clip window keeping arm.* The window is the torso's lateral extent
+  at the armpit, applied 34–105 mm higher up. Measured against the true
+  torso width just below the merge it is off by −3 to +5 mm, and its error
+  does not correlate with the bias at all — Man4 is +78 mm biased with a
+  +1 mm window error.
+
+What remains is the height, and it is consistent. Across the ten
+subjects the search peaks at **0.732 ± 0.017** of stature while the
+reference matches this pipeline's own profile at **0.708 ± 0.014** — about
+42 mm lower, and a plausible bust-point height. The audit already rated
+the m5 mapping `approximate` for precisely this reason: ISO fixes the
+height, this pipeline searches for the maximum, and a maximum cannot be
+smaller than a fixed-height girth.
+
+**The defect is downstream, in sizing.** EN 13402-3's bands are defined
+on chest girth as ISO measures it, and this pipeline feeds them a maximum
+girth taken 42 mm higher. A band is 80 mm wide, so a third of it is spent
+before the body is considered. Assigning sizes from both values over the
+ten Texel subjects:
+
+| | |
+|---|---|
+| label changes | **3 of 10** (Man4 M→S, Woman0 M→S, Woman3 XL→gap) |
+| boundary flag differs | 2 more |
+| unaffected | 5 |
+
+Half the subjects are affected by a definition mismatch that was recorded
+as a one-word caveat.
+
+**Decision.** The size assignment now carries the gap **signed and
+measured** —
+`chest_reads_high_vs_iso_definition_mean_27mm_texel_n10` — alongside the
+existing `chest_definition_approximate_iso_m5`. "Approximate" does not
+tell a reader whether the label is likely one size high or one size low;
+this does, and it travels into the DPP passport with the label.
+
+**No correction factor is applied.** Subtracting 27 mm would fit the
+pipeline to ten subjects of one dataset and would make the number agree
+without making it right. The measurement stays what it is; what changes
+is that its consumer is told which way it leans.
+
+**Rules out:** reading a quality bucket as an accuracy claim; calibrating
+a definition mismatch away with an offset; describing a known, signed,
+measured deviation as "approximate".
+
+**Revisit if:** a chest level is defined anatomically rather than by
+search — a bust-point landmark, which differs between populations and is
+the real fix. At that point this flag is replaced by a definition, and
+`definition_verified` in the spec can finally become true.
