@@ -212,7 +212,7 @@ AI-Hub 「한국인 신체 3D 스캐닝」(530명, 동일 피험자 치수 동�
 
 | 항목 | 상태 |
 |---|---|
-| 1. SIZER 약관 원문 | ☐ 미확보. 1차 발송 반송됨 — 저장소의 `gtiwari@mpi-inf.mpg.de`는 죽은 주소다. 튀빙겐 주소로 재발송 (`sizer-access-request-draft.md`) |
+| 1. SIZER 약관 원문 | ☐ 미확보. 2026-08-31 15:50 개인 Gmail에서 튀빙겐 3인에게 **비밀번호만** 요청 발송, 2026-09-01 현재 회신 없음. 약관·대응관계·산업맥락 질문이 빠졌고 Waldemar가 수신처에 없다 → 기관 주소 후속 메일 필요 (`sizer-access-request-draft.md`) |
 | 2. CAPE 약관 원문 | ☑ 확보 (`cape-terms.txt`, provenance에 해시). 데이터 **수령 완료** 2026-09-01: `cape_release`, `minimal_body_params`, 피험자 00215·00096 |
 | 3. SMPL 모델 라이선스 | ☑ |
 | 4·5·7·8 | ☑ |
