@@ -330,6 +330,44 @@ def measure_upper_arm_girth(
     return value
 
 
+#: How far the bust level may sit from the maximum-girth level before the
+#: two stop corroborating each other, as a fraction of stature.
+MAX_BUST_CHEST_SEPARATION_FRACTION = 0.05
+
+
+def _girth_at_level(
+    mesh: trimesh.Trimesh, level_mm: float, armpit: Landmark | None
+) -> float | None:
+    """Torso girth at one height, clipped the same way the chest search
+    clips: if the arms have merged into the torso loop at this height they
+    are cut at the torso's lateral extent taken at the armpit."""
+    from ..landmarks.estimated import body_lateral_axis
+
+    axis_xz = body_axis_point(mesh)
+    origin = np.array([0.0, float(level_mm), 0.0])
+    loops = slice_mesh(mesh, origin, _UP)
+    selection = select_torso_loop(loops, project_axis_to_plane(axis_xz, origin, _UP))
+    if selection is None or selection.disposition == "rejected":
+        return None
+    arms_separate = sum(1 for lp in loops if lp.closed) >= 3
+    if arms_separate or armpit is None:
+        circ = measure_circumference(selection.loop, close_gap=not selection.loop.closed)
+        return circ.selected_value_mm
+    armpit_y = float(armpit.position_mm[1])
+    lateral, _ = body_lateral_axis(mesh, armpit_y)
+    o = np.array([0.0, armpit_y, 0.0])
+    at_armpit = select_torso_loop(
+        slice_mesh(mesh, o, _UP), project_axis_to_plane(axis_xz, o, _UP)
+    )
+    if at_armpit is None:
+        return None
+    t = at_armpit.loop.points[:, [0, 2]] @ lateral
+    circ = clipped_circumference_xz(
+        selection.loop.points[:, [0, 2]], float(t.min()), float(t.max()), lateral=lateral
+    )
+    return circ.selected_value_mm
+
+
 #: Flags that mean the path was walked successfully but not between the
 #: landmarks it was supposed to connect. The number is real geometry and
 #: is kept, but it is not the measurement, so it never lands as accepted.
@@ -387,6 +425,43 @@ def run_estimated_measurements(
     if facing is None:
         facing = estimate_facing(mesh)
     landmarks["facing"] = facing
+
+    # ISO fixes bust/chest girth at a height; this pipeline's chest search
+    # takes a maximum, which cannot be smaller. The bust level makes that
+    # gap visible PER SCAN rather than as a constant averaged over ten of
+    # somebody else's bodies (decisions #36, #37). It does not replace the
+    # chest definition — the evidence for that is one dataset and n=10.
+    from ..landmarks.estimated import estimate_bust_level
+
+    bust = estimate_bust_level(mesh, waist, armpit, facing)
+    chest = measurements.get("chest_circumference")
+    chest_level = landmarks.get("chest_level")
+    if bust is not None and chest_level is not None:
+        # The bust point and the maximum-girth level differ by definition,
+        # but not by much: over Texel Part 1 they sit 0-60 mm apart on nine
+        # subjects and 150 mm apart on the tenth, whose depth peaks far too
+        # low. A separation that large means one of the two found something
+        # that is not the chest, and there is no telling which — so the gap
+        # is reported as untrusted rather than as a definition difference.
+        separation = abs(float(bust.position_mm[1]) - float(chest_level.position_mm[1]))
+        if separation > MAX_BUST_CHEST_SEPARATION_FRACTION * float(mesh.bounds[1][1]):
+            bust.quality_flags.append("bust_level_disagrees_with_chest_level")
+            bust.confidence = min(bust.confidence, 0.3)
+    if bust is not None:
+        landmarks["bust_level"] = bust
+        trusted = "bust_level_disagrees_with_chest_level" not in bust.quality_flags
+        if chest is not None and chest.selected_value_mm is not None:
+            at_bust = _girth_at_level(mesh, float(bust.position_mm[1]), armpit)
+            extra = [f for f in bust.quality_flags
+                     if f != "bust_level_from_maximum_torso_depth"]
+            if at_bust is not None and trusted:
+                delta = float(chest.selected_value_mm) - at_bust
+                extra = [f"chest_max_exceeds_bust_level_girth_by_{round(delta)}mm"] + extra
+            chest.quality = [f for f in chest.quality if f != "ok"] + extra
+    elif chest is not None and chest.selected_value_mm is not None:
+        chest.quality = [f for f in chest.quality if f != "ok"] + [
+            "bust_level_not_found_definition_gap_unquantified"
+        ]
     # spec `requires: [front_back_orientation]` — with the 180-degree
     # ambiguity unresolved, every back-neck-dependent measurement refuses
     # to produce a number rather than guessing a side

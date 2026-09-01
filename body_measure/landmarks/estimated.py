@@ -250,6 +250,91 @@ def estimate_chest_level(
     return chest
 
 
+#: How far above the armpit the bust search may reach, as a fraction of
+#: stature. Matches the chest search so the two are comparable.
+BUST_ABOVE_ARMPIT_FRACTION = 0.06
+#: A pick this close to either end of the window was cut off by the window.
+BUST_BOUNDARY_MARGIN_MM = 15.0
+
+
+def estimate_bust_level(
+    mesh: trimesh.Trimesh,
+    waist: Landmark,
+    armpit: Landmark | None,
+    facing: "Facing",
+    step_mm: float = 10.0,
+) -> Landmark | None:
+    """The level of maximum front-to-back torso depth: the bust point.
+
+    ISO 8559-1 fixes bust/chest girth at a height; this pipeline's
+    `chest_level` searches for maximum *girth* instead, and a maximum
+    cannot be smaller than a fixed-height girth. Over Texel Part 1 the
+    girth search peaks at 0.732 +/- 0.017 of stature while the reference
+    matches the profile at 0.708 +/- 0.014 — about 42 mm lower.
+
+    Depth, not girth, is what a bust point is: the sagittal thickness
+    peaks where the bust does. Measured over the same ten subjects this
+    construction lands at 0.710 +/- 0.023, on the target in the mean.
+    Its spread is wider than the girth search's, so it does NOT replace
+    the chest definition on this evidence (decision #37) — it exists so
+    each scan can report its own gap instead of carrying a constant
+    averaged over somebody else's ten bodies.
+
+    Requires a resolved orientation: depth is measured along the facing,
+    and along a wrong axis "depth" is a mixture of depth and width.
+    """
+    if "orientation_unknown" in facing.flags:
+        return None
+    height = float(mesh.bounds[1][1])
+    waist_y = float(waist.position_mm[1])
+    if armpit is not None:
+        hi = min(float(armpit.position_mm[1])
+                 + BUST_ABOVE_ARMPIT_FRACTION * height, 0.92 * height)
+    else:
+        hi = 0.78 * height
+    axis_xz = body_axis_point(mesh)
+
+    best: tuple[float, float] | None = None   # (depth, level)
+    levels: list[float] = []
+    for level in np.arange(waist_y + step_mm, hi, step_mm):
+        origin = np.array([0.0, float(level), 0.0])
+        selection = select_torso_loop(
+            slice_mesh(mesh, origin, _UP),
+            project_axis_to_plane(axis_xz, origin, _UP),
+        )
+        if selection is None or selection.disposition == "rejected":
+            continue
+        if selection.method != "axis_containment":
+            # a loop merely NEAR the axis can sit anywhere, and its depth
+            # would then be some other part of the body (decisions #22/#24)
+            continue
+        levels.append(float(level))
+        forward = (selection.loop.points[:, [0, 2]] - axis_xz) @ facing.direction
+        depth = float(forward.max() - forward.min())
+        if best is None or depth > best[0]:
+            best = (depth, float(level))
+    if best is None or len(levels) < 3:
+        return None
+
+    depth, level = best
+    flags = ["bust_level_from_maximum_torso_depth"]
+    if min(level - levels[0], levels[-1] - level) < BUST_BOUNDARY_MARGIN_MM:
+        flags.append("bust_level_at_search_boundary")
+    if "front_back_low_confidence" in facing.flags:
+        # the depth axis is only as good as the facing it is measured along
+        flags.append("bust_level_facing_low_confidence")
+    confidence = 0.6 * float(facing.confidence) / 0.9
+    if len(flags) > 1:
+        confidence = min(confidence, 0.4)
+    return Landmark(
+        name="bust_level",
+        position_mm=np.array([axis_xz[0], level, axis_xz[1]], dtype=np.float64),
+        confidence=min(0.9, confidence),
+        method="maximum_torso_depth_along_facing",
+        quality_flags=flags,
+    )
+
+
 def body_lateral_axis(mesh: trimesh.Trimesh, level_mm: float) -> tuple[np.ndarray, list[str]]:
     """(unit (x, z) left-right axis, quality_flags). World axes are NOT
     assumed — a scanner may deliver the subject at any yaw.

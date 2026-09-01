@@ -1429,3 +1429,71 @@ measured deviation as "approximate".
 search — a bust-point landmark, which differs between populations and is
 the real fix. At that point this flag is replaced by a definition, and
 `definition_verified` in the spec can finally become true.
+
+---
+
+## 37. The bust point is found, and it reports rather than corrects
+
+**Date:** 2026-09-01 · **Status:** accepted · **Follows #36**
+
+Decision #36 established that `chest_circumference` reads ~27 mm high not
+through error but through definition: ISO fixes bust/chest girth at a
+height and this pipeline searches for the maximum, which cannot be
+smaller. The fix named there was a bust-point landmark. This is it, and
+what it does is narrower than "fix the chest".
+
+**Four constructions were scored before choosing**, against the height at
+which the reference matches this pipeline's own girth profile
+(0.708 ± 0.014 of stature, n=10 Texel):
+
+| construction | lands at | girth bias | MAE | wrong labels |
+|---|---|---|---|---|
+| maximum girth (current) | 0.732 ± 0.017 | +26.8 mm | 28.1 | 3/10 |
+| **maximum torso depth** | **0.710 ± 0.023** | **+4.4 mm** | 28.9 | 2/10 |
+| forward protrusion | 0.698 ± 0.035 | −12.9 mm | 42.0 | — |
+| depth × girth | — | +23.0 mm | 25.2 | 2/10 |
+
+Depth is what a bust point is — the sagittal thickness peaks where the
+bust does — and it lands on the target in the mean, removing six-sevenths
+of the bias.
+
+**It does not replace the chest definition.** Its spread is wider
+(sd 22.4 → 36.8 mm), so it trades a systematic error for a random one,
+and the label test that would decide between them is 2 wrong against 3 on
+ten subjects — one of which, Woman3, is wrong for all three because her
+reference falls in the women's chart's own 106–107 cm gap. Two errors
+against three on nine subjects of one dataset proves nothing. Switching
+the definition of the pipeline's most important measurement on that
+evidence would be fitting to Texel's extraction algorithm, not moving
+toward ISO.
+
+**What it does instead is let each scan state its own gap.** The chest now
+carries `chest_max_exceeds_bust_level_girth_by_<n>mm`, computed from that
+body rather than from a constant averaged over ten of somebody else's.
+Over Texel the per-scan gaps run 0–33 mm — note that these are *smaller*
+than the +26.8 mm disagreement with the reference, so our own two
+definitions do not account for the whole of it. The flag says what this
+pipeline's maximum exceeds this pipeline's bust level by; it does not
+claim to measure the distance to ISO.
+
+**Corroboration, not a single reading.** On Texel Man0 the depth peak
+sits 150 mm below the girth peak while the other nine sit within 60 mm.
+One of the two found something that is not the chest and there is no
+telling which, so beyond `MAX_BUST_CHEST_SEPARATION_FRACTION` (0.05 of
+stature) the landmark is flagged `bust_level_disagrees_with_chest_level`,
+its confidence drops to 0.3, and **no gap is claimed at all**. Man0 was
+reporting a 118 mm "definition gap" before that guard; it was a landmark
+failure wearing a definition's clothes.
+
+The landmark also refuses outright when the orientation is unresolved:
+depth is measured along the facing, and along a wrong axis "depth" is a
+mixture of depth and width.
+
+**Rules out:** replacing a definition because a candidate wins on bias
+while losing on spread; reporting a gap between two landmarks that
+disagree about where the chest is; measuring depth without a resolved
+front.
+
+**Revisit if:** a dataset with a stated bust-point height arrives, or
+SIZER's reference makes n large enough for the label test to mean
+something. The choice then rests on evidence rather than on n=10.
