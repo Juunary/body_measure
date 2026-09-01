@@ -1245,9 +1245,44 @@ obvious file for it — would have produced two phantom subjects. This is
 what decision #17's audit exists to catch, and it came out of
 cross-checking rather than trusting any single file.
 
+**Sleeve length is a lateral question, and reading it as a height band
+was wrong.** The polo signature above put the arm band at +0.9 mm and that
+was read as "bare, therefore short sleeves". In a T pose the whole arm
+sits at roughly shoulder height, so a height band mixes shoulder with
+wrist and cannot see a cuff: 00096's *long*-sleeved outfits give the same
+1.5–2.9 mm. Walking outward along the arm instead does separate them, at
+the station where the offset turns negative (fraction of half-span):
+
+| outfit | sleeve ends | |
+|---|---|---|
+| `poloshort`, `shortlong` (00215) | ~0.39 | short |
+| `shortshort` (00096) | ~0.47 | short |
+| `jerseyshort` (00096) | positive to 0.71 | **long** |
+| `shirtlong` (00096) | positive to 0.79 | long |
+| `longshort` (00215, 00096) | positive to 0.71–0.79 | long |
+
+So the first token of an outfit name is the garment, not the sleeve:
+`short`/`long` say sleeve length but `polo`, `jersey` and `shirt` do not.
+`jersey*` must not be filed as short-sleeved. The conclusion for
+`poloshort` happened to be right; the reasoning was not, and the same
+reasoning applied to `jerseyshort` would have mislabelled it.
+
+**The hair variation is not in this distribution.** The download page
+notes that 00096 and 03284 vary in hair length, and that was taken as
+material for reproducing decision #32's failure, where hair pinned
+Woman4's shoulder point to the search ceiling. It is not: what ships is
+SMPL-topology registration, SMPL carries no hair geometry, and the head
+band's displacement is −0.5 to +0.3 mm across all six of 00096's outfits.
+Reproducing that failure needs the raw scans, requested separately.
+
+**One file in 00096 is not data.** `shirtshort_chicken_wings.000108.npz`
+appears as `...npz5JRYHz-numpy.npy` — a temporary file that was packaged
+by accident. The audit classifies it `unclassified` rather than guessing.
+
 **Rules out:** measuring a CAPE mesh in the pose it ships in; taking a
 subject list from any single file in the distribution; presenting a
-displacement-transferred shell as an observed clothed scan.
+displacement-transferred shell as an observed clothed scan; reading a
+garment boundary off an axis the garment does not vary along.
 
 **Revisit if:** the core gains a human-range gate (decision #20), which
 would turn the 3808 mm into a refusal instead of a number nobody checked.
