@@ -1174,3 +1174,80 @@ because both are clothed-body datasets from Max Planck institutes.
 **Revisit if:** SIZER's terms turn out to forbid the industry context the
 project runs in — CAPE then becomes the fallback, with the downgraded
 claim wording stated up front rather than discovered later.
+
+---
+
+## 34. CAPE is measured from its betas, not from the body it ships
+
+**Date:** 2026-09-01 · **Status:** accepted
+
+CAPE's `minimal_body_shape` is a **canonical T pose**. This pipeline's
+measurement core assumes hanging arms — `body_lateral_axis` says so
+outright, "arms hang beside the torso by construction" — so a T pose is
+outside what it was built for. Measuring `00215_minimal.ply` directly:
+
+| measurement | T pose, as shipped | A pose, rebuilt from betas |
+|---|---|---|
+| chest_circumference | **3808 mm** `accepted` | 1080 mm `arm_clipped` |
+| across_back_shoulder_width | 652 mm | 439 mm `clean` |
+| back_length | 470 mm | 456 mm `clean` |
+| neck_circumference | 446 mm | 417 mm `clean` |
+| sleeve_length | null, rejected | 974 mm `clean` |
+| waist_circumference | 887 mm | 882 mm `clean` |
+
+3808 mm is a horizontal loop around the torso *and both outstretched
+arms*, and the core returned it as `accepted`. Only `low_confidence`
+flags were raised — nothing said "this is not a body girth". That is
+decision #20 (no human-range gate in the core) with a second concrete
+instance, and it is worse than the first: 140.9 mm was implausibly small,
+where 3808 mm is implausibly large and the core has no opinion either way.
+
+Note that `waist_circumference` barely moves (887 → 882). The
+measurements that do not involve the arms are unaffected by the pose,
+which is what makes the failure selective rather than obvious.
+
+**Decision.** CAPE bodies are rebuilt in this project's own A-pose
+canonical from the betas CAPE publishes (`<subj>_param.pkl`, added
+2023-07), using `inference/smpl_body.py`. The shipped T-pose mesh is
+inventory, not a measurement input. The gender comes from
+`misc/subj_genders.pkl`, not from a guess.
+
+**Clothing displacement is usable, and was checked rather than assumed.**
+`v_cano` in each frame and `minimal_body_shape` are both SMPL topology
+with 6890 vertices, so they correspond per vertex. For 00215 poloshort
+the outward offset reads as a polo should:
+
+| height band | median outward offset |
+|---|---|
+| 0.55–0.70 (torso) | **+15.4 mm** (p90 34.8) |
+| 0.40–0.55 (hem, shorts waist) | +12.7 mm |
+| 0.20–0.40 (shorts) | +10.5 mm |
+| 0.70–0.85 (**arms**, n=3508) | **+0.9 mm** — bare, i.e. short sleeves |
+| 0.85–1.00 (head) | +0.3 mm |
+| 0.00–0.20 (lower legs) | −1.8 mm |
+
+**"All sequences start with an A pose" is loose, and posed frames are not
+measured.** At the first frame of the twelve 00215 poloshort sequences the
+body joints carry mean |ω| 0.144–0.223 rad with a maximum of 0.72–1.33 rad
+— above this project's A-pose abduction of 0.87 rad, and varying by
+sequence. The route is displacement transfer onto the project's own
+canonical, which is C3's design; the result is a synthetic shell and is
+never reported as a clothed observation.
+
+**One inventory file disagrees with the rest.** `subj_genders.pkl` lists
+**17** subjects, while `minimal_body_shape`, `minimal_body_params` and
+`seq_lists` each hold the same **15**. The two extras, `03212` and
+`03213`, have a gender and nothing else — no body, no betas, no
+sequences. The 15 that do ship are 10 male and 5 female, which is what
+the download page states, so the page is right and the gender table is
+the odd one out. Reading the subject list off `subj_genders.pkl` — the
+obvious file for it — would have produced two phantom subjects. This is
+what decision #17's audit exists to catch, and it came out of
+cross-checking rather than trusting any single file.
+
+**Rules out:** measuring a CAPE mesh in the pose it ships in; taking a
+subject list from any single file in the distribution; presenting a
+displacement-transferred shell as an observed clothed scan.
+
+**Revisit if:** the core gains a human-range gate (decision #20), which
+would turn the 3808 mm into a refusal instead of a number nobody checked.

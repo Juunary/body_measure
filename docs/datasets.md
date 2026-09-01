@@ -11,6 +11,7 @@
 | 3DPatBody | 대규모 N(299) 허리 둘레 편향 분포; 팔다리 희소 메시의 open_loop 처리 검증 | CC BY | 공개 저장소 |
 | NOMO-3D-400 | 의류용 신체치수 보강 (항목·정의는 다운로드 후 확인) | 연구 무료, 수정·재배포·상업 금지 | 공개, ~690MB. 주의: NOMO-3D-4K/BODY-fit은 피팅 메시이지 원본 스캔이 아님 |
 | HSRD-100 | LOD(5M/1M/100K/10K) 간 일관성 = 실데이터 해상도 강건성; **공개 자료용 유일 허용 데이터** | CC BY 4.0 (상업 가능) | 전체 246GB — 인물 2~3명 × LOD1/2만 선별 |
+| CAPE | C3 합성 공장의 재료 — 착의 displacement(SMPL 토폴로지, 정점 대응). 신체는 T-pose로 배포되므로 **betas에서 A-pose로 재생성해 측정** (결정 #34) | 연구 라이선스, 개인·단일 사용자·양도 불가 | 등록 후 다운로드. 피험자별 Option 2만 받는다 — 하단 "Download links"는 POP/SCALE 패킹본이라 메시가 아니다 |
 | SMPL (모델) | T-pose 레퍼런스 비교 트랙 + A-pose 강건성 트랙 (Slice 4) | 등록 필요, 재배포 불가 | smpl.is.tue.mpg.de 계정 → `models/smpl/` (gitignored) |
 
 ## 치수 정의 대조표 (dataset_agreement 전제 조건)
