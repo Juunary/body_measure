@@ -92,6 +92,8 @@ These are enforced in code, not in documentation:
 - `docs/decisions.md` — every decision in *decided / rules out / revisit if*
   form; `docs/plan.md` — the current work plan and what blocks what;
   `docs/datasets.md` — provenance and download procedures;
+  `docs/reference-garment-sizing-and-pom.md` — EU size standards and
+  factory measurement points, and what of that touches this pipeline;
   `docs/licenses/` — the LICENSE-G0 gate
 
 ## Clothed-scan work stream
