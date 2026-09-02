@@ -1625,3 +1625,89 @@ physical limit.
 stature-relative bounds become worth their cost — they are not now,
 because the two failures were ×3.5 and ×0.15 of normal and a relative
 bound needs a trusted stature, which HSRD (boots, headwear) does not give.
+
+---
+
+## 40. CAPE's clothing, on our body
+
+**Date:** 2026-09-02 · **Status:** accepted · **Follows #34**
+
+C3 was to be a synthetic clothing factory built on CAPE displacements.
+This is its first working piece: a real garment from a real subject,
+wrapped around a body this pipeline can measure.
+
+**The obstacle was the pose.** CAPE's surfaces are in ITS canonical **T**
+pose and this pipeline measures in an **A** pose, which is not a
+presentation difference — measured as shipped, a T-posed body's chest
+reads 3808 mm because the loop encircles the torso and both outstretched
+arms (#34). Neither CAPE surface can be used where it lies.
+
+What transfers is the **displacement**. `D = v_cano − body_T` is a
+per-vertex offset in SMPL's fixed topology, and SMPL+D's premise is that
+such an offset can be added to the shaped template and posed with the
+body. `inference/cape_transfer.py` does that and returns a `ShellCase`
+identical in shape to the eight synthetic ones.
+
+**The joints must come from the body.** The obvious call —
+`smplx.lbs.lbs(v_template=v_template + D)` — regresses the skeleton from
+the displaced surface, so `J_regressor @ D` moves the joints and the
+clothing relocates the shoulders. The primitives are therefore called
+directly, with `vertices2joints` reading the undisplaced shaped body.
+
+**A re-implementation needs a proof.** With `D = 0` the transfer
+reproduces `SmplBody.canonical_vertices_m` to **0.000000 mm** — not
+"close", identical — and a test pins it. Without that, every shell would
+be posed slightly differently from the body it is fitted against, and the
+fitter would spend its budget chasing the difference.
+
+**The approximation, stated once.** Clothing deforms with pose; this
+transfer applies D rigidly through the body's skinning weights, so an
+A-pose sleeve has no A-pose creases. CAPE's own canonicalisation already
+made that choice when it unposed the frame, so this inherits it rather
+than adding to it. It is recorded in the module docstring, in every case's
+`meta["approximation"]`, and here. **The result is a synthetic shell, not
+an observation of anyone dressed in an A pose**, and the claim stays
+`synthetic_recovery` (#34 rules out presenting it as a clothed
+observation).
+
+**It measures like a garment.** Subject 00215's polo against the same
+subject's bare body:
+
+| | polo | long sleeve |
+|---|---|---|
+| chest | +36 mm | +67 mm |
+| **upper arm** | **+38 mm** | **+77 mm** |
+| head band | −4.4 … +3.9 mm | −3.4 … +4.9 mm |
+
+The upper-arm girth separates a polo sleeve from a long one, the head is
+bare, and the leg band is a pair of shorts. A radial offset *d* adds
+**2π·d** to a girth, so a 15 mm torso gap is tens of millimetres of chest
+— a check written as "chest ≈ +15 mm" would have failed for the wrong
+reason.
+
+**`back_length` reads 45 mm SHORTER on the polo, and that is correct.** A
+clothed surface's back-neck point sits on a collar and its waist minimum
+on a hem, so the measurement is the garment's, not the body's. #21 already
+recorded that clothed length measurements "produce numbers but cannot be
+used"; here it is visible.
+
+**The band is a self-consistency check, not a prior.** `gap_band_mm` is
+the Q10/Q90 of the case's own `true_gap_mm` per part, so a fit landing
+inside it has agreed with the truth it was derived from. A real prior
+comes from a gap atlas over many subjects, which needs the paired dataset
+this project does not have. `meta["band_source"]` says which it is.
+
+**Integration keeps the eight synthetic cases untouched.**
+`c2_synthetic_battery.py --cape` appends `cape_<subject>_<outfit>` entries
+under `report["cape_cases"]`, each with its own `SmplBody` (SMPL's shape
+space is gendered), its own betas as truth, and a `shell_source` block
+naming subject, gender, outfit, sequence and frame. The shared latent body
+the eight cases use is not disturbed.
+
+**Rules out:** measuring a CAPE surface in the pose it ships in; letting a
+displacement move the skeleton; calling a self-derived band a prior;
+reporting a transferred shell as an observation.
+
+**Revisit if:** the pose-dependent term becomes worth modelling — it will
+when a fit is evaluated against a real clothed scan rather than against a
+shell we built, which needs SIZER.

@@ -90,10 +90,77 @@ def compare(truth: dict, recovered: dict, names) -> dict:
     return out
 
 
+#: the last fit per case, so main() can print its timing and flags without
+#: run_case having to return two things
+FITS: dict = {}
+
+
+def run_case(body, case, truth, latent_betas, cfg, names) -> dict:
+    """Fit one shell and score the body it recovers. Extracted from the
+    loop so a CAPE case, which brings its own subject and its own truth,
+    can be scored by exactly the same code."""
+    fit = fit_shell(body, case.mesh, case.gap_band_mm, cfg)
+    recovered = measure(body.canonical_mesh(fit.betas, source_id=f"recovered/{case.name}"))
+    FITS[case.name] = fit
+    return {
+        "case": case.name, "breaks": case.breaks, "meta": case.meta,
+        "gap_band_mm": case.gap_band_mm,
+        "fit": fit.to_dict(),
+        "beta_l2_error": round(float(np.linalg.norm(fit.betas - latent_betas)), 3),
+        "measurements": compare(truth, recovered, names),
+    }
+
+
+def cape_cases(cfg, names, quick: bool) -> list[dict]:
+    """Shells built from real CAPE clothing, one per (subject, outfit).
+
+    Each has its own subject, so it gets its own SmplBody — SMPL's shape
+    space is gendered — and its own truth, measured from that subject's
+    published betas. The eight synthetic cases keep the single shared
+    latent body they have always had; these are appended, never mixed in.
+    """
+    from body_measure.inference.cape_release import CapeRelease, displacement_T_m
+    from body_measure.inference.cape_transfer import transfer_displacement
+    from body_measure.inference.smpl_body import SmplBody as _SmplBody
+
+    release = CapeRelease()
+    entries = []
+    for subject in release.subjects():
+        try:
+            outfits = sorted(release.outfits(subject))
+        except Exception:
+            continue          # not downloaded; the audit lists who is
+        if not outfits:
+            continue
+        subject_body = _SmplBody(gender=release.gender(subject))
+        betas = release.betas(subject)
+        truth = measure(subject_body.canonical_mesh(betas, source_id=f"cape/{subject}"))
+        body_T = release.minimal_body_T_m(subject)
+        for outfit in (outfits[:1] if quick else outfits):
+            frame = release.first_valid_frame(subject, outfit)
+            case = transfer_displacement(
+                subject_body, betas, displacement_T_m(frame, body_T),
+                name=f"cape_{subject}_{outfit}",
+                meta={"shell_source": {**frame.provenance(),
+                                       "gender": release.gender(subject)}})
+            entry = run_case(subject_body, case, truth, betas, cfg, names)
+            entry["subject"] = subject
+            entries.append(entry)
+            fit = FITS[case.name]
+            score = fit.fit_quality_score
+            print(f"{case.name:26s} {fit.seconds:5.0f} {score['coverage_fraction']:5.2f} "
+                  f"{100*score['outside_fraction']:5.1f} "
+                  f"{100*score['collapse_fraction']:5.1f} "
+                  f"{entry['beta_l2_error']:7.2f}  (subject's own betas)")
+    return entries
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true", help="fewer iterations, two cases")
     ap.add_argument("--multistart", action="store_true", help="3 starts on the two hardest cases")
+    ap.add_argument("--cape", action="store_true",
+                    help="also fit shells built from real CAPE clothing displacements")
     args = ap.parse_args()
 
     spec = load_spec()
@@ -127,16 +194,10 @@ def main() -> int:
     print(f"latent measurements: {', '.join(f'{n[:5]}={truth[n]['value_mm']:.0f}' for n in spec.names if truth[n]['value_mm'])}\n")
     print(f"{'case':26s} {'s':>5s} {'cov':>5s} {'out%':>5s} {'col%':>5s} {'|β−β*|':>7s}  chest  waist   neck  flags")
     for case in cases:
-        fit = fit_shell(body, case.mesh, case.gap_band_mm, cfg)
-        recovered = measure(body.canonical_mesh(fit.betas, source_id=f"recovered/{case.name}"))
-        per = compare(truth, recovered, spec.names)
-        beta_err = float(np.linalg.norm(fit.betas - latent_betas))
-        entry = {
-            "case": case.name, "breaks": case.breaks, "meta": case.meta,
-            "gap_band_mm": case.gap_band_mm,
-            "fit": fit.to_dict(), "beta_l2_error": round(beta_err, 3),
-            "measurements": per,
-        }
+        entry = run_case(body, case, truth, latent_betas, cfg, spec.names)
+        fit = FITS[case.name]
+        beta_err = entry["beta_l2_error"]
+        per = entry["measurements"]
         if args.multistart and case.name in ("front_back_asymmetric", "uniform_with_holes"):
             runs = multi_start(body, case.mesh, case.gap_band_mm, cfg, starts=3)
             betas = np.stack([r.betas for r in runs])
@@ -156,6 +217,12 @@ def main() -> int:
               f"{100*s['outside_fraction']:5.1f} {100*s['collapse_fraction']:5.1f} {beta_err:7.2f} "
               f"{fmt(d('chest_circumference'))} {fmt(d('waist_circumference'))} {fmt(d('neck_circumference'))}  "
               f"{','.join(fit.flags) or '-'}")
+
+    if args.cape:
+        print()
+        print(f"{'cape case':26s} {'s':>5s} {'cov':>5s} {'out%':>5s} "
+              f"{'col%':>5s} {'|β−β*|':>7s}")
+        report["cape_cases"] = cape_cases(cfg, spec.names, args.quick)
 
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
