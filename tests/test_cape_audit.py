@@ -136,16 +136,17 @@ def test_the_split_is_subject_disjoint_and_deterministic(tmp_path):
 
 
 # ------------------------------------------------------- what it ignores ---
-def test_tooling_state_and_parsing_code_are_not_dataset_files(tmp_path):
-    """A dot-directory inside the release is not CAPE's — tooling state has
-    landed in there before — and cape_utils is code."""
+def test_dot_directories_and_parsing_code_are_not_dataset_files(tmp_path):
+    """A dot-directory inside the release did not come from CAPE — editor
+    and tool state has been written into working directories before — and
+    cape_utils is the parsing code, not data."""
     root = make_release(tmp_path)
-    (root / "cape_release" / ".omc" / "state").mkdir(parents=True)
-    (root / "cape_release" / ".omc" / "state" / "s.json").write_text("{}")
+    (root / "cape_release" / ".local_state" / "cache").mkdir(parents=True)
+    (root / "cape_release" / ".local_state" / "cache" / "s.json").write_text("{}")
     (root / "cape_release" / "cape_utils").mkdir()
     (root / "cape_release" / "cape_utils" / "dataset_utils.py").write_text("x = 1")
     paths = {e["relative_source_path"] for e in audit.build_manifest(root)["entries"]}
-    assert not any(".omc" in p or "cape_utils" in p for p in paths)
+    assert not any(".local_state" in p or "cape_utils" in p for p in paths)
 
 
 def test_every_reference_kind_is_in_the_claims_vocabulary(tmp_path):
