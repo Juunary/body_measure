@@ -1,3 +1,14 @@
+> **Superseded, 2026-09-02 — the length figures below are wrong.** Every
+> shoulder, sleeve and back-length number in this report (the "+454 mm
+> disaster" of §3, the +32 mm and +197 mm that follow it, and the
+> dataset-agreement table near the end) was measured with the front/back
+> orientation **inverted** and the shoulder points sitting ~25 mm too far
+> inboard on each side. Decisions #31 and #32 found and fixed both. The
+> account of how the work went is kept as written — that is what a
+> retrospective is for — but for any number, read
+> `docs/report-formal.en.md`, which is regenerated from the current
+> pipeline.
+
 ﻿> [내부 개발 회고 / internal development retrospective — informal] 공식 수치·판정은 docs/report-formal.ko.md / .en.md 참조
 
 # body-measure Development Report — The Full Journey Through Slices 0–5

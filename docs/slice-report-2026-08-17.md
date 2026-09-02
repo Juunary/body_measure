@@ -1,3 +1,10 @@
+> **대체됨, 2026-09-02 — 아래 길이 수치는 틀렸다.** 이 보고서의 어깨·소매·등길이
+> 수치(§3의 "+454mm 참사", 그 뒤의 +32mm·+197mm, 끝부분의 dataset agreement 표)는
+> 전후 방향이 **반전된** 상태에서, 그리고 어깨점이 양쪽 각각 약 25mm 안쪽으로
+> 치우친 상태에서 측정된 것이다. 결정 #31·#32가 둘 다 찾아 고쳤다. 작업이 어떻게
+> 진행됐는지에 대한 서술은 회고문이므로 그대로 둔다 — 다만 수치가 필요하면
+> 현재 파이프라인에서 재생성되는 `docs/report-formal.ko.md` 를 보라.
+
 ﻿> [내부 개발 회고 / internal development retrospective — informal] 공식 수치·판정은 docs/report-formal.ko.md / .en.md 참조
 
 # body-measure 개발 보고서 — Slice 0~5 전 과정
