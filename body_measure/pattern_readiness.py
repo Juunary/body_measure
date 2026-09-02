@@ -1,29 +1,53 @@
-"""Can a pattern be drafted from this body, and if not, what is missing?
+"""Is the BODY measured well enough to start a draft from?
 
-A size label tolerates a wrong measurement: EN 13402's bands are 80 mm
-wide, so a chest can be tens of millimetres out and still land on the same
-letter. A pattern draws a line at the number. Moving from size labels to
-made-to-measure therefore does not need a new algorithm first — it needs
-measurements the pipeline can vouch for, and a list of which ones a draft
-actually consumes.
+Not "can a pattern be drafted" — that was this gate's first framing and it
+overstated what a body can settle. A draft is cut to finished-garment
+measurements, the points ISO 18890 defines and a factory checks: half
+chest across the flat garment, centre-back length, sleeve length from the
+shoulder point. Those are not body dimensions. They are body dimensions
+plus ease, and ease is a design decision no standard fixes — it depends on
+fit, fabric, stretch, shrinkage and intended use
+(`docs/reference-garment-sizing-and-pom.md`).
 
-This gate answers the second question and is honest about the first. Its
-best possible verdict is `complete_unverified`: every dimension present
-and internally clean. `ready` is unreachable here for the same reason
-`measurement_accuracy` is unreachable in claims.py — no value has ever
-been compared against a trained measurer's tape, so no value can be
-called accurate to a pattern's tolerance. The gate says so rather than
-implying a readiness it cannot support.
+    ISO 8559-1 body dimension
+        -> size band                       (EN ISO 8559-2, EN 13402-3)
+        -> ease                            DESIGN — no standard fixes it
+        -> finished-garment POM            (ISO 18890 + factory agreement)
+        -> pattern, seam allowance, shrinkage
+        -> sample, tolerance inspection
 
-The requirement list is itself a claim. Twelve entries come from
+**This gate covers the first link only.** Everything in it is measured on
+a body; not one entry is a finished-garment point, and none can be — there
+is no garment to measure. So its verdict is about the input to a draft,
+never about the draft.
+
+The distinction is easy to lose because the requirements used to be
+described by the garment part they feed. `hem_girth` "drafts hem width"
+reads as though the hem's width had been measured; what was measured is
+the hip the hem falls over, and the hem's width is that plus ease. It has
+been renamed `hip_girth`, and every entry now says what the body
+measurement is, not what the pattern piece is called (decision #42).
+
+`Requirement.location` records the other half of it: for most entries the
+place to measure is fixed by anatomy or by the standard, but
+`sleeve_opening_girth` is taken wherever the sleeve happens to end, so it
+moves when `garment_prototypes.SLEEVE_END_FRACTION` moves. A requirement
+like that is not a property of the body alone and cannot be "complete"
+independently of the design.
+
+Its best possible verdict is `complete_unverified`: every dimension
+present and internally clean. `ready` is unreachable here for the same
+reason `measurement_accuracy` is unreachable in claims.py — no value has
+ever been compared against a trained measurer's tape, so no value can be
+called accurate to a pattern's tolerance.
+
+The requirement list is itself a claim. Most entries come from
 polo-line-sim's measurement list, which records that the Maß-DPP plan
-plan lists no body measurements at all and that its own list is derived
-from garment pattern practice and ISO 8559-1. Three more were identified
-while reading that list against what a draft needs, and are marked
-`unsourced` because they have not been checked against a named drafting
-system (M. Müller & Sohn, or Aldrich's menswear block). A gate that hid
-the provenance of its own requirements would be the thing it exists to
-prevent.
+lists no body measurements at all and that its own list is derived from
+garment pattern practice and ISO 8559-1. Three more were identified while
+reading that list against what a draft needs, and stay `unsourced`: the
+manufacturers' POM sheets name them, but a finished-garment point cannot
+source a body requirement without the ease term that separates them.
 """
 from __future__ import annotations
 
@@ -38,61 +62,84 @@ DRAFTABLE_BUCKETS = ("clean", "arm_clipped")
 #: docstring. Adding it needs an accuracy claim, not more code here.
 NOT_READY = "not_ready"
 COMPLETE_UNVERIFIED = "complete_unverified"
+#: The complete set, stated rather than inferred. A test asserts `ready` is
+#: not in it; scanning the module's uppercase names for that was fragile —
+#: it broke the moment an unrelated constant was added.
+VERDICTS = (NOT_READY, COMPLETE_UNVERIFIED)
+
+
+#: Where the place to measure comes from.
+BY_ANATOMY = "anatomy"          # a landmark or the standard fixes it
+BY_DESIGN = "design_parameter"  # a garment decision fixes it, and moves it
 
 
 @dataclass(frozen=True)
 class Requirement:
     key: str
-    drafts: str
+    #: the BODY measurement, not the pattern piece it feeds. See the module
+    #: docstring: a finished-garment point is this plus ease.
+    measures: str
+    #: what a draft uses it for — kept separate from `measures` so the two
+    #: can never be confused again
+    feeds: str
     #: "spec" (validated pipeline) | "prototype" (computed, unvalidated)
     #: | "unimplemented" (no code produces it)
     provision: str
+    #: BY_ANATOMY | BY_DESIGN — a design-located requirement moves when the
+    #: design does, so it is not a property of the body alone
+    location: str
     #: where the requirement itself comes from
     source: str
 
 
-#: What a polo draft consumes. Order follows the garment: body, then arm.
+#: The body measurements a polo draft starts from. Every one is measured
+#: on a body; none is a finished-garment point. Order follows the garment:
+#: torso, then arm.
+LIST = "polo-line-sim measurement list"
+UNSOURCED = ("unsourced — identified from the list; the manufacturers' POM "
+             "sheets name it, but as a finished-garment point, which cannot "
+             "source a body requirement without the ease term")
+
 POLO_REQUIREMENTS = (
-    Requirement("chest_circumference", "body width — the critical one",
-                "spec", "polo-line-sim measurement list"),
-    Requirement("waist_circumference", "side seam silhouette",
-                "spec", "polo-line-sim measurement list"),
-    Requirement("neck_circumference", "rib collar length, neckline",
-                "spec", "polo-line-sim measurement list"),
-    Requirement("across_back_shoulder_width", "yoke and shoulder seam",
-                "spec", "polo-line-sim measurement list"),
-    Requirement("back_length", "body length, drop tail",
-                "spec", "polo-line-sim measurement list"),
-    Requirement("upper_arm_girth", "sleeve width",
-                "spec", "polo-line-sim measurement list"),
+    Requirement("chest_circumference", "chest girth", "body width — the "
+                "critical one", "spec", BY_ANATOMY, LIST),
+    Requirement("waist_circumference", "waist girth", "side seam silhouette",
+                "spec", BY_ANATOMY, LIST),
+    Requirement("neck_circumference", "neck base girth",
+                "rib collar length, neckline", "spec", BY_ANATOMY, LIST),
+    Requirement("across_back_shoulder_width", "acromion to acromion across "
+                "the back", "yoke and shoulder seam", "spec", BY_ANATOMY, LIST),
+    Requirement("back_length", "back neck point to waist", "body length, "
+                "drop tail", "spec", BY_ANATOMY, LIST),
+    Requirement("upper_arm_girth", "upper arm girth", "sleeve width",
+                "spec", BY_ANATOMY, LIST),
     # `sleeve_length` is deliberately NOT here. The spec defines it as
     # back neck point to WRIST and marks it `priority: deferred`; a short
     # sleeve stops part-way down the upper arm, and where it stops is a
     # design choice (garment_prototypes.SLEEVE_END_FRACTION), not a body
     # dimension. Listing it made the gate demand a long-sleeve measurement
     # to draft a short sleeve — see decision #35.
-    Requirement("hem_girth", "hem width",
-                "prototype", "polo-line-sim measurement list"),
-    Requirement("sleeve_opening_girth", "rib cuff length",
-                "prototype", "polo-line-sim measurement list"),
-    Requirement("armhole_depth", "armhole curve, sleeve cap",
-                "prototype", "polo-line-sim measurement list"),
-    Requirement("shoulder_slope", "shoulder seam angle",
-                "prototype", "polo-line-sim measurement list"),
-    Requirement("front_back_width", "front / back balance",
-                "prototype", "polo-line-sim measurement list"),
-    Requirement("centre_front_length", "front length; the drop tail is the "
-                                       "difference from back length",
-                "unimplemented", "unsourced — identified from the list, not "
-                                 "checked against a drafting system"),
-    Requirement("armhole_girth", "sleeve cap length; armhole_depth gives the "
-                                 "depth, not the girth",
-                "unimplemented", "unsourced — identified from the list, not "
-                                 "checked against a drafting system"),
-    Requirement("across_front", "front width; front_back_width gives the "
-                                "difference, not the width",
-                "unimplemented", "unsourced — identified from the list, not "
-                                 "checked against a drafting system"),
+    Requirement("hip_girth", "widest torso girth below the waist",
+                "hem width, once ease is added", "prototype", BY_ANATOMY, LIST),
+    Requirement("sleeve_opening_girth", "arm girth where the sleeve ends",
+                "rib cuff length, once ease is added", "prototype",
+                BY_DESIGN, LIST),
+    Requirement("armhole_depth", "shoulder to armpit vertical drop",
+                "armhole curve, sleeve cap", "prototype", BY_ANATOMY, LIST),
+    Requirement("shoulder_slope", "degrees below horizontal, neck to "
+                "shoulder tip", "shoulder seam angle", "prototype",
+                BY_ANATOMY, LIST),
+    Requirement("front_back_width", "how the chest girth divides front to "
+                "back", "front / back balance", "prototype", BY_ANATOMY, LIST),
+    Requirement("centre_front_length", "neck to waist down the front",
+                "front length; the drop tail is the difference from back "
+                "length", "unimplemented", BY_ANATOMY, UNSOURCED),
+    Requirement("armhole_girth", "the armscye loop on the body",
+                "sleeve cap length; armhole_depth gives the depth, not the "
+                "girth", "unimplemented", BY_ANATOMY, UNSOURCED),
+    Requirement("across_front", "shoulder to shoulder across the front",
+                "front width; front_back_width gives the difference, not the "
+                "width", "unimplemented", BY_ANATOMY, UNSOURCED),
 )
 
 
@@ -108,7 +155,12 @@ class RequirementStatus:
     def to_dict(self) -> dict:
         return {
             "key": self.requirement.key,
-            "drafts": self.requirement.drafts,
+            # what was measured on the body, and separately what a draft
+            # uses it for — a reader who sees only the second takes the
+            # body measurement for the pattern piece (decision #42)
+            "measures_on_the_body": self.requirement.measures,
+            "feeds": self.requirement.feeds,
+            "measured_at": self.requirement.location,
             "provision": self.requirement.provision,
             "requirement_source": self.requirement.source,
             "value": self.value,
@@ -197,25 +249,40 @@ def assess(measurements, prototypes=None, *, garment: str = "polo",
     verdict = COMPLETE_UNVERIFIED if not [s for s in statuses if not s.draftable] \
         else NOT_READY
     notes = [
+        "Every requirement here is measured ON A BODY. None is a "
+        "finished-garment measurement, and none can be: a draft is cut to "
+        "the points ISO 18890 defines, which are these dimensions plus ease "
+        "— and ease is a design decision no standard fixes. So this gate "
+        "verifies the INPUT to a draft, never the draft (decision #42).",
         "`ready` is not among the verdicts. No value here has been compared "
         "against a trained measurer's tape, so none can be called accurate to "
         "a pattern's tolerance — measurement_accuracy is unreachable in code "
         "until the scanner and ISO 20685-1 validation exist (decision #1).",
         "A size band is 80 mm wide and a drafted line is a line, so the "
         "accuracy a pattern needs is roughly four times tighter than the one "
-        "a size label needs. That gap, not the drafting maths, is what stands "
-        "between this pipeline and made-to-measure.",
+        "a size label needs. Factories hold a finished chest and body length "
+        "to about ±10 mm and smaller points to ±5 mm; that is the order the "
+        "body input has to reach before ease is even added.",
         "A short sleeve's length is not on this list because it is not a body "
         "dimension: the sleeve stops part-way down the upper arm and where it "
         "stops is chosen, not measured. The arm is drafted from upper_arm_girth "
         "and sleeve_opening_girth instead. The spec's `sleeve_length` runs to "
         "the wrist and is `priority: deferred` for this garment.",
     ]
+    design_located = [s for s in statuses if s.requirement.location == BY_DESIGN]
+    if design_located:
+        notes.append(
+            f"{len(design_located)} requirement(s) are measured where a design "
+            "parameter puts them, not where anatomy does: "
+            + ", ".join(s.requirement.key for s in design_located)
+            + ". They move when the garment does, so they cannot be complete "
+            "independently of it.")
     unsourced = [s for s in statuses if "unsourced" in s.requirement.source]
     if unsourced:
         notes.append(
-            f"{len(unsourced)} of the {len(statuses)} requirements are unsourced: "
-            "identified while reading the measurement list against what a draft "
-            "needs, not checked against a named drafting system. The list is a "
-            "claim like any other.")
+            f"{len(unsourced)} of the {len(statuses)} requirements are unsourced. "
+            "The manufacturers' POM sheets name all three, but as "
+            "finished-garment points — which cannot source a body requirement "
+            "without the ease term that separates them. The list is a claim "
+            "like any other.")
     return Readiness(garment, verdict, statuses, notes)

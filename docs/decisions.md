@@ -1775,3 +1775,76 @@ why it existed.
 open precisely so that the checklist, not memory, says what to do with it.
 Or if another paired dataset appears, in which case the parked audit is
 the template again.
+
+---
+
+## 42. The gate verifies the body, not the pattern
+
+**Date:** 2026-09-02 · **Status:** accepted · **Follows #30, #35**
+
+The pattern gate asked "can a pattern be drafted from this body". It
+cannot answer that, and the sizing research filed on 2026-09-02
+(`docs/reference-garment-sizing-and-pom.md`) shows why.
+
+**A draft is cut to finished-garment measurements**, the points ISO 18890
+defines and a factory inspects: half chest across the flat garment,
+centre-back length, sleeve length from the shoulder point. Those are not
+body dimensions. They are body dimensions **plus ease**, and ease is a
+design decision no standard fixes — it follows fit, fabric, stretch,
+shrinkage and use.
+
+```
+ISO 8559-1 body dimension
+  -> size band            (EN ISO 8559-2 names the primary dimension)
+  -> ease                 DESIGN. No standard fixes it.
+  -> finished-garment POM (ISO 18890 + what the factory agrees)
+  -> pattern, seam allowance, shrinkage
+  -> sample, tolerance inspection
+```
+
+Every one of the gate's fourteen requirements is measured on a body. Not
+one is a finished-garment point, and none can be — there is no garment to
+measure. **The gate covers the first link.** Its verdict is about the
+input to a draft and was being read as a verdict about the draft.
+
+**The confusion was in the field names.** Each requirement had a `drafts`
+string naming the pattern piece: `hem_girth` "drafts hem width". That
+reads as though a hem's width had been measured. What was measured is the
+hip the hem falls over; the hem's width is that plus ease. The
+prototype's own docstring already said so — "the hem's real height is a
+garment length decision; this is the body underneath wherever it is put" —
+and the gate contradicted it one file away.
+
+**Decision.** `Requirement` now carries `measures` (what a tape would read
+off a body) and `feeds` (what a draft does with it) as separate fields, and
+a test asserts they differ. `hem_girth` is renamed **`hip_girth`**: it is
+the widest torso girth below the waist, which is a hip, and calling it by
+the garment part was the same error one level down.
+
+**`location` records what fixes the place to measure.** Most requirements
+are located by anatomy or by the standard. `sleeve_opening_girth` is taken
+wherever the sleeve happens to end — it moves when
+`garment_prototypes.SLEEVE_END_FRACTION` moves. A requirement like that is
+not a property of the body alone and cannot be complete independently of
+the design, so the verdict names it.
+
+**The three unsourced requirements stay unsourced.** Decision #30 left
+`centre_front_length`, `armhole_girth` and `across_front` waiting on a
+named drafting system. The manufacturers' POM sheets name all three — but
+as finished-garment points, and a finished-garment point cannot source a
+body requirement without the ease term that separates them. The note says
+that instead of implying the sheets settled it.
+
+**A number arrived for the tolerance claim.** The gate said a pattern
+needs roughly four times the accuracy a size label does. Factories hold a
+finished chest and body length to about ±10 mm and smaller points to
+±5 mm. That is the order the body input has to reach *before* ease is
+added — the first real figure this project has had for that gap.
+
+**Rules out:** describing a body measurement by the pattern piece it
+feeds; reading this gate's verdict as a statement about a draft; treating
+a finished-garment specification as a source for a body requirement.
+
+**Revisit if:** ease values are ever decided for this garment, at which
+point a second gate over finished-garment points becomes possible — and it
+would be a different gate, with tolerances, not this one extended.

@@ -95,7 +95,7 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
             curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C,
                            np.asarray(selection.loop.points, dtype=float), "loop"))
 
-    hem = prototypes.get("hem_girth")
+    hem = prototypes.get("hip_girth")
     if hem is not None and hem.available and hem.level_mm is not None:
         _, selection = torso_girth_at(mesh, hem.level_mm)
         if selection is not None:

@@ -71,12 +71,16 @@ def torso_girth_at(mesh: trimesh.Trimesh, level_mm: float):
     return circ.selected_value_mm, selection
 
 
-def hem_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeValue:
-    """Torso girth where a hem falls, taken as the widest level between the
-    crotch and the waist. The hem's real height is a garment length
-    decision; this is the body underneath wherever it is put."""
+def hip_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeValue:
+    """Widest torso girth between the crotch and the waist — the hip.
+
+    It was called `hem_girth`, which named the garment part it feeds rather
+    than the thing measured. A polo hem falls near this level, but the hem's
+    height is a garment length decision and the hem's WIDTH is this girth
+    plus ease. Neither is measured here; the body under the hem is
+    (decision #42)."""
     if waist is None:
-        return PrototypeValue("hem_girth", "Hem girth (hip level)", None,
+        return PrototypeValue("hip_girth", "Hip girth", None,
                               note="no waist landmark to search below")
     lo = (crotch + 20.0) if crotch is not None else 0.45 * float(mesh.bounds[1][1])
     hi = float(waist.position_mm[1]) - 20.0
@@ -86,9 +90,9 @@ def hem_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeVa
         if girth is not None and (best_value is None or girth > best_value):
             best_value, best_level = girth, float(level)
     if best_value is None:
-        return PrototypeValue("hem_girth", "Hem girth (hip level)", None,
+        return PrototypeValue("hip_girth", "Hip girth", None,
                               note="no trustworthy torso loop between crotch and waist")
-    return PrototypeValue("hem_girth", "Hem girth (hip level)", best_value,
+    return PrototypeValue("hip_girth", "Hip girth", best_value,
                           note="widest torso level below the waist",
                           level_mm=best_level)
 
@@ -196,7 +200,7 @@ def front_back_width(mesh, chest_level: float | None, armpit: Landmark | None,
 
 
 #: order the CLI and the figures present them in
-POLO_SET = ("hem_girth", "sleeve_opening_girth", "armhole_depth",
+POLO_SET = ("hip_girth", "sleeve_opening_girth", "armhole_depth",
             "shoulder_slope", "front_back_width")
 
 
@@ -214,7 +218,7 @@ def run_prototypes(mesh, measurements, landmarks) -> dict[str, PrototypeValue]:
     chest_flags = list(measurements["chest_circumference"].quality)
 
     values = [
-        hem_girth(mesh, waist, E.estimate_crotch_level(mesh)),
+        hip_girth(mesh, waist, E.estimate_crotch_level(mesh)),
         sleeve_opening_girth(mesh, armpit, wrist),
         armhole_depth(shoulders, armpit),
         shoulder_slope(shoulders, back_neck),

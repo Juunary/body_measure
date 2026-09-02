@@ -40,12 +40,13 @@ def test_ready_is_not_a_verdict_the_gate_can_reach():
     """No value has been compared against a tape, so none can be called
     accurate to a pattern's tolerance. The best available verdict says
     complete and unverified, and the module offers no better one."""
-    import body_measure.pattern_readiness as module
+    from body_measure.pattern_readiness import VERDICTS
 
-    verdicts = {v for k, v in vars(module).items()
-                if k.isupper() and isinstance(v, str) and not k.endswith("BUCKETS")}
-    assert verdicts == {NOT_READY, COMPLETE_UNVERIFIED}
-    assert "ready" not in verdicts
+    assert set(VERDICTS) == {NOT_READY, COMPLETE_UNVERIFIED}
+    assert "ready" not in VERDICTS
+    # and nothing reaches a verdict the list does not contain
+    assert assess(measured()).verdict in VERDICTS
+    assert assess(measured(chest_circumference=(1000.0, "accepted"))).verdict in VERDICTS
 
 
 def test_every_readiness_says_no_accuracy_claim_exists():
@@ -60,12 +61,12 @@ def test_a_prototype_is_present_but_never_draftable():
     number is not the same as being allowed to cut cloth against it."""
     readiness = assess(
         measured(),
-        {"hem_girth": PrototypeValue("hem_girth", "Hem girth", 1100.0)},
+        {"hip_girth": PrototypeValue("hip_girth", "Hip girth", 1100.0)},
     )
-    hem = next(s for s in readiness.statuses if s.requirement.key == "hem_girth")
-    assert hem.value == 1100.0
-    assert not hem.draftable
-    assert "no ISO definition audit" in hem.note
+    hip = next(s for s in readiness.statuses if s.requirement.key == "hip_girth")
+    assert hip.value == 1100.0
+    assert not hip.draftable
+    assert "no ISO definition audit" in hip.note
 
 
 def test_a_measurement_the_pipeline_flagged_cannot_carry_a_line():
@@ -90,11 +91,41 @@ def test_an_unimplemented_requirement_blocks_and_says_so():
 
 
 # ------------------------------------------------- the requirement list ---
-def test_every_requirement_names_what_it_drafts_and_where_it_came_from():
+def test_every_requirement_separates_the_body_from_the_pattern_piece():
+    """`measures` is what a tape would read off a body; `feeds` is what a
+    draft does with it. Collapsing them is how `hem_girth` came to be
+    described as "hem width" when it is the hip underneath (decision #42)."""
+    from body_measure.pattern_readiness import BY_ANATOMY, BY_DESIGN
+
     for requirement in POLO_REQUIREMENTS:
-        assert requirement.drafts
+        assert requirement.measures and requirement.feeds
+        assert requirement.measures != requirement.feeds
         assert requirement.source
         assert requirement.provision in ("spec", "prototype", "unimplemented")
+        assert requirement.location in (BY_ANATOMY, BY_DESIGN)
+
+
+def test_not_one_requirement_is_a_finished_garment_measurement():
+    """A draft is cut to ISO 18890 points, which are these plus ease. This
+    gate has no garment to measure, so it covers the body link only, and
+    the verdict says so."""
+    readiness = assess(measured())
+    joined = " ".join(readiness.notes)
+    assert "measured ON A BODY" in joined
+    assert "plus ease" in joined
+    assert "INPUT to a draft" in joined
+
+
+def test_a_design_located_requirement_is_named_as_such():
+    """sleeve_opening_girth is taken wherever the sleeve ends, so it moves
+    when SLEEVE_END_FRACTION does — it is not a property of the body."""
+    from body_measure.pattern_readiness import BY_DESIGN
+
+    located = {r.key for r in POLO_REQUIREMENTS if r.location == BY_DESIGN}
+    assert located == {"sleeve_opening_girth"}
+    joined = " ".join(assess(measured()).notes)
+    assert "design parameter puts them" in joined
+    assert "sleeve_opening_girth" in joined
 
 
 def test_the_unsourced_requirements_are_declared_as_such():
@@ -146,7 +177,10 @@ def test_a_body_missing_a_dimension_is_not_ready():
 def test_complete_unverified_is_reachable_when_everything_is_draftable():
     """Constructed with a requirement list of one so the verdict logic
     itself can be exercised; the polo list cannot reach it today."""
-    one = (Requirement("chest_circumference", "body width", "spec", "test"),)
+    from body_measure.pattern_readiness import BY_ANATOMY
+
+    one = (Requirement("chest_circumference", "chest girth", "body width",
+                       "spec", BY_ANATOMY, "test"),)
     readiness = assess(measured(chest_circumference=(1000.0, "accepted")),
                        requirements=one)
     assert readiness.verdict == COMPLETE_UNVERIFIED
@@ -179,6 +213,8 @@ def test_the_cli_records_readiness_with_its_requirement_sources(body_like_ply, t
     assert block["n_required"] == len(POLO_REQUIREMENTS)
     for entry in block["requirements"]:
         assert entry["requirement_source"]
+        assert entry["measures_on_the_body"] and entry["feeds"]
+        assert entry["measured_at"] in ("anatomy", "design_parameter")
     assert block["notes"]
 
 
