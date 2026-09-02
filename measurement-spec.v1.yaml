@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 4          # v4: priority 필드 추가 (상의·반팔로 범위 확정, 2026-08-25)
+spec_version: 5          # v5: plausible_mm 추가 (인체 범위 게이트, 결정 #39, 2026-09-02)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -21,8 +21,16 @@ posture_default: standing
 # 손목까지 가는 유일한 측정이라 지금 제품 밖에 있다. 긴팔로 확장하면
 # 여기만 core 로 되돌리면 된다 — 정의도 구현도 그대로 남아 있다.
 
+# plausible_mm [lo, hi] — 인체 범위 게이트 (measure/range_gate.py, 결정 #39).
+# 이 밖의 값은 코어가 거부한다: null + outside_plausible_range. 보정하지 않는다.
+# 값의 출처: 결정 #20 이후 scripts/clothing_offset_report.py 가 보고서 수준에서
+# 지니던 PLAUSIBLE_MM 를 2026-09-02 에 그대로 옮긴 것이다 — "실제 몸이 걸리지
+# 않을 만큼 넉넉한 성인 범위이며, 착의 스캔은 모든 둘레를 부풀리므로 상한이
+# 이를 허용한다". 인구 통계표가 아니다. 예외 하나는 해당 항목에 인라인 주석.
+
 measurements:
   chest_circumference:
+    plausible_mm: [600, 1600]
     definition: horizontal_torso_girth_at_maximum_chest_level
     definition_verified: false
     method: plane_slice
@@ -36,6 +44,7 @@ measurements:
     no_reference: false          # SMPL-Anthropometry chest circumference와 대조 (T-pose 트랙)
 
   waist_circumference:
+    plausible_mm: [500, 1600]
     definition: natural_waist_girth_at_minimum_torso_circumference
     definition_verified: false
     method: plane_slice
@@ -47,6 +56,7 @@ measurements:
     no_reference: false
 
   neck_circumference:
+    plausible_mm: [250, 600]
     definition: neck_base_girth
     definition_verified: false
     method: plane_slice
@@ -59,6 +69,7 @@ measurements:
     no_reference: false
 
   upper_arm_girth:
+    plausible_mm: [180, 600]
     definition: maximum_girth_of_the_upper_arm
     definition_verified: false      # ISO 8559-1 5.3.16 원문 대조 전
     method: plane_slice
@@ -73,6 +84,7 @@ measurements:
     no_reference: false             # Texel m15 (5.3.16), NOMO Bicep_Circ
 
   across_back_shoulder_width:
+    plausible_mm: [250, 650]
     definition: surface_path_left_shoulder_to_right_shoulder_through_back_neck_point
     definition_verified: false
     method: surface_path
@@ -89,6 +101,10 @@ measurements:
                                  # 2026-08-18 measurement-audit.md가 이를 뒤집음 (결정 #32)
 
   sleeve_length:
+    # PLAUSIBLE_MM 은 1000 이었다. v1 은 팔꿈치 경유점을 생략해 계통적으로
+    # 약 +200mm 과대이고 (known_deviations), Texel 의 clean 값이 860~1055mm 라
+    # 1000 이면 검증된 몸을 거부한다. 팔꿈치 경유점이 구현되면 1000 으로 되돌린다.
+    plausible_mm: [400, 1250]
     definition: back_neck_point_to_wrist_length_over_shoulder_and_elbow
     definition_verified: false
     method: surface_path
@@ -104,6 +120,7 @@ measurements:
     no_reference: true           # 레퍼런스의 arm length는 정의 상이 — 비교 금지
 
   back_length:
+    plausible_mm: [300, 650]
     definition: back_neck_point_to_waist_level_along_back_surface
     definition_verified: false
     method: sagittal_slice_polyline

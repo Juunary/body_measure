@@ -8,6 +8,7 @@ from ..canonicalize import body_axis_point
 from ..landmarks.base import Landmark
 from ..result import MeasurementValue
 from .circumference import clipped_circumference_xz, measure_circumference
+from .range_gate import gate_human_range
 from .slicing import project_axis_to_plane, select_torso_loop, slice_mesh
 
 _UP = np.array([0.0, 1.0, 0.0])
@@ -217,7 +218,7 @@ def measure_chest_circumference(
     return value, landmark
 
 
-def run_estimated_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
+def _estimate_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
     """Estimated pathway for the three circumference measurements.
 
     Returns (measurements, landmarks): spec-named MeasurementValue entries
@@ -394,7 +395,7 @@ def _length_value(length: float | None, flags: list[str], method: str) -> Measur
     )
 
 
-def run_estimated_measurements(
+def _estimate_measurements(
     mesh: trimesh.Trimesh, *, facing: "Facing | None" = None
 ) -> tuple[dict, dict]:
     """Full estimated pathway: circumferences + surface-path lengths,
@@ -412,7 +413,7 @@ def run_estimated_measurements(
     )
     from .surface_path import METHOD, EdgeGraph, surface_path_length_mm
 
-    measurements, landmarks = run_estimated_circumferences(mesh)
+    measurements, landmarks = _estimate_circumferences(mesh)
     for name in ("across_back_shoulder_width", "sleeve_length", "back_length"):
         measurements[name] = MeasurementValue(method=METHOD, quality=["prerequisite_landmarks_missing"])
 
@@ -536,3 +537,28 @@ def run_estimated_measurements(
             ))
 
     return measurements, landmarks
+
+
+# --------------------------------------------------------- public entry ---
+# The two functions below are the only way out of the measurement core, so
+# the human-range gate sits here and nowhere else: every value passes it
+# exactly once, whichever of the three return points inside produced it
+# (decision #39). Callers that want the ungated numbers for diagnosis can
+# use the private producers, and one test does.
+
+
+def run_estimated_circumferences(
+    mesh: trimesh.Trimesh, *, spec: "Spec | None" = None
+) -> tuple[dict, dict]:
+    """Girths only, gated."""
+    measurements, landmarks = _estimate_circumferences(mesh)
+    return gate_human_range(measurements, spec), landmarks
+
+
+def run_estimated_measurements(
+    mesh: trimesh.Trimesh, *, facing: "Facing | None" = None,
+    spec: "Spec | None" = None,
+) -> tuple[dict, dict]:
+    """Full estimated pathway, gated. See `_estimate_measurements`."""
+    measurements, landmarks = _estimate_measurements(mesh, facing=facing)
+    return gate_human_range(measurements, spec), landmarks

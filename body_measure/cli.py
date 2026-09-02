@@ -219,11 +219,14 @@ def _measure(args: argparse.Namespace) -> int:
         result.landmarks.update({name: lm.to_dict() for name, lm in landmarks.items()})
     elif args.waist_height is not None:
         from .measure.measurements import circumference_at_height
+        from .measure.range_gate import gate_human_range
 
         axis2d = body_axis_point(mesh)
-        result.measurements["waist_circumference"] = circumference_at_height(
-            mesh, args.waist_height
-        )
+        # A hand-given height bypasses the estimated pathway and therefore
+        # its gate; a typo in --waist-height must not become a measurement.
+        result.measurements.update(gate_human_range({
+            "waist_circumference": circumference_at_height(mesh, args.waist_height)
+        }))
         result.landmarks["waist_level"] = {
             "position_mm": [float(axis2d[0]), args.waist_height, float(axis2d[1])],
             "confidence": 1.0,

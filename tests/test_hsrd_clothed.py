@@ -54,17 +54,24 @@ def test_stature_tolerance_is_one_sided_because_boots_add_height():
 
 
 def test_implausible_catches_a_wrist_sized_waist():
-    assert report.implausible("waist_circumference", 140.9) is True
-    assert report.implausible("waist_circumference", 949.0) is False
+    from body_measure.spec import load_spec
+
+    spec = load_spec()
+    assert report.implausible("waist_circumference", 140.9, spec) is True
+    assert report.implausible("waist_circumference", 949.0, spec) is False
     # a clothed girth is inflated; the range must not punish that
-    assert report.implausible("chest_circumference", 1336.0) is False
-    assert report.implausible("waist_circumference", None) is False
+    assert report.implausible("chest_circumference", 1336.0, spec) is False
+    assert report.implausible("waist_circumference", None, spec) is False
 
 
 def test_every_spec_measurement_has_a_plausible_range():
+    """The bounds moved into the spec with decision #39, so this asks the
+    spec rather than the report's own copy — there is no longer a copy."""
     from body_measure.spec import load_spec
 
-    assert set(report.PLAUSIBLE_MM) == set(load_spec().names)
+    spec = load_spec()
+    assert all(m.plausible_mm is not None for m in spec.measurements.values()), [
+        n for n, m in spec.measurements.items() if m.plausible_mm is None]
 
 
 # --------------------------------------------------- gated on real data ---

@@ -1543,3 +1543,85 @@ recorded in prose be overridden by a field that ships.
 
 **Revisit if:** ITA's DPP data model changes its position, in which case
 `ethics.md` changes first and this follows.
+
+---
+
+## 39. A last-line check for whether a number is a body at all
+
+**Date:** 2026-09-02 · **Status:** accepted · **Closes #20 · supersedes the
+no-core-gate clause of #22 · answers #34's revisit condition**
+
+Two values reached `accepted` that no human being has. A waist of
+**140.9 mm** came from a jacket-fold loop winning a minimum search
+(#22). A chest of **3808 mm** came from a horizontal loop around a torso
+*and both outstretched arms* on a T-posed CAPE body (#34).
+
+The two failed differently, and that difference is the whole argument.
+The waist was a **trust** failure — the wrong loop was believed — and #22
+fixed it by believing fewer loops, explicitly refusing to add a range
+check on the grounds that a range would have masked the bug instead of
+finding it. That reasoning was right and still is. But the chest was not a
+trust failure: the loop was correctly selected, the girth correctly
+measured, the disposition correctly `accepted`. No rule about which slice
+to believe can catch a correct measurement of the wrong thing. What was
+missing was the simplest question available — *is this a length a human
+has?* — and the core had never been allowed to ask it.
+
+**Decision.** `measurement-spec.v1.yaml` gains `plausible_mm: [lo, hi]`
+per measurement (spec_version 4 → 5), parsed into
+`MeasurementSpec.plausible_mm`, and `measure/range_gate.py` applies it at
+the single point every value leaves the core. Out of range means
+`disposition="rejected"`, `selected_value_mm=None`, and the flags
+`outside_plausible_range` and `raw_value_<n>mm`. The raw contour is left
+in place so the failure stays readable.
+
+**It is the last line, not the first.** It runs after every trust rule and
+replaces none of them; #22's finding stands entire. In particular the
+chest search still takes its maximum over all slices and then refuses if
+that maximum is impossible — it does **not** re-shop for the next-largest
+sample, which is the behaviour #22 forbade.
+
+**It refuses; it never corrects.** No clamping, no substitution. A gate
+that quietly edited numbers would be worse than none, because the edit
+would look like a measurement.
+
+**Where the bounds come from.** Verbatim from the `PLAUSIBLE_MM` dict that
+`scripts/clothing_offset_report.py` has carried since #20, whose own
+comment said *"the core having no such bound is a finding of this run, not
+a design"*. This acts on that finding: the report's copy is deleted and it
+now reads the spec. They are generous adult ranges, not a population
+table.
+
+One departure, commented inline: `sleeve_length` goes to **1250 mm**, not
+the report's 1000. v1 omits the elbow waypoint and overshoots by roughly
++200 mm (a recorded `known_deviation`), and Texel's *clean* values run
+860–1055 mm — a 1000 mm bound would refuse validated bodies for a known
+method bias. It returns to 1000 when the elbow waypoint lands.
+
+**What changed, measured.** Across 40 unclothed subjects the gate moved
+four values, all from `low_confidence` to `rejected`: NOMO `back_length`
+784 / 822 / 908 mm and `across_back_shoulder_width` 807 mm. Size
+assignment is untouched (36/40 before and after) because it reads chest
+only. On HSRD it caught `upper_arm_girth` 175 mm — #20's own example — and
+`across_back_shoulder_width` 667 mm.
+
+**The clothed pathway will trip it more, and that is correct.** These are
+*body* bounds, and on `measured_clothed` the surface being measured is the
+garment: HSRD's 667 mm across-back is a jacket, not a back. A number that
+large is not a body measurement, which is exactly what the flag now says.
+#21 had already recorded that clothed length measurements "produce numbers
+but cannot be used"; this makes the pipeline say so rather than the docs.
+
+**The cost, accepted.** An unusually built adult, or a child, gets `null`
+plus a flag instead of a number. That is the trade this project takes
+everywhere: an honest refusal beats a quiet wrong answer.
+
+**Rules out:** clamping a value into range; re-shopping for another slice
+when the winner is refused; applying the gate inside a search instead of
+at its exit; a bound that is a population percentile rather than a
+physical limit.
+
+**Revisit if:** child or short-stature scans enter scope, at which point
+stature-relative bounds become worth their cost — they are not now,
+because the two failures were ×3.5 and ×0.15 of normal and a relative
+bound needs a trusted stature, which HSRD (boots, headwear) does not give.

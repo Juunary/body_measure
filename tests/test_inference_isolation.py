@@ -14,6 +14,7 @@ CORE_MODULES = (
     "body_measure.adapters.base",
     "body_measure.adapters.hsrd",
     "body_measure.measure.measurements",
+    "body_measure.measure.range_gate",
     "body_measure.landmarks.estimated",
     "body_measure.validate.claims",
     "body_measure.validate.stats",

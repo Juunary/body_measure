@@ -33,6 +33,12 @@ class MeasurementSpec:
     #: built. "core" must work; "deferred" may fail without blocking a
     #: slice. Scope, not difficulty — see the spec header.
     priority: str = "core"
+    #: [lo, hi] in mm that a human body can have for this measurement.
+    #: Outside it the core refuses — null plus `outside_plausible_range`,
+    #: never a corrected number (measure/range_gate.py, decision #39).
+    #: None means the spec did not say; a test pins that the shipped spec
+    #: always says, so the unspecified branch is unreachable in practice.
+    plausible_mm: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +56,23 @@ class Spec:
         """Measurements the current garment actually needs. Reporting may
         summarise over these; nothing may silently drop the rest."""
         return tuple(n for n, m in self.measurements.items() if m.priority == "core")
+
+
+def _parse_plausible_mm(name: str, raw) -> tuple[float, float] | None:
+    """A malformed bound is refused rather than ignored: a gate nobody can
+    trust the shape of is worse than no gate."""
+    if raw is None:
+        return None
+    if not isinstance(raw, (list, tuple)) or len(raw) != 2:
+        raise SpecError(f"measurement '{name}': plausible_mm must be [lo, hi]")
+    try:
+        lo, hi = float(raw[0]), float(raw[1])
+    except (TypeError, ValueError) as exc:
+        raise SpecError(f"measurement '{name}': plausible_mm is not numeric") from exc
+    if not 0.0 <= lo < hi:
+        raise SpecError(
+            f"measurement '{name}': plausible_mm must satisfy 0 <= lo < hi, got [{lo}, {hi}]")
+    return (lo, hi)
 
 
 def default_spec_path() -> Path:
@@ -83,6 +106,7 @@ def load_spec(path: Path | None = None) -> Spec:
             implementation_status=entry.get("implementation_status", "not_implemented"),
             requires=tuple(entry.get("requires", ())),
             priority=str(entry.get("priority", "core")),
+            plausible_mm=_parse_plausible_mm(name, entry.get("plausible_mm")),
         )
     return Spec(
         version=int(raw.get("spec_version", 0)),

@@ -40,31 +40,24 @@ OUT = PROJECT_ROOT / "reports" / "clothing_offset_hsrd.json"
 
 PATHWAY = "measured_clothed"
 
-#: Generous adult ranges (mm), deliberately wide enough that no real body
-#: trips them — a clothed scan inflates every girth, so the upper bounds
-#: allow for that. This is a REPORT-level sanity check, not a measurement
-#: gate: the core still returns whatever the geometry gave, and this report
-#: refuses to average physically impossible values into an offset table.
-#: The core having no such bound is a finding of this run, not a design.
-PLAUSIBLE_MM = {
-    "chest_circumference": (600, 1600),
-    "waist_circumference": (500, 1600),
-    "neck_circumference": (250, 600),
-    "upper_arm_girth": (180, 600),
-    "across_back_shoulder_width": (250, 650),
-    "sleeve_length": (400, 1000),
-    "back_length": (300, 650),
-}
+#: These ranges used to live here as PLAUSIBLE_MM, a report-level sanity
+#: check with a comment saying "the core having no such bound is a finding
+#: of this run, not a design". Decision #39 acted on that finding: the
+#: bounds moved into measurement-spec.v1.yaml and the core now refuses out
+#: of range. What is left here is the counter below — it should read zero,
+#: and a non-zero value means something reached the report that the gate
+#: was supposed to stop.
 
 
-def implausible(name: str, value_mm: float | None) -> bool:
-    if value_mm is None or name not in PLAUSIBLE_MM:
+def implausible(name: str, value_mm: float | None, spec) -> bool:
+    entry = spec.measurements.get(name)
+    if value_mm is None or entry is None or entry.plausible_mm is None:
         return False
-    low, high = PLAUSIBLE_MM[name]
+    low, high = entry.plausible_mm
     return not (low <= value_mm <= high)
 
 
-def measure_observation(adapter: HsrdAdapter, observation: Path) -> dict:
+def measure_observation(adapter: HsrdAdapter, observation: Path, spec) -> dict:
     surface = adapter.load(observation)
     mesh = canonicalize(surface)
     measurements, _ = run_estimated_measurements(mesh)
@@ -84,8 +77,9 @@ def measure_observation(adapter: HsrdAdapter, observation: Path) -> dict:
                 "flags": [f for f in value.quality if f != "ok"],
                 # the core produced this number; the report judges whether a
                 # human could have it
-                "implausible": implausible(name, value.selected_value_mm),
-                "plausible_range_mm": PLAUSIBLE_MM.get(name),
+                "implausible": implausible(name, value.selected_value_mm, spec),
+                "plausible_range_mm": (spec.measurements[name].plausible_mm
+                                       if name in spec.measurements else None),
             }
             for name, value in measurements.items()
         },
@@ -159,8 +153,9 @@ def coverage(observations: list[dict], spec_names: tuple[str, ...]) -> dict:
             "n_accepted": stats["n_accepted"],
             "n_manual_review": stats["n_manual_review"],
             "n_rejected": stats["n_rejected"],
-            # values the core returned that no human body could have: these
-            # were NOT rejected by the pipeline, which is the point
+            # values no human body could have that the core did NOT reject.
+            # Before decision #39 this was the finding; now it is the
+            # regression counter, and it should read zero.
             "n_implausible_but_not_rejected": sum(
                 1 for obs in observations
                 if obs["measurements"][name]["implausible"]
@@ -183,7 +178,8 @@ def main() -> int:
 
     spec = load_spec()
     adapter = HsrdAdapter(HSRD_ROOT)
-    observations = [measure_observation(adapter, obs) for obs in adapter.observations()]
+    observations = [measure_observation(adapter, obs, spec)
+                    for obs in adapter.observations()]
     if not observations:
         print(f"no LOD directories with meshes under {HSRD_ROOT}", file=sys.stderr)
         return 1
