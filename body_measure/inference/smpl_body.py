@@ -117,7 +117,15 @@ class SmplBody:
 
     def canonical_mesh(self, betas: torch.Tensor | np.ndarray, *, source_id: str) -> trimesh.Trimesh:
         """The one mesh the measurement core is allowed to see for this body:
-        millimetres, Y-up, floor at 0, canonical pose, welded."""
+        millimetres, Y-up, floor at 0, canonical pose.
+
+        Not welded. `canonicalize` welds by default because photogrammetry
+        scans arrive with vertices split per texture chart, but SMPL is a
+        fixed-topology model and its vertex order IS the correspondence —
+        with CAPE, a displacement indexed 0..6889 against this body. Welding
+        happens to merge nothing here, but "happens to" is not a guarantee,
+        and `canonicalize` says so itself: pass weld=False for a caller that
+        depends on the incoming vertex indexing."""
         betas_t = torch.as_tensor(np.asarray(betas, dtype=np.float32))
         vertices_m = self.canonical_vertices_m(betas_t)
         surface = NormalizedBodySurface(
@@ -128,7 +136,7 @@ class SmplBody:
             meta={"model": self.model_id, "pose": "canonical_a_pose",
                   "abduction_deg": ABDUCTION_DEG},
         )
-        return canonicalize(surface)
+        return canonicalize(surface, weld=False)
 
     def initial_params(self, betas: np.ndarray | None = None) -> BodyParams:
         b = torch.zeros(1, NUM_BETAS) if betas is None else torch.as_tensor(

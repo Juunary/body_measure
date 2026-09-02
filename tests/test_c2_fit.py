@@ -43,7 +43,28 @@ def test_canonical_mesh_is_in_the_measure_frame(body):
     assert abs(mesh.bounds[0][1]) < 1e-6            # floor at y = 0
     assert extent[1] == max(extent)                  # Y is the long axis
     assert 1500.0 < extent[1] < 1900.0               # millimetres, not metres
-    assert mesh.metadata["weld"]["applied"] is True
+    assert mesh.metadata["weld"]["applied"] is False
+
+
+@needs_inference
+def test_canonical_mesh_keeps_the_smpl_vertex_order(body):
+    """SMPL's vertex order IS the correspondence — a CAPE displacement is
+    indexed against it 0..6889. Welding merges nothing on this body today,
+    but the guarantee has to be the construction, not the luck: canonicalize
+    itself says to pass weld=False when the caller depends on the incoming
+    indexing."""
+    import torch
+
+    betas = np.linspace(-1.5, 1.5, 10)
+    mesh = body.canonical_mesh(betas, source_id="order")
+    assert len(mesh.vertices) == body.n_vertices == 6890
+    assert mesh.metadata["weld"]["merged"] == 0
+
+    raw_mm = body.canonical_vertices_m(
+        torch.as_tensor(betas, dtype=torch.float32)) * 1000.0
+    shift = raw_mm[:, 1].min()
+    assert np.allclose(mesh.vertices[:, 1], raw_mm[:, 1] - shift, atol=1e-6)
+    assert np.allclose(mesh.vertices[:, [0, 2]], raw_mm[:, [0, 2]], atol=1e-6)
 
 
 @needs_inference
