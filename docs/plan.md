@@ -5,15 +5,18 @@ v3까지의 계획은 저장소 밖에 있어 버전 관리되지 않았다. 그
 채 보고서에 유령 항목으로 떴다. 계획 문서는 이제 저장소 안에 있고, 상태가
 바뀌면 커밋으로 남는다.
 
-**2026-08-31 확인 결과: SIZER는 막힌 것이 아니라 연락처가 낡은 상태다.**
-`github.com/garvita-tiwari/sizer_dataset`의 절차는 Google Form 작성 후 비밀번호
-요청이지만, README에 적힌 `gtiwari@mpi-inf.mpg.de`는 **반송된다** — 저자가
-MPI-INF를 떠났고 Real Virtual Humans 그룹이 튀빙겐 대학으로 옮겼기 때문이다.
-현행 수신처와 요청서는 `docs/sizer-access-request-draft.md`에 있다.
+**2026-09-02: SIZER는 무기한 보류다.** 두 번 요청했고(두 번째는 기관 주소에서
+Waldemar 참조, 약관까지 함께 요청) 회신이 없으며 **온다는 보장도 없다.** 저자가
+MPI-INF를 떠나 그룹이 튀빙겐으로 옮겼고 README의 주소는 반송된다 — 현행 수신처와
+요청서는 `docs/sizer-access-request-draft.md`에 남아 있다.
+
+계획에서 SIZER에 걸린 것은 **전부 내린다.** 회신이 오면 그때 되살리되, 그때까지
+"대기 중"으로 두지 않는다 — 결정 #33이 잡은 것이 정확히 그 상태였다. 무엇이
+그래서 영구적이 되는지는 §1 끝에 적었다.
 
 ---
 
-## 1. 짝 데이터셋 — SIZER가 1순위인 이유
+## 1. 짝 데이터셋 — SIZER는 내려갔고, CAPE가 남았다
 
 C1 계열이 필요로 하는 것은 **같은 사람의 착의 표면과 신체 표면 한 쌍**이다.
 후보는 둘이고, 같은 물건이 아니다.
@@ -27,13 +30,23 @@ C1 계열이 필요로 하는 것은 **같은 사람의 착의 표면과 신체 
 | 착의 표면 | 원본 스캔 + SMPL/SMPL+D/SMPL+G | SMPL 토폴로지 registration |
 | 부가 | 의류 분할(상의/하의/신체), 스타일·사이즈·성별 라벨 | 피험자별 SMPL betas (2023-07) |
 
-**결정적 차이는 원본 스캔의 유무다.** 결정 #17은 "제공된 registration"과
-"body under clothing"이 같은 reference가 아니며, 원본 미니멀 스캔이 확인되지
-않으면 claim 문구를 `provided body-reference surface`로 강등하도록 정해뒀다.
-SIZER 페이지는 최소 착의 신체 스캔을 명시하므로, 사실이면 강등이 불필요하다.
-CAPE만으로 C1을 하면 강등은 불가피하다.
+**결정적 차이는 원본 스캔의 유무였다.** 결정 #17은 원본 미니멀 스캔이 확인되지
+않으면 claim 문구를 `provided body-reference surface`로 강등하도록 정해뒀고,
+SIZER 페이지는 최소 착의 신체 스캔을 명시하므로 사실이면 강등이 불필요했을 것이다.
+**받지 못했으므로 그 선택지는 없다** — CAPE 감사가 실제로 그 강등된 문구를
+내놓았고(`reports/cape-manifest.json`), 그것이 현재의 상한이다.
 
-규모도 7배 차이다. subject-cluster bootstrap CI의 폭이 여기서 갈린다.
+### SIZER가 없어서 영구적이 된 것들 (결정 #41)
+
+| | 전에는 | 지금은 |
+|---|---|---|
+| `L_gap_band` [d_min, d_max] | "C1b 전까지 placeholder" | **영구** — gap atlas는 오지 않는다 |
+| `w_center` 밴드 중앙 | "gap atlas 중앙값 대신" | 영구 대체물 |
+| CAPE 케이스의 밴드 | — | 자기 quantile = 자기일관성 검사, prior 아님 |
+| C1 의류 오프셋 표 | SIZER로 채움 | **소스 없음** — Zhen의 조달 질문에 답 못 함 |
+| C4 승격 게이트 "B0/B1 대비 우수" | SIZER로 판정 | **판정 불가** — 베이스라인을 계산할 데이터가 없다 |
+
+이것들은 "나중에"가 아니라 **현재의 배치**다. 코드 주석도 그렇게 고쳤다.
 
 ### 그래도 CAPE는 필요하다
 CAPE는 C1의 대체재가 아니라 **C3(합성 데이터 공장)의 재료**다. displacement
@@ -117,46 +130,39 @@ T-pose이고 `sequences`는 포즈가 잡혀 있다. 포즈가 다른 두 표면
 `--option canonical`이 옷을 T-pose로 옮겨주지만, 그것은 **관측된 T-pose가 아니라
 변환된 관측**이므로 claim 문구에 반영해야 한다.
 
-이 문제는 SIZER에는 없다 — 같은 자세로 착의·비착의를 각각 스캔하기 때문이다.
-C1을 SIZER로 하려는 또 하나의 이유다.
+SIZER였다면 이 문제가 없었다 — 같은 자세로 착의·비착의를 각각 스캔하기 때문이다.
+받지 못했으므로 displacement 전이가 유일한 길이고, 그 근사(포즈 의존 옷 변형 무시)는
+결정 #40에 기록했다.
 
 ---
 
-## 2. 작업 순서
+## 2. 작업 순서 — 2026-09-02 시점
 
 ```
-G0-1 SIZER 요청 발송 ──(회신 대기)──┐
-                                     ├─→ C0a 감사 → C0b → C1 → C1.5 → C1b
-CAPE 다운로드 ───────────────────────┘                              └→ C3
-P1 sleeve_length ──── 데이터 불필요, 지금 시작
-P3 대외 자료 갱신 ─── 데이터 불필요, 지금 시작
+완료  A  파이프라인 정직성 (결정 #38~#39) ─ 문서 모순, DPP 프라이버시, 정점 대응, 범위 게이트
+완료  B  CAPE (결정 #40) ────────────────── 감사 → 릴리스 리더 → C3 displacement 전이
+완료  C  KW36 덱 + 빌더 커밋
+보류  ─  SIZER 계열 (C0b·C1·C1.5·C1b) ──── 회신 없음, 일정 없음
 ```
 
-SIZER 회신은 며칠 걸릴 수 있다. **그 사이에 P1·P3를 진행한다.**
+SIZER가 내려가면서 **의존 사슬이 사라졌다.** 남은 일에는 순서를 강제하는 것이
+없으므로, 아래는 값어치 순이지 의존 순이 아니다.
 
-### C0a — 감사가 어댑터보다 먼저 (결정 #17 유지)
-`scripts/audit_sizer_manifest.py --root data/external/sizer`를
-`adapters/sizer.py`보다 **먼저** 돌린다. §1의 표는 배포 페이지 설명이지
-확인된 파일 구조가 아니다. 인식되지 않는 파일은 `unclassified`로 보고하며
-역할을 추측하지 않는다. 출력이 C1의 claim 문구를 정한다.
+### C0a — 감사가 어댑터보다 먼저 (결정 #17, CAPE에서 유지됨)
+`scripts/audit_cape_manifest.py`가 `adapters/`보다 먼저 돌았고, 그 출력이 claim
+문구를 정했다. SIZER용 `audit_sizer_manifest.py`는 **파킹**한다 — 지우지 않는
+이유는 회신이 올 수도 있고, CAPE 감사가 그것에서 나왔으며, 지우면 SIZER가
+무엇을 위한 것이었는지도 함께 사라지기 때문이다.
 
-### C0a — subject-disjoint split (결정 #18 유지)
-SIZER는 한 피험자를 여러 의상·사이즈로 반복한다. 스캔 단위 무작위 분할은 같은
-체형을 양쪽에 넣는다. 분할은 피험자 단위로 감사 단계에서 결정하고
-`reports/split-manifest.json`에 해시한다.
-
-CAPE를 쓸 때는 더 심하다 — 한 시퀀스의 연속 프레임은 거의 같은 관측이다.
-시퀀스당 프레임 서브샘플링 규칙을 감사 단계에서 함께 정한다.
-
-### C0b~C1b — v3 그대로
-어댑터(`provides = frozenset()`, `fit_references`는 감사가 확인한 것만),
-의류 분류·사이즈별 오프셋 표(subject-weighted bias / MAE / P90 / coverage,
-N_subjects·N_scans 병기, subject-cluster bootstrap CI), 표현 상한선 분해,
-gap atlas(train subject만) → C2의 `L_gap_band` 교체.
+### subject-disjoint split (결정 #18, CAPE에서 유지됨)
+CAPE는 한 피험자를 여러 의상·수천 프레임으로 반복하므로 프레임 단위 분할은
+같은 체형을 양쪽에 넣는다. `reports/cape-split-manifest.json`에 해시했고,
+**프레임 규칙도 같이 해시**했다 — 피험자가 몇 프레임을 기여하는지가 모든 N을
+바꾸기 때문이다.
 
 ---
 
-## 3. 지금 바로 할 수 있는 것
+## 3. 남은 후보 (값어치 순)
 
 비착의 스캔 40명(Texel 10 + NOMO 30) 기준 현재 품질:
 
@@ -167,25 +173,24 @@ gap atlas(train subject만) → C2의 `L_gap_band` 교체.
 | `back_length` | 36/40 | 결정 #31 이후 |
 | `waist_circumference` | 34/40 | |
 | `across_back_shoulder_width` | 34/40 | 결정 #32 이후 |
-| `chest_circumference` | 23/40 | clean 0 — 전원 근사 등급 |
-| `sleeve_length` | 9/40 | NOMO 30/30 거부 |
+| `chest_circumference` | 23/40 | 전원 `arm_clipped` — 설계이지 결함 아님 (#36) |
+| `sleeve_length` | 9/40 | Texel 9/10, NOMO는 분할 메시라 **원리상 불가** (#35) |
 
-### P1 — `sleeve_length` (가장 큰 구멍)
-NOMO 30/30 거부는 손목 검출(`estimate_wrist_points`)로 좁혀진다. Texel은 값이
-나오지만 편향 **+173mm**이고, 결정 #32의 어깨 수정에도 거의 움직이지 않았다.
-어깨가 아니라 손목점 또는 경로 정의(팔꿈치 경유점 생략) 쪽 문제다. 폴로
-패턴의 필수 치수라 방치할 수 없다.
+### 가슴점 정의 — 탐색이 아니라 해부학으로
+결정 #37이 랜드마크를 만들었지만 **정의는 바꾸지 않았다**: 깊이 기반이 편향을
++26.8 → +4.4mm로 줄이는 대신 산포를 키우고, 라벨 시험이 9명에서 2 대 1이라
+근거가 얇았다. n을 늘릴 방법이 SIZER였는데 없어졌으므로, **다른 근거**가
+필요하다 — ISO 8559-1 원문의 가슴점 높이 정의(ITA 도서관)가 가장 가깝다.
+그것이 확보되면 `definition_verified`가 처음으로 true가 될 수 있다.
 
-### P3 — 대외 자료 갱신
-결정 #31(전후 반전) 이전에 보고된 **모든 길이 수치가 대체**됐다. 갱신 대상:
-KW35 주간 발표자료, `reports/clothing_offset_hsrd.json`,
-`docs/slice-report-2026-08-17.en.md`의 어깨·소매 델타 표.
-(`dataset_agreement_texel.md`와 `size_report.json`은 재생성 완료.)
+### CAPE 전 의상으로 확대
+지금은 배터리가 `--cape`로 (피험자 × 의상)마다 셸 하나를 만든다. 두 피험자
+10개 의상 전부를 돌려 의류 종류별 fit 품질을 읽는 것이 다음 단계다. 데이터는
+이미 손에 있다.
 
-### P4 — `chest_circumference`
-40명 전원이 `arm_clipped` 또는 `low_confidence`로 `clean`이 하나도 없다. 팔
-클리핑은 문서화된 체계적 근사이므로 사용은 허용되지만, 폴로의 가장 중요한
-치수가 가장 낮은 등급이라는 사실은 남는다.
+### `sleeve_length` 팔꿈치 경유점
+스펙이 `priority: deferred`로 두었으므로 지금 제품에는 불필요하다. 긴팔로
+확장할 때 되살아나며, 원인(팔꿈치 경유점 생략, +197mm)은 이미 특정돼 있다.
 
 ---
 

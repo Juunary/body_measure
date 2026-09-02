@@ -44,7 +44,7 @@ their own name and is added here first.
 |---|---|---|
 | SMPL | Research licence | Granted 2026-08-21, weights sharing included (see `weights-permission.md`) |
 | CAPE | Research licence | Granted 2026-08-21; terms captured. **Not yet downloaded** (2026-08-31) |
-| SIZER | Terms not yet obtained | **Not yet requested** (2026-08-31). Access is a form plus a password email; see `docs/sizer-access-request-draft.md` |
+| SIZER | Terms not obtained | **Deferred indefinitely** (2026-09-02). Requested twice — the second time from an institutional address with Waldemar copied — and no reply. Nothing is scheduled on it; see decision #41 |
 | HSRD-100 | CC BY 4.0 | In use; still the only source cleared for public material |
 | Texel BodyScan | CC BY-NC 4.0 | In use; permission confirmed 2026-08-21 (non-commercial terms unchanged) |
 | NOMO-3D-400 | Archive terms, redistribution forbidden | In use; permission confirmed 2026-08-21, copy never moved |

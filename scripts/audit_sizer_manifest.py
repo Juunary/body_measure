@@ -1,5 +1,12 @@
 """Audit what SIZER actually ships, before an adapter assumes anything.
 
+PARKED (2026-09-02, decision #41). SIZER has been requested and there is
+no reply and no guarantee of one, so nothing downstream of this script is
+scheduled. It is kept, working and tested, because the request may still
+be answered and because `audit_cape_manifest.py` was written from it — and
+because deleting it would take the record of what SIZER was for with it.
+Do not read its presence as work in progress.
+
 The published description says ~100 subjects and ~2000 scans with garment
 segmentation and SMPL-family registrations. It does NOT establish that
 every clothed scan has an independent raw minimal-clothing scan in 1:1
@@ -203,9 +210,10 @@ def build_split(manifest: dict, *, test_fraction: float = 0.25, seed: int = 2026
         "train_subjects": train,
         "test_subjects": test,
         "rule": (
-            "Train-only statistics feed the C1b gap atlas, the C2 priors and "
-            "the C3 simulator calibration. Test subjects never contribute to "
-            "any prior, threshold or calibration."
+            "Train-only statistics feed the gap atlas, the C2 priors and the "
+            "C3 simulator calibration. Test subjects never contribute to any "
+            "prior, threshold or calibration. (This script is parked: SIZER "
+            "is deferred without a reply — decision #41.)"
         ),
     }
     payload["sha256"] = hashlib.sha256(

@@ -1711,3 +1711,67 @@ reporting a transferred shell as an observation.
 **Revisit if:** the pose-dependent term becomes worth modelling — it will
 when a fit is evaluated against a real clothed scan rather than against a
 shell we built, which needs SIZER.
+
+---
+
+## 41. SIZER is deferred, and what that makes permanent
+
+**Date:** 2026-09-02 · **Status:** accepted
+
+SIZER has been requested twice — the second time from an institutional
+address with Waldemar copied, asking for the licence terms as well as the
+password, since the repository page carries none. There is no reply and no
+guarantee of one. It is deferred indefinitely.
+
+**The point of writing this down is not the deferral.** It is that several
+things in the codebase were described as temporary *because* SIZER was
+coming, and a stopgap labelled as a stopgap when nothing will replace it
+is a lie with a friendly face. Decision #33 caught exactly that shape — a
+status line saying "download imminent" for ten days — and the fix there
+was to write what is true, not what is hoped.
+
+**What was provisional and is now the arrangement:**
+
+| | described as | is |
+|---|---|---|
+| `L_gap_band` `[d_min, d_max]` | "placeholder until C1b" | the arrangement |
+| `w_center`, the band midpoint | "stands in for the gap atlas median" | a permanent stand-in |
+| a CAPE case's band | — | its own quantiles: self-consistency, not a prior |
+
+There is no gap atlas and no dated plan for one. It needs a paired
+clothed/body dataset, which is the thing that did not arrive. The code
+comments say so now.
+
+**What is not merely deferred but unanswerable:**
+
+- **C1, the clothing-offset table.** This was Zhen's procurement question.
+  There is no source for it. CAPE cannot substitute: its clothed surfaces
+  are registrations of a subject in motion, not a same-posture clothed
+  scan beside a same-posture body scan.
+- **C4's promotion gate**, "significantly better than B0/B1 on supported
+  garments". The baselines cannot be computed, so the gate cannot be
+  reached — not failed, unreachable, like `measurement_accuracy` before
+  it.
+
+**What survives, and it is more than it looks.** The audit-before-adapter
+rule (#17) and the subject-disjoint split (#18) were written for SIZER and
+both transferred to CAPE intact — the CAPE audit was written from the
+SIZER one, and produced the downgraded claim wording the rule exists to
+produce. The C3 transfer (#40) needed only CAPE. The measurement core's
+work this fortnight (#31, #32, #36, #37, #39) never needed either.
+
+**`scripts/audit_sizer_manifest.py` is parked, not deleted.** It works and
+is tested. The request may still be answered; the CAPE audit was derived
+from it; and deleting it would take the record of what SIZER was for along
+with it. Its docstring says it is parked so nobody reads its presence as
+work in progress.
+
+**Rules out:** describing a value as provisional when nothing is scheduled
+to replace it; keeping a dependency in the plan with no date and no
+commitment behind it; deleting the artefacts of a deferred line and losing
+why it existed.
+
+**Revisit if:** a reply arrives — `docs/licenses/README.md` item 1 stays
+open precisely so that the checklist, not memory, says what to do with it.
+Or if another paired dataset appears, in which case the parked audit is
+the template again.

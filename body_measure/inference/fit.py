@@ -66,8 +66,12 @@ class FitConfig:
                                 # is a dead zone, and a body that reached the
                                 # shell during the chamfer stage then stops at
                                 # the band's inner edge, ~10 mm too big. The
-                                # centre stands in for the gap atlas median
-                                # (C1b), which is what a real prior provides.
+                                # centre stands in for a gap atlas median.
+                                # There is no atlas and no dated plan for
+                                # one: it needs a paired clothed/body
+                                # dataset, and SIZER is deferred without a
+                                # reply (decision #41). Read this as the
+                                # arrangement, not as a stopgap.
     w_beta: float = 0.05        # on mean(β²): ~0.1 at |β|~1.5, vs data terms of several mm²
     w_pose: float = 50.0        # on mean((θ−θ_canon)²) rad²
     #: Per-part data weight. The garment is an upper garment and the

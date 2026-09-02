@@ -44,15 +44,14 @@ fails at the moment it is needed. See `scope.md`.
 
 ## What is open
 
-- **Item 1.** SIZER has **not been requested** (checked 2026-08-31). The
-  earlier note here said registration was approved and the download
-  imminent, dated 2026-08-21; that was never true and went unchecked for
-  ten days because the plan lived outside the repository. Access is a
-  Google Form plus a password request to `gtiwari@mpi-inf.mpg.de`, and the
-  repository page carries no licence text — so the terms have to be asked
-  for in the same mail rather than captured from a registration screen.
-  Draft: `docs/sizer-access-request-draft.md`. **C0a stays blocked until
-  the terms are on file**, not merely until the data lands.
+- **Item 1.** SIZER is **deferred indefinitely** (2026-09-02). It has been
+  requested twice — the second time from an institutional address with
+  Waldemar copied, asking for the terms as well as the password, since the
+  repository page carries no licence text at all — and there is no reply
+  and no guarantee of one. The item stays open rather than closed: the
+  terms were never obtained, and if a reply arrives the checklist is what
+  says what to do with it. Nothing downstream is scheduled on it
+  (decision #41).
 - **Item 6 evidence.** The grant is recorded; the verbatim reply text
   still has to be pasted into `weights-permission.md`.
 - **Item 9.** Requires ITA's own position on secondary use of human scan

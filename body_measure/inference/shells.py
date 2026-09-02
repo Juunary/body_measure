@@ -35,8 +35,10 @@ class ShellCase:
     true_gap_mm: np.ndarray
     #: what the fit is being tested on
     breaks: str
-    #: expected gap band the fitter is told (d_min, d_max) per part — the
-    #: honest prior a real pipeline would get from the gap atlas (C1b)
+    #: expected gap band the fitter is told (d_min, d_max) per part. On a
+    #: synthetic case it is chosen with the case; on a CAPE case it is the
+    #: case's own quantiles. Neither is a population prior, and none is
+    #: coming — that needs a paired dataset (decision #41).
     gap_band_mm: dict[str, tuple[float, float]]
     meta: dict = field(default_factory=dict)
 
