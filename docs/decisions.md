@@ -1497,3 +1497,49 @@ front.
 **Revisit if:** a dataset with a stated bust-point height arrives, or
 SIZER's reference makes n large enough for the label test to mean
 something. The choice then rests on evidence rather than on n=10.
+
+---
+
+## 38. The passport records the garment, not the body
+
+**Date:** 2026-09-02 · **Status:** accepted
+
+`polo-line-sim`'s passport carried the customer's chest girth:
+`passport.py` wrote `"chest_mm": self.chest_mm` into the `customer_spec`
+block of every Digital Product Passport it produced.
+
+`docs/licenses/ethics.md` had already ruled that out, and not as a
+footnote:
+
+> Body measurements are **excluded from the Digital Product Passport by
+> design.** The passport carries garment data; it does not carry the
+> customer's body. This was decided during DPP data-model work and is the
+> main privacy boundary of the system — it means the passport cannot leak
+> body dimensions regardless of who reads it.
+
+Two documents in the same project disagreed, and the one that shipped a
+number won by default. This is the third instance of that shape in a
+fortnight — decision #32 found the spec's `no_reference` flag contradicting
+the audit, decision #35 found the polo gate demanding a measurement the
+spec had deferred — and in all three the stale or narrower statement was
+the one driving behaviour.
+
+**Decision.** `chest_mm` is removed from the passport block. Everything
+that describes the *label* stays: `size`, the chart and its source and
+check date, `size_alternative`, `size_note`, `measurement_flags`. The
+value is still read from the measurement document and kept on
+`CustomerSize`, because the boundary case is decided from it — but it is
+decided in `to_dpp()`, and only the decision travels.
+
+**This costs nothing the passport was for.** After a return the question
+is whether the label was right, which needs the label, the chart it came
+from, and whether the body sat near a band edge. All three remain. A
+millimetre figure would answer a different question — what the customer's
+body is — which is the question the passport exists not to answer.
+
+**Rules out:** putting a body dimension in the passport because a
+downstream reader might find it convenient; letting a privacy boundary
+recorded in prose be overridden by a field that ships.
+
+**Revisit if:** ITA's DPP data model changes its position, in which case
+`ethics.md` changes first and this follows.
