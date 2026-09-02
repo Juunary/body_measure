@@ -88,13 +88,13 @@ Body measurements and raw scans are NOT public DPP data; they live in the intern
 
 ## Run information
 
-- generated (UTC): 2026-09-02T12:26:33+00:00
-- git commit: 422771168c76dc3f6431a707083dd1f0a89305c9 — working tree: clean
+- generated (UTC): 2026-09-02T12:59:59+00:00
+- git commit: 4ed9160ea0c194adc12d80f1c844d58e39a07ea8 — working tree: clean
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 4; spec SHA-256: e594ebc72ff07a8e16eac1bb5ff26573ad6a84f9eaf07826adb845729a89b606
+- spec_version 5; spec SHA-256: 30f3ec8f5fd3a07c89cc81f681f3da23df46de4cec64b4e4d80f9d9196b16d50
 - thresholds SHA-256: 420470aec4ce0a66d62e72f470b2806f4020822962e5d504efb9ad0f79e11de9
-- pytest: 183 passed in 173.13s
+- pytest: 195 passed in 128.77s
 - random seed (SMPL generation): 20260817
 - commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
 - report paths: reports/validation-results.json; docs/report-formal.ko.md; docs/report-formal.en.md
