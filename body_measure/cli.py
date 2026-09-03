@@ -47,6 +47,9 @@ def _build_parser() -> argparse.ArgumentParser:
                          choices=["none", "en13402", "en13402-women", "lacoste"],
                          default="none",
                          help="assign a ready-to-wear size from the measured body")
+    measure.add_argument("--skip-pose-gate", action="store_true",
+                         help="measure even if the scan is not a standing A pose; "
+                              "the verdict is still recorded in meta.pose")
     measure.add_argument("--clothed", action="store_true",
                          help="the subject is dressed; records the measured_clothed "
                               "pathway, so the numbers read as the garment's")
@@ -213,6 +216,24 @@ def _measure(args: argparse.Namespace) -> int:
     measurements, landmarks = {}, {}
     if args.estimate:
         from .measure.measurements import run_estimated_measurements
+        from .pose_gate import REJECTED_FLAG, check_pose
+
+        # The estimated pathway assumes a standing A pose. A scan that is
+        # not one is refused here, with the reasons, rather than measured
+        # into a table of refusals (decision #45). --skip-pose-gate keeps
+        # the verdict on record and measures anyway.
+        verdict = check_pose(mesh)
+        result.meta["pose"] = {**verdict.to_dict(), "enforced": not args.skip_pose_gate}
+        if not verdict.ok and not args.skip_pose_gate:
+            for value in result.measurements.values():
+                value.quality = [REJECTED_FLAG]
+            if args.out:
+                args.out.write_text(result.to_json(), encoding="utf-8")
+            print("error: the scan is not in the pose the spec measures; nothing was "
+                  "measured (--skip-pose-gate overrides)", file=sys.stderr)
+            for reason in verdict.reasons:
+                print(f"  - {reason}", file=sys.stderr)
+            return EXIT_ERROR
 
         measurements, landmarks = run_estimated_measurements(mesh)
         result.measurements.update(measurements)

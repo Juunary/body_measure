@@ -195,7 +195,7 @@ def test_the_cli_records_the_size_with_its_source(body_like_ply, tmp_path):
     out = tmp_path / "r.json"
     proc = subprocess.run(
         [PYTHON, "-m", "body_measure", "measure", str(body_like_ply),
-         "--input-unit", "m", "--up-axis", "Z", "--estimate",
+         "--input-unit", "m", "--up-axis", "Z", "--estimate", "--skip-pose-gate",
          "--size-chart", "en13402", "--out", str(out)],
         capture_output=True, text=True, encoding="utf-8", cwd=PROJECT_ROOT)
     assert proc.returncode == 0, proc.stderr

@@ -55,6 +55,8 @@ On Windows, set `PYTHONUTF8=1` for scripts that print non-ASCII.
 .venv\Scripts\python -m body_measure measure body.ply --input-unit m --up-axis Z --estimate --out result.json
 ```
 
+`--estimate` first checks that the scan is a standing A pose — front and back resolvable from the feet, both arms clear of the torso — and refuses with the reasons if it is not (decision #45); `--skip-pose-gate` measures anyway and records that.
+
 The result JSON contains exactly the seven spec keys. Anything that could
 not be measured is reported as `null` plus quality flags, never as a
 substitute number. Girths carry both `raw_contour_mm` (the intersection
@@ -63,6 +65,8 @@ polyline) and `taut_tape_hull_mm` (convex hull, hull ≤ raw).
 ## What the pipeline refuses to do
 
 These are enforced in code, not in documentation:
+
+- **Measure a scan that is not a standing A pose.** Front and back must be resolvable from the feet and both arms must slice apart from the torso; otherwise `--estimate` stops with the reasons and writes every measurement as `pose_rejected` (decision #45).
 
 - **Guess a unit.** An adapter must know its unit or be told one.
 - **Fill a hole.** A slice whose gap exceeds the accept band returns

@@ -1992,3 +1992,75 @@ prior would set it from data this project does not have.
 **Revisit if:** a band is ever derived from something other than the
 case's own displacement — the floor would then be the prior's, and the
 argument above would need re-checking against it.
+
+## 45. A scan that is not a standing A pose is refused before it is measured
+
+**Date:** 2026-09-03 · **Status:** accepted
+
+The estimated pathway assumes what the spec says it assumes: a standing
+body (`posture_default: standing`), front and back resolvable from the
+feet (the three surface-path measurements `require` it), and the arms
+held clear of the torso so that a horizontal slice through the upper arm
+gives an arm loop and a torso loop, not one shape. Nothing checked that.
+A scan that is not in that pose still went through every estimator and
+came back as a table: HSRD-100's fashion scan — boots, jacket, arms
+hanging against the body — gives three orientation refusals, an upper arm
+of 175 mm that is not an arm and is caught only by the range gate (#39),
+and a chest clipped at a level nobody would choose. The table reads as
+though the scan had been measured.
+
+**Change.** `pose_gate.check_pose(mesh)` asks three yes/no questions of
+the package's own estimators and returns a verdict with reasons:
+
+| check | estimator | refuses when |
+|---|---|---|
+| standing | bounds | vertical extent outside 1200–2300 mm |
+| orientation | `estimate_facing` | confidence 0 / `orientation_unknown` |
+| arms clear | `arm_loops_at` over `upper_arm_window` | both arms found apart from the torso at fewer than 20 % of levels |
+
+The CLI runs it before `run_estimated_measurements` and stops with the
+reasons on stderr, exit 1; with `--out` it still writes the document,
+`meta.pose` holding the verdict and every measurement `pose_rejected`
+with no value. `--skip-pose-gate` measures anyway and records that the
+gate was not enforced. The studio runs the same function at the same
+place.
+
+**Calibration**, on everything on disk (studio catalogue, 2026-09-03):
+
+| scans | verdict | both arms clear (fraction of levels) |
+|---|---|---|
+| SMPL A pose, 9 bodies | pass | 1.00 every one |
+| Texel Part 1, 10 | pass | 1.00 every one |
+| NOMO male, 179 | 178 pass, 1 refused for orientation | 0.29–1.00 |
+| SMPL T pose, 9 bodies | refused, arms | 0.00–0.09 |
+| HSRD-100 LOD2 | refused, orientation + arms | 0.00 |
+| HSRD-100 LOD1 | refused, arms (its toes resolve the facing at 0.78) | 0.00 |
+
+The first threshold tried was 60 %, and it refused five NOMO subjects
+(0.29–0.59) whose arms are held exactly as the other 174 hold theirs. The
+fraction dips on NOMO because its meshes ship segmented and a seam
+through the upper arm opens the loop `arm_loops_at` needs — a property of
+the mesh, not of the pose — so the number that separates poses is the
+gap between the refused group's 0.09 and the passing group's 0.29, and
+the threshold is 20 %. Both edges are pinned by tests so that moving it
+is a decision. The one NOMO refusal that remains, `male_0113`, has feet
+whose outline the facing estimator cannot read (`foot_outline_not_lopsided`);
+its three orientation-dependent measurements would refuse anyway, so the
+gate says it first.
+
+**Where it does not run.** Not inside `run_estimated_measurements`. That
+function is also what the validation scripts call over Texel and NOMO,
+and a gate inside it would change every statistic silently the day it
+fired on a subject. The gate is called by the entry points that measure
+a user's scan and by nothing else; the validation numbers are exactly
+what they were.
+
+**Rules out:** reading a table of refusals as a measurement of a badly
+posed scan; treating the gate as a subject filter — a clothed body in a
+good pose passes and is the clothed pathway's business (#20).
+
+**Revisit if:** a scanner booth fixes the pose by construction (then the
+gate is a check on the booth, and the verdict should say so), or a
+dataset arrives whose A pose is shallower than SMPL's 50° abduction and
+the arm fraction lands between 0.09 and 1.00 — the gap is empty today,
+not by law.
