@@ -5,7 +5,10 @@ a *bounded* distance. "Inside" alone is not enough — a body shrunk to a
 stick is perfectly inside — so the gap is pushed into a per-part band
 [d_min, d_max], penalising both poking out and sinking in without cause.
 
-    L = w_out · L_outside        body vertex outside the shell
+    L = w_out · L_outside        body vertex outside the shell — beyond
+                                 min(0, d_min), so a band that expects a
+                                 few mm of registration noise outside is
+                                 not contradicted by this term (#44)
       + w_band · L_gap_band      gap outside its part's [d_min, d_max]
       + w_beta · |betas|²        shape prior
       + w_pose · |pose − canon|² pose prior around the canonical A-pose
@@ -201,7 +204,17 @@ def _loss_terms(gap, covered, lo, hi, params, cfg, part_w=None) -> dict[str, tor
     if part_w is not None:
         w = w * part_w
     gap_mm, lo_mm, hi_mm = gap * 1000.0, lo * 1000.0, hi * 1000.0
-    outside = (torch.relu(-gap_mm) ** 2 * w).sum() / w.sum().clamp(min=1)
+    # "Outside" starts where the band says it starts, not at zero. A band
+    # from a real registration has a negative lower edge on bare skin — the
+    # clothed surface passes a few millimetres inside the body there, as
+    # registration noise does — and a term that charged every gap below
+    # zero at four times the band weight punished the true body more than
+    # the fit that shrank away from it. Measured on three CAPE garments: the
+    # objective at the truth was 22 against 8 at the fit, and the recovered
+    # upper arm came back 17-31 mm short (decision #44). With the floor at
+    # min(0, lo) a synthetic band (lo >= 0) is unchanged.
+    floor_mm = torch.clamp(lo_mm, max=0.0)
+    outside = (torch.relu(floor_mm - gap_mm) ** 2 * w).sum() / w.sum().clamp(min=1)
     band = ((torch.relu(lo_mm - gap_mm) ** 2 + torch.relu(gap_mm - hi_mm) ** 2) * w).sum() / w.sum().clamp(min=1)
     center = (((gap_mm - 0.5 * (lo_mm + hi_mm)) ** 2) * w).sum() / w.sum().clamp(min=1)
     beta = (params.betas ** 2).mean()

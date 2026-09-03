@@ -1904,3 +1904,91 @@ numbers to show.
 distinction is where a female body most differs and no CAPE case tests it
 — or if the gap term is ever made vectorial, which is the direct answer to
 the finding above.
+
+## 44. The arm was not shrunk by the tangential part — it was shrunk by a term that contradicted the band
+
+**Date:** 2026-09-03 · **Status:** accepted · **Corrects #43's cause; keeps its observations**
+
+#43 observed that `upper_arm_girth` comes back short on all ten CAPE
+garments and attributed it to `true_gap_mm` being a scalar: a real
+garment's displacement has a tangential part the band never sees. That was
+a ratio (tangential/normal ≈ 1.6 on the arm), not a test. Before making
+the gap vectorial, the claim was tested directly.
+
+**The test.** Three garments, three shells each, same fitter:
+
+| | full shell | tangential part removed | bare body |
+|---|---|---|---|
+| `00215` poloshort, arm | −31.1 mm | **−29.0 mm** | −10.0 mm |
+| `00215` longshort, arm | −16.9 mm | **−19.9 mm** | −10.0 mm |
+| `00096` shirtshort, arm | −27.0 mm | **−28.8 mm** | −5.0 mm |
+
+Removing the tangential part changes nothing. The cause in #43 is wrong,
+and a vectorial gap would not have fixed it. It was not built.
+
+**What the same probe showed instead.** On every case the objective
+evaluated at the *true* body is higher than at the fitted body (22.3 vs
+8.2, 18.4 vs 8.5, 23.7 vs 9.8): the optimiser found what it was asked
+for; the objective asked for the wrong thing. The arm band of a CAPE case
+has a **negative lower edge** — Q10 of the normal gap is −1.6 to −2.9 mm,
+because on bare skin the clothed registration passes a few millimetres
+inside the body, as registration noise does — and the fitter's gap at the
+truth agrees with that band exactly (arm Q10/Q50/Q90 −3.0/0.6/5.2 against
+a band of −2.9..4.0). But `_loss_terms` charged `outside` for every gap
+below **zero**, at four times the band weight. So the band said "3 mm
+outside is expected here" and the outside term said "3 mm outside costs
+36" — two statements about the same vertices, and the one that punished
+the truth won. Moving the arm inward removed the charge; that is the
+shrink.
+
+Synthetic shells never showed it because their bands start at or above
+zero, so the two terms never disagreed. It is the second recurring class
+again — two documents about the same thing, the wrong one driving
+behaviour (#32, #35, #38, #42) — this time inside one loss function.
+
+**Change.** `outside` starts at `min(0, d_min)` instead of 0. A band with
+`d_min >= 0` is unchanged, so the synthetic battery is untouched by
+construction; a band that expects noise outside is no longer contradicted.
+`fit_quality_score["outside_fraction"]` still counts gaps below −2 mm — it
+is a report, not a term.
+
+**Result.** (battery re-run, same seed, all eighteen cases)
+
+The eight synthetic cases are bit-identical to before — their bands start
+at or above zero, so the term never fired differently. Every CAPE case
+moved, all ten in the same direction:
+
+| `upper_arm_girth` delta | before (#43) | after |
+|---|---|---|
+| mean over ten garments | −25.1 mm | **−17.5 mm** |
+| range | −34 … −10 mm | −27 … −8 mm |
+| beta error, mean | 4.81 | **4.32** (all ten lower) |
+| chest delta | mixed | mixed — six better, four worse, no sign pattern |
+
+Coverage 1.00, collapse ≤ 0.1 %, no flags, as before.
+
+**And what it does not do.** The arm is still short on all ten. The bare
+body of the same subjects fits to −5…−10 mm (the fitter's own floor on
+any body — the identity shell gives −7), so the term removed roughly a
+third of the garment-specific shortfall and left the rest. That remainder
+is open. It is not the tangential part (ruled out above). The same probe,
+re-run with the floor in place, answers the next question already: the
+objective at the truth is **still above** the objective at the fit on all
+three garments (9.4 vs 3.4, 8.2 vs 4.1, 14.5 vs 6.8 — down from 22 vs 8,
+18 vs 9, 24 vs 10). So the objective is still misspecified, less so; the
+`band` and `center` terms against a Q10/Q90 band are where to look next,
+not the optimiser.
+
+**Rules out:** reading #43's tangential ratio as a cause of anything;
+building a vectorial gap term to fix the arm; letting a loss term set a
+threshold a band it is combined with can contradict.
+
+**What this is not.** Still self-consistency (#41): each band comes from
+its own displacement. The probe covered three of ten garments and one
+frame each; the re-run covers all ten. A negative band floor is a
+statement about registration noise, not about clothing, and a population
+prior would set it from data this project does not have.
+
+**Revisit if:** a band is ever derived from something other than the
+case's own displacement — the floor would then be the prior's, and the
+argument above would need re-checking against it.

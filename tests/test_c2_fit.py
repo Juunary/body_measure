@@ -134,3 +134,31 @@ def test_fit_result_carries_its_method_and_no_confidence(body):
     assert d["inference_method"] == "c2_staged_optimisation"
     assert [s["stage"] for s in d["stages"]] == ["coarse_shape", "coarse_pose", "shape_band", "refine"]
     assert "confidence" not in " ".join(d["fit_quality_score"].keys())
+
+
+# ------------------------------------------------- the outside floor (#44) ---
+def test_outside_starts_where_the_band_starts_not_at_zero():
+    """A band whose lower edge is negative expects a few mm of registration
+    noise outside the shell. Charging that as `outside` on top made the true
+    body cost more than a shrunken fit on every CAPE garment (decision #44).
+    With lo >= 0 nothing changes."""
+    import torch
+    from body_measure.inference.fit import FitConfig, _loss_terms
+    from body_measure.inference.smpl_body import NUM_BETAS, BodyParams, canonical_body_pose
+
+    params = BodyParams(betas=torch.zeros(1, NUM_BETAS), body_pose=canonical_body_pose(),
+                        global_orient=torch.zeros(1, 3), transl=torch.zeros(1, 3))
+    cfg = FitConfig()
+    gap = torch.tensor([-0.002, -0.002])          # 2 mm outside, metres
+    covered = torch.tensor([True, True])
+    noisy_band = _loss_terms(gap, covered, torch.tensor([-0.003, -0.003]),
+                             torch.tensor([0.004, 0.004]), params, cfg)
+    clean_band = _loss_terms(gap, covered, torch.tensor([0.0, 0.0]),
+                             torch.tensor([0.003, 0.003]), params, cfg)
+    assert float(noisy_band["outside"]) == 0.0
+    assert float(noisy_band["band"]) == 0.0
+    assert float(clean_band["outside"]) == pytest.approx(cfg.w_outside * 4.0)   # 2 mm² each
+    # and a vertex 5 mm outside is still charged beyond a -3 mm floor
+    far = _loss_terms(torch.tensor([-0.005, -0.005]), covered, torch.tensor([-0.003, -0.003]),
+                      torch.tensor([0.004, 0.004]), params, cfg)
+    assert float(far["outside"]) == pytest.approx(cfg.w_outside * 4.0)
