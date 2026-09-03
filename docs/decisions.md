@@ -1848,3 +1848,59 @@ a finished-garment specification as a source for a body requirement.
 **Revisit if:** ease values are ever decided for this garment, at which
 point a second gate over finished-garment points becomes possible — and it
 would be a different gate, with tolerances, not this one extended.
+
+---
+
+## 43. Ten real garments, and the one thing the scalar gap loses
+
+**Date:** 2026-09-03 · **Status:** accepted · **Follows #40**
+
+The CAPE transfer was extended from one garment to all ten available: two
+subjects, four and six outfits, one frame each by the audit's frame rule.
+
+**Every one fits.** Coverage 1.00, collapse at most 0.2 %, no flags. The
+transfer produces shells the fitter can work with, which was the open
+question after #40 built the first one.
+
+**But `upper_arm_girth` comes back short on all ten** — −10 to −34 mm,
+mean −25.1. That is not the fitter's general behaviour: over the eight
+synthetic shells the same measurement runs +10.6 mean with mixed sign
+(−13 to +26). Something about a *real* garment's displacement, not about
+fitting a shell, costs the arm.
+
+**The cause is that `true_gap_mm` is a scalar.** `ShellCase` describes the
+gap as a signed normal distance per vertex, which is exactly right for the
+synthetic cases — they are built by displacing along the normal — and
+lossy for a real garment, which also slides along the surface. Measured on
+the transfers:
+
+| | normal (median) | tangential (median) | ratio |
+|---|---|---|---|
+| torso, `00215` polo | 9.8 mm | 9.7 mm | 0.99 |
+| **arm**, `00215` polo | **1.3 mm** | **2.1 mm** | **1.65** |
+| torso, `00215` long sleeve | 8.2 mm | 12.6 mm | 1.54 |
+| **arm**, `00215` long sleeve | **2.1 mm** | **3.4 mm** | **1.59** |
+| **arm**, `00096` short sleeve | **1.3 mm** | **2.1 mm** | **1.65** |
+
+The tangential part is larger than the normal part everywhere and worst on
+the arm, where the normal gap is only 1–2 mm to begin with. So the band
+the fitter is given describes the arm least well exactly where it has the
+least to go on, and the recovered arm shrinks. `meta["tangential_rms_mm"]`
+was already recorded per case (#40); this says what it costs.
+
+**Rules out:** reading a CAPE case's arm agreement as evidence about the
+fitter; treating the scalar gap band as a complete description of a real
+garment.
+
+**What this is not.** Ten garments, two subjects, **both male**, one frame
+each, and each case's band derived from its own displacement — so a good
+result means the fitter recovered a body it was given enough to recover.
+Self-consistency, not accuracy (#41). The thick/thin split in
+`reports/cape_garment_report.json` is five against five and proves
+nothing; it is recorded because leaving it out would be choosing which
+numbers to show.
+
+**Revisit if:** a female subject is downloaded — the chest/bust
+distinction is where a female body most differs and no CAPE case tests it
+— or if the gap term is ever made vectorial, which is the direct answer to
+the finding above.
