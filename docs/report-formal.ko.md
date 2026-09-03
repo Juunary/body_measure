@@ -21,7 +21,7 @@
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
-| upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -3.3 | 11.3 | 12.4 | 12.8 | 20.9 |
+| upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -16.1 | 17.4 | 16.8 | 14.1 | 33.9 |
 | sleeve_length | approximate | 10/10/9/1/0 | 9 | +178.8 | 178.8 | 176.9 | 36.1 | 253.5 |
 | back_length | approximate | 10/10/10/0/0 | 10 | +3.7 | 21.9 | 14.5 | 31.5 | 69.1 |
 
@@ -31,7 +31,7 @@
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
 | chest_circumference | approximate | 10/10/10/0/0 | 10 | +12.8 | 45.3 | 31.6 | 63.0 | 162.6 |
-| upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -5.5 | 19.0 | 10.1 | 33.5 | 93.1 |
+| upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -13.6 | 17.9 | 8.2 | 32.6 | 102.5 |
 
 Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계산하였다 (`N 통계` 열). `manual_review`와 `reject` 표본은 헤드라인 통계에서 제외하였다. SD는 signed delta의 표본표준편차(`ddof=1`)이다. 소매 구간 감사의 N=9 통계는 산출 가능한 `accepted + manual_review` 전체를 사용했으므로 헤드라인 결과와 모집단이 다르다.
 
@@ -88,11 +88,11 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 ## 실행 정보
 
-- generated (UTC): 2026-09-02T12:59:59+00:00
-- git commit: 4ed9160ea0c194adc12d80f1c844d58e39a07ea8 — working tree: clean
+- generated (UTC): 2026-09-03T13:52:06+00:00
+- git commit: 832cf4ff9b9e31502817913b8f9b067925d33eb2 — working tree: DIRTY
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 5; spec SHA-256: 30f3ec8f5fd3a07c89cc81f681f3da23df46de4cec64b4e4d80f9d9196b16d50
+- spec_version 6; spec SHA-256: caee4a1f8a9dba9db7f2b73e78cb3c1bb2292958760e1851e8c7fb189ea535d6
 - thresholds SHA-256: 420470aec4ce0a66d62e72f470b2806f4020822962e5d504efb9ad0f79e11de9
 - pytest: 195 passed in 128.77s
 - random seed (SMPL generation): 20260817
