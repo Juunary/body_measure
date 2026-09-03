@@ -143,12 +143,15 @@ def estimate_crotch_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> float
 ARMPIT_TO_WAIST_MAX_FRACTION = 0.28
 
 
-def estimate_waist_level(
+def estimate_girth_minimum_level(
     mesh: trimesh.Trimesh,
     armpit: Landmark | None = None,
     step_mm: float = 10.0,
 ) -> Landmark | None:
-    """Minimum torso girth, searched between a floor and WAIST_WINDOW's top.
+    """Minimum torso girth, searched between a floor and WAIST_WINDOW's top
+    — the v1 waist, kept as the UPPER bound of the natural-waist band
+    (decision #47): on most bodies the torso narrows most just under the
+    ribcage, which is above the natural waist by a few centimetres.
 
     The floor is the strictest of three: the stature window's bottom, the
     crotch (when a crotch exists), and a fixed reach below the armpit.
@@ -179,7 +182,7 @@ def estimate_waist_level(
 
     waist = _extremum_level(
         mesh,
-        "waist_level",
+        "girth_minimum_level",
         lo,
         WAIST_WINDOW[1] * height,
         minimum=True,
@@ -189,6 +192,157 @@ def estimate_waist_level(
     if waist is not None:
         waist.quality_flags += flags
     return waist
+
+
+#: The buttocks are looked for no higher than this far below the armpit:
+#: nearer the armpit the shoulder blades reach farther back than any
+#: buttock, and the maximum would be theirs.
+BUTTOCK_CEILING_BELOW_ARMPIT_FRACTION = 0.08
+#: The lumbar concavity may sit higher — on five of ten Texel subjects the
+#: small of the back was clipped by an 0.08 ceiling — so it is searched
+#: up to here, still below where the profile turns convex again.
+LUMBAR_CEILING_BELOW_ARMPIT_FRACTION = 0.03
+
+
+def torso_back_extent_profile(
+    mesh: trimesh.Trimesh, facing: "Facing", lo_mm: float, hi_mm: float,
+    step_mm: float = 10.0,
+) -> list[tuple[float, float]]:
+    """(height, how far the torso reaches BEHIND the body axis) per slice,
+    trusted torso loops only. Needs the front/back orientation."""
+    axis_xz = body_axis_point(mesh)
+    f = np.array([float(facing.direction[0]), 0.0, float(facing.direction[1])])
+    profile: list[tuple[float, float]] = []
+    for height in np.arange(lo_mm, hi_mm, step_mm):
+        origin = np.array([0.0, float(height), 0.0])
+        selection = select_torso_loop(
+            slice_mesh(mesh, origin, _UP), project_axis_to_plane(axis_xz, origin, _UP))
+        if selection is None or selection.method != "axis_containment":
+            continue
+        rel = selection.loop.points - np.array([axis_xz[0], float(height), axis_xz[1]])
+        profile.append((float(height), float(-(rel @ f).min())))
+    return profile
+
+
+def _facing_usable(facing) -> bool:
+    return facing is not None and float(facing.confidence) > 0.0 \
+        and "orientation_unknown" not in facing.flags
+
+
+def estimate_back_landmarks(
+    mesh: trimesh.Trimesh, armpit: Landmark | None, facing, step_mm: float = 10.0,
+) -> tuple[Landmark | None, Landmark | None]:
+    """(buttock prominence, lumbar concavity): the levels at which the
+    back reaches farthest behind the body axis and, above that, least far
+    — the small of the back. Both need the orientation; without it there
+    is nothing to call 'behind'."""
+    if not _facing_usable(facing):
+        return None, None
+    height = float(mesh.bounds[1][1])
+    crotch = estimate_crotch_level(mesh, step_mm)
+    lo = (crotch + 20.0) if crotch is not None else WAIST_WINDOW[0] * height
+    armpit_y = float(armpit.position_mm[1]) if armpit is not None else ARMPIT_WINDOW[0] * height
+    hi = armpit_y - LUMBAR_CEILING_BELOW_ARMPIT_FRACTION * height
+    profile = torso_back_extent_profile(mesh, facing, lo, hi, step_mm)
+    if len(profile) < 3:
+        return None, None
+    heights = np.array([p[0] for p in profile])
+    back = np.array([p[1] for p in profile])
+    axis_xz = body_axis_point(mesh)
+
+    below = np.flatnonzero(heights < armpit_y - BUTTOCK_CEILING_BELOW_ARMPIT_FRACTION * height)
+    if len(below) < 2:
+        return None, None
+    i_butt = int(below[np.argmax(back[below])])
+    butt_flags = ["maximum_at_search_boundary"] if i_butt in (0, int(below[-1])) else []
+    buttock = Landmark("buttock_prominence_level",
+                       np.array([axis_xz[0], heights[i_butt], axis_xz[1]]),
+                       0.4 if butt_flags else 0.8, "maximum_back_extent", butt_flags)
+
+    above = np.flatnonzero(heights > heights[i_butt])
+    if len(above) < 2:
+        return buttock, None
+    i_lumbar = int(above[np.argmin(back[above])])
+    lumbar_flags = ["minimum_at_search_boundary"] if i_lumbar == len(profile) - 1 else []
+    lumbar = Landmark("lumbar_concavity_level",
+                      np.array([axis_xz[0], heights[i_lumbar], axis_xz[1]]),
+                      0.4 if lumbar_flags else 0.8, "minimum_back_extent_above_buttocks",
+                      lumbar_flags)
+    return buttock, lumbar
+
+
+def estimate_waist_band(
+    mesh: trimesh.Trimesh,
+    armpit: Landmark | None = None,
+    step_mm: float = 10.0,
+    facing=None,
+) -> dict[str, Landmark]:
+    """The natural waist and the two levels that bound it (decision #47).
+
+    ISO 8559-1 puts the natural waist between the lowest rib and the
+    iliac crest. Two things this pipeline can find bound that band from
+    either side: the torso's girth minimum (the narrowing under the
+    ribcage, v1's whole answer, a few cm ABOVE the natural waist on Texel)
+    and the lumbar concavity, the small of the back (a few cm BELOW it).
+    Their midpoint is the waist; against Texel's ten natural-waist heights
+    it lands within 20 mm on nine of ten where the girth minimum alone
+    was 12–65 mm high.
+
+    When the girth minimum sits on the search boundary it is not a
+    minimum — a body whose belly hangs past its hips has no narrowing at
+    all — and the concavity is used on its own. When the orientation is
+    unknown there is no 'behind', and the girth minimum is used on its
+    own, flagged.
+
+    Returns a dict with `waist_level` and whichever of
+    `girth_minimum_level`, `buttock_prominence_level`,
+    `lumbar_concavity_level` were found."""
+    out: dict[str, Landmark] = {}
+    narrowing = estimate_girth_minimum_level(mesh, armpit, step_mm)
+    if narrowing is not None:
+        out["girth_minimum_level"] = narrowing
+    buttock, lumbar = estimate_back_landmarks(mesh, armpit, facing, step_mm)
+    if buttock is not None:
+        out["buttock_prominence_level"] = buttock
+    if lumbar is not None:
+        out["lumbar_concavity_level"] = lumbar
+
+    narrowing_ok = narrowing is not None and "minimum_at_search_boundary" not in narrowing.quality_flags
+    lumbar_ok = lumbar is not None and "minimum_at_search_boundary" not in lumbar.quality_flags
+    axis_xz = body_axis_point(mesh)
+
+    if narrowing_ok and lumbar_ok:
+        y = 0.5 * (float(narrowing.position_mm[1]) + float(lumbar.position_mm[1]))
+        flags = [f for f in narrowing.quality_flags if f not in ("ok",)]
+        waist = Landmark("waist_level", np.array([axis_xz[0], y, axis_xz[1]]), 0.8,
+                         "natural_waist_midpoint_of_girth_minimum_and_lumbar_concavity", flags)
+    elif lumbar_ok and narrowing is not None:
+        waist = Landmark("waist_level", np.array(lumbar.position_mm, dtype=np.float64), 0.6,
+                         "natural_waist_lumbar_concavity_only",
+                         ["girth_minimum_at_search_boundary_not_a_narrowing"]
+                         + [f for f in narrowing.quality_flags if f != "minimum_at_search_boundary"])
+    elif lumbar_ok:
+        waist = Landmark("waist_level", np.array(lumbar.position_mm, dtype=np.float64), 0.5,
+                         "natural_waist_lumbar_concavity_only", ["girth_minimum_not_found"])
+    elif narrowing is not None:
+        reason = "orientation_unknown" if not _facing_usable(facing) else "lumbar_concavity_not_found"
+        waist = Landmark("waist_level", np.array(narrowing.position_mm, dtype=np.float64),
+                         min(narrowing.confidence, 0.6), "minimum_torso_circumference",
+                         list(narrowing.quality_flags) + [f"lumbar_concavity_unavailable_{reason}"])
+    else:
+        return out
+    out["waist_level"] = waist
+    return out
+
+
+def estimate_waist_level(
+    mesh: trimesh.Trimesh,
+    armpit: Landmark | None = None,
+    step_mm: float = 10.0,
+    facing=None,
+) -> Landmark | None:
+    """The natural waist level — see estimate_waist_band."""
+    return estimate_waist_band(mesh, armpit, step_mm, facing).get("waist_level")
 
 
 def estimate_armpit_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landmark | None:

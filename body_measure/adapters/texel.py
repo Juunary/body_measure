@@ -26,12 +26,13 @@ import trimesh
 from .base import Adapter, NormalizedBodySurface
 
 # spec name -> Texel measurement ID (ISO 8559-1 clause in comments).
-# Mapped by DEFINITION, not by name: our spec waist is the minimum torso
-# girth, which is Texel's m102 — not m16 "Waist Girth" (5.3.10, natural
-# waist level; observed ~20 mm systematically above the minimum on Part 1).
+# Mapped by DEFINITION, not by name. The spec waist was the minimum torso
+# girth (Texel's m102) until spec v7; it is now the natural waist between
+# the lowest rib and the iliac crest, which is m16 "Waist Girth" (5.3.10).
+# m102 stays in AUX_IDS for the v1 comparison (decision #47).
 REF_IDS = {
     "chest_circumference": "m5",           # Bust/Chest Girth, 5.3.4
-    "waist_circumference": "m102",         # Minimum Waist Girth (no clause) — matches spec definition
+    "waist_circumference": "m16",          # Waist Girth, 5.3.10 (natural waist) — matches spec v7
     "neck_circumference": "m11",           # Neck Base Girth, 5.3.3
     "upper_arm_girth": "m15_r",            # Upper Arm Girth (R), 5.3.16 — right side, matching the spec
     "across_back_shoulder_width": "m1",    # Across Back Shoulder Width (through the back neck point), 5.4.3
@@ -43,7 +44,7 @@ REF_IDS = {
 AUX_IDS = {
     "stature": "m12",                      # 5.1.1
     "waist_height": "m43",                 # 5.1.10
-    "waist_girth_iso_5_3_10": "m16",       # natural-waist-level girth, definition differs from spec
+    "minimum_waist_girth": "m102",         # the v1 definition's reference, kept for comparison
     "outer_arm_length": "m2",              # 5.7.8 — sleeve segment audit (approximate mapping)
     "shoulder_length": "m36",              # 5.4.1 — side-neck origin: MISMATCH with our back-neck segment
     "back_neck_to_wrist": "m55",           # 5.4.17 — duplicate of the sleeve reference for audits

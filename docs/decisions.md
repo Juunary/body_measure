@@ -2147,3 +2147,99 @@ comparison says what that was worth.
 than at the maximum, or if a dataset arrives with the arm bent at the
 elbow inside the window — the straight axis would then be wrong in a
 way the tilt flag does not show.
+
+
+## 47. The waist is the middle of a band, not the narrowest slice
+
+**Date:** 2026-09-03 · **Status:** accepted · **Spec v7**
+
+Three reports from the studio's 3D view, filed by reading coordinates
+off the mesh: on `smpl_rand1_apose` — a very heavy body — the hips are
+at y 920–1120 and the navel near 1178, and neither `hip_girth` nor
+`waist_circumference` was measured anywhere near them; on
+`smpl_rand6_apose` and Texel `Woman4` the hip was fine but the waist sat
+far above the navel (1100 and 947).
+
+**What was wrong.** The waist was the *minimum torso girth* in a
+window. That definition has two failure modes, and the reports hit both:
+
+* a body whose belly hangs past its hips has no narrowing at all — the
+  girth rises from the crotch to the chest — so the "minimum" is the
+  search floor. On `rand1` it was 922 mm with `minimum_at_search_boundary`
+  set, i.e. a flagged non-answer, and the hip search, which runs from the
+  crotch up to that floor, found 893 mm: a belly-below level, not the hips;
+* a torso that keeps narrowing up to the bust (`Woman4`) puts its
+  minimum right under the bust, 62 mm below the armpit and 36 mm above
+  Texel's natural-waist height, with a girth 48 mm below Texel's own.
+  Across all ten Texel subjects the minimum sat a mean **+25 mm above**
+  the natural waist (m43), 12–65 mm on nine of them.
+
+**Change.** ISO 8559-1 places the natural waist between the lowest rib
+and the iliac crest. Two things this pipeline can find bound that band
+from either side — the girth minimum (the narrowing under the ribcage,
+above the waist) and the lumbar concavity, the level at which the back
+reaches least far behind the body axis above the buttocks (below it).
+`estimate_waist_band` returns both and puts the waist at their midpoint.
+When the girth minimum is on the search boundary it is not a narrowing
+and the concavity is used alone, flagged; when the orientation is
+unknown there is no "behind", and the girth minimum is used alone,
+flagged. The back-extent profile that finds the concavity also finds
+the buttocks' greatest prominence, and `hip_girth` is now the torso
+girth at that level — ISO's own placement — instead of the widest level
+below the waist, which on a heavy body is the belly. The orientation is
+therefore estimated before the girths, not after. The spec's reference
+for the waist moves with the definition, from Texel's m102 (minimum
+waist girth) to m16 (waist girth at the natural waist, 5.3.10); the
+regression bound in `validate/thresholds.py` was re-based on the first
+v7 run against m16, which is a change of reference, not a loosening.
+
+**Numbers.** Waist height against Texel m43, ten subjects:
+
+| | mean | mean abs | worst |
+|---|---|---|---|
+| v1, girth minimum | +24.7 mm | 35 mm | +65 (Woman3), −52 (Man0) |
+| **v7, band midpoint** | **+13.1 mm** | **19 mm** | +47 (Man1), +29 (Woman3) |
+
+Waist girth against Texel:
+
+| | v1 vs m102 | v7 vs m16 |
+|---|---|---|
+| mean | −3.6 mm | −12.2 mm |
+| sd | 13.6 | 17.6 |
+| worst | −38.6 | −49.8 (Man1), −41.5 (Woman4) |
+
+The two references are different things — m102 is a minimum, m16 the
+girth at Texel's natural waist — so the two columns are not the same
+comparison; the v7 column is the first run of a new definition against
+its own reference, and the regression bound was set from it.
+
+**Side effects, both from the waist moving down.** `back_length` runs
+from the back neck point to the back waist point, so a lower waist
+lengthens it: Texel mean +3.7 → +17.6 mm, but sd 29.9 → 20.5 and the
+worst case 69 → 56 mm — a steadier landmark. The chest search starts at
+the waist, and the wider window removed NOMO's worst chest outlier:
+mean +12.8 → +20.8 mm, sd 59.8 → 36.1, worst 163 → 81 mm. Texel's chest
+did not move. Neither was tuned; both are what the new waist does
+downstream, and the report shows them.
+
+The reported bodies: `rand1` waist 1203 mm (concavity alone; navel 1178),
+hip 1053 mm at the buttocks (inside the reported 920–1120); `rand6` waist
+1260 → 1200 mm; `Woman4` waist 1023 → 1012 mm, still 25 mm above m43.
+
+**What this is not.** Man1's two cues agree with each other at 1141 and
+disagree with Texel by 47 mm; Woman4's girth is still 41 mm below m16
+because the midpoint is still pulled up by an underbust narrowing. The
+band's bounds are a girth minimum and a back concavity, not the rib and
+the crest themselves, and the spec says so. The Texel numbers are ten
+subjects with a scanner-software reference whose own placement is
+undocumented; they say the change moved in the right direction by about
+half, not that the waist is now right.
+
+**Rules out:** reading the girth minimum as the waist on a body with no
+narrowing; a hip level chosen by girth on a body whose belly is wider
+than its hips.
+
+**Revisit if:** the ISO text defines the natural waist by a landmark
+this pipeline could find directly (the iliac crest is not visible on a
+surface; the lowest rib sometimes is), or if a dataset with tape-measured
+natural-waist heights arrives — Texel's m43 is scanner software.

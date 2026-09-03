@@ -14,7 +14,11 @@ measurer, which this project cannot run before the scanner arrives.
 # spec measurement name -> internal regression bounds (mm), vs the
 # definition-matched dataset reference (see adapters/texel.py REF_IDS).
 # First runs on Texel Part 1 (portal_mx, 10 bodies):
-#   waist vs m102: mean -3.5, max |d| 38.6
+#   waist vs m102: mean -3.5, max |d| 38.6  (spec v1-v6: minimum torso girth)
+#   waist vs m16:  mean -12.1, max |d| 50.3 (spec v7, decision #47: natural
+#     waist between the girth minimum and the lumbar concavity; the
+#     reference changed WITH the definition, so the bound was re-based on
+#     the first v7 run, not loosened to pass)
 #   chest vs m5:   mean +32.9, max |d| 78.0  (arm-clipped tape approximation)
 #   neck  vs m11:  mean +8.8,  max |d| 58.9  (horizontal v1 slice)
 #   shoulder vs m1: mean +31.7, max |d| 91.3 (acromion approximation)
@@ -24,7 +28,7 @@ measurer, which this project cannot run before the scanner arrives.
 #     itself is an open improvement item (heat method, arm-axis waypoints)
 #   back_length vs m3: mean +26.2, max |d| 86.8
 DATASET_AGREEMENT_TARGETS: dict[str, dict[str, float]] = {
-    "waist_circumference": {"per_body_mm": 45.0, "mean_bias_mm": 10.0},
+    "waist_circumference": {"per_body_mm": 60.0, "mean_bias_mm": 20.0},
     "chest_circumference": {"per_body_mm": 85.0, "mean_bias_mm": 45.0},
     "neck_circumference": {"per_body_mm": 65.0, "mean_bias_mm": 25.0},
     "across_back_shoulder_width": {"per_body_mm": 100.0, "mean_bias_mm": 45.0},
@@ -32,11 +36,13 @@ DATASET_AGREEMENT_TARGETS: dict[str, dict[str, float]] = {
     "back_length": {"per_body_mm": 95.0, "mean_bias_mm": 40.0},
     # upper_arm_girth vs m15_r: first run mean -3.3, max |d| 20.9 (search up
     # to the armpit level; NOMO Bicep_Circ cross-check: mean -5.5, max 93.1
-    # with the max on a known hole-riddled scan)
+    # with the max on a known hole-riddled scan). Perpendicular cut (#46):
+    # mean -16.1, max |d| 33.9 — still inside the bounds below.
     "upper_arm_girth": {"per_body_mm": 45.0, "mean_bias_mm": 20.0},
 }
 
-# waist-height sanity vs Texel m43 (first run: mean +24.4, max |d| 65.4)
+# waist-height sanity vs Texel m43 (v1 first run: mean +24.4, max |d| 65.4;
+# v7 band midpoint, #47: mean +13.1, max |d| 47)
 WAIST_HEIGHT_TARGET_MM = 75.0
 
 # VERIFY against ISO 20685-1 before recording anything here; until then

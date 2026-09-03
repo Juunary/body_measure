@@ -73,8 +73,17 @@ def torso_girth_at(mesh: trimesh.Trimesh, level_mm: float):
     return circ.selected_value_mm, selection
 
 
-def hip_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeValue:
-    """Widest torso girth between the crotch and the waist — the hip.
+def hip_girth(mesh, waist: Landmark | None, crotch: float | None,
+              buttock: Landmark | None = None) -> PrototypeValue:
+    """Torso girth at the hip — the level where the buttocks reach farthest
+    back (ISO 8559-1's hip girth is taken at the buttocks' greatest
+    prominence), or, without an orientation to know 'back' by, the widest
+    torso girth between the crotch and the waist.
+
+    The two agree on most bodies. They part on a body whose belly girth
+    exceeds its hip girth: the widest level is then the belly, well above
+    the buttocks, and the number is a belly girth wearing the hip's name
+    (decision #47).
 
     It was called `hem_girth`, which named the garment part it feeds rather
     than the thing measured. A polo hem falls near this level, but the hem's
@@ -86,6 +95,14 @@ def hip_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeVa
                               note="no waist landmark to search below")
     lo = (crotch + 20.0) if crotch is not None else 0.45 * float(mesh.bounds[1][1])
     hi = float(waist.position_mm[1]) - 20.0
+    if buttock is not None and lo <= float(buttock.position_mm[1]) <= hi:
+        level = float(buttock.position_mm[1])
+        girth, _ = torso_girth_at(mesh, level)
+        if girth is not None:
+            return PrototypeValue("hip_girth", "Hip girth", girth,
+                                  flags=list(buttock.quality_flags),
+                                  note="torso girth at the buttocks' greatest prominence",
+                                  level_mm=level)
     best_value, best_level = None, None
     for level in np.arange(lo, hi, 10.0):
         girth, _ = torso_girth_at(mesh, level)
@@ -95,6 +112,7 @@ def hip_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeVa
         return PrototypeValue("hip_girth", "Hip girth", None,
                               note="no trustworthy torso loop between crotch and waist")
     return PrototypeValue("hip_girth", "Hip girth", best_value,
+                          flags=["buttock_prominence_unavailable_widest_level_used"],
                           note="widest torso level below the waist",
                           level_mm=best_level)
 
@@ -245,7 +263,8 @@ def run_prototypes(mesh, measurements, landmarks) -> dict[str, PrototypeValue]:
 
     axes = {k[len("arm_axis_"):]: v for k, v in landmarks.items() if k.startswith("arm_axis_")}
     values = [
-        hip_girth(mesh, waist, E.estimate_crotch_level(mesh)),
+        hip_girth(mesh, waist, E.estimate_crotch_level(mesh),
+                  landmarks.get("buttock_prominence_level")),
         sleeve_opening_girth(mesh, armpit, wrist, axes or None),
         armhole_depth(shoulders, armpit),
         shoulder_slope(shoulders, back_neck),

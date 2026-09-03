@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 6          # v6: upper_arm_girth 를 팔 축에 수직으로 (결정 #46, 2026-09-03); v5: plausible_mm 추가 (결정 #39)
+spec_version: 7          # v7: waist 를 자연 허리 띠의 중간으로 (결정 #47); v6: upper_arm_girth 팔 축 수직 (결정 #46); v5: plausible_mm (결정 #39)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -45,15 +45,19 @@ measurements:
 
   waist_circumference:
     plausible_mm: [500, 1600]
-    definition: natural_waist_girth_at_minimum_torso_circumference
+    definition: natural_waist_girth_between_lowest_rib_and_iliac_crest   # ISO 8559-1 5.3.10
     definition_verified: false
     method: plane_slice
     plane: horizontal
-    landmarks: [waist_level]
-    known_deviations: []
+    # v7 (결정 #47): 허리 높이 = 둘레 최소점(늑골 아래 좁아짐)과 요추 오목점(등의 가장 오목한 곳)의 중간.
+    # 둘레 최소가 탐색 경계에 걸리면(배가 엉덩이보다 큰 몸) 오목점만, 방향을 모르면 둘레 최소만(플래그).
+    landmarks: [waist_level, girth_minimum_level, lumbar_concavity_level]
+    known_deviations:
+      - band_bounds_are_girth_minimum_and_back_concavity_not_rib_and_crest_landmarks
+      - girth_minimum_only_when_front_back_orientation_unknown
     priority: core
-    implementation_status: implemented_v1
-    no_reference: false
+    implementation_status: implemented_v2
+    no_reference: false             # Texel m16 (5.3.10); v1 was compared to m102
 
   neck_circumference:
     plausible_mm: [250, 600]

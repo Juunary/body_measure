@@ -23,6 +23,10 @@ _LOW_CONFIDENCE_FLAGS = {
     "surface_path_detour", "waypoint_snapped_to_main_component",
     "shoulder_vertical_asymmetry", "shoulder_at_search_ceiling",
     "arm_merge_height_unstable", "clip_bounds_untrusted_low_confidence_armpit",
+    # the waist rests on one cue instead of two (decision #47)
+    "girth_minimum_at_search_boundary_not_a_narrowing", "girth_minimum_not_found",
+    "lumbar_concavity_unavailable_orientation_unknown",
+    "lumbar_concavity_unavailable_lumbar_concavity_not_found",
 }
 _FALLBACK_FLAGS = {
     "lateral_axis_pca_fallback", "lateral_axis_default_no_torso",

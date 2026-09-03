@@ -218,16 +218,18 @@ def measure_chest_circumference(
     return value, landmark
 
 
-def _estimate_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
+def _estimate_circumferences(mesh: trimesh.Trimesh, facing=None) -> tuple[dict, dict]:
     """Estimated pathway for the three circumference measurements.
 
     Returns (measurements, landmarks): spec-named MeasurementValue entries
-    for whatever could be estimated, plus the landmarks used.
+    for whatever could be estimated, plus the landmarks used. `facing` is
+    the front/back orientation, used by the waist band (decision #47);
+    without it the waist falls back to the girth minimum, flagged.
     """
     from ..landmarks.estimated import (
         estimate_armpit_level,
         estimate_neck_base_level,
-        estimate_waist_level,
+        estimate_waist_band,
     )
 
     measurements: dict[str, MeasurementValue] = {}
@@ -239,7 +241,9 @@ def _estimate_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
     if armpit is not None:
         landmarks["armpit_level"] = armpit
 
-    waist = estimate_waist_level(mesh, armpit)
+    band = estimate_waist_band(mesh, armpit, facing=facing)
+    landmarks.update({k: v for k, v in band.items() if k != "waist_level"})
+    waist = band.get("waist_level")
     if waist is None:
         measurements["waist_circumference"] = MeasurementValue(
             method="plane_slice", quality=["waist_estimation_failed"]
@@ -456,7 +460,11 @@ def _estimate_measurements(
     )
     from .surface_path import METHOD, EdgeGraph, surface_path_length_mm
 
-    measurements, landmarks = _estimate_circumferences(mesh)
+    # the orientation comes first: the waist band needs to know which way
+    # is 'behind' (decision #47), and the feet say so without any landmark
+    if facing is None:
+        facing = estimate_facing(mesh)
+    measurements, landmarks = _estimate_circumferences(mesh, facing=facing)
     for name in ("across_back_shoulder_width", "sleeve_length", "back_length"):
         measurements[name] = MeasurementValue(method=METHOD, quality=["prerequisite_landmarks_missing"])
 
@@ -464,10 +472,8 @@ def _estimate_measurements(
     neck = landmarks.get("neck_base_level")
     armpit = landmarks.get("armpit_level")
     if waist is None or neck is None:
+        landmarks["facing"] = facing
         return measurements, landmarks
-
-    if facing is None:
-        facing = estimate_facing(mesh)
     landmarks["facing"] = facing
 
     # ISO fixes bust/chest girth at a height; this pipeline's chest search
