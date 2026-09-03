@@ -88,8 +88,8 @@ Body measurements and raw scans are NOT public DPP data; they live in the intern
 
 ## Run information
 
-- generated (UTC): 2026-09-03T13:52:06+00:00
-- git commit: 832cf4ff9b9e31502817913b8f9b067925d33eb2 — working tree: DIRTY
+- generated (UTC): 2026-09-03T13:58:59+00:00
+- git commit: 891472135c60940f6ce8c035fb86eab2eaeb5d6f — working tree: clean
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
 - spec_version 6; spec SHA-256: caee4a1f8a9dba9db7f2b73e78cb3c1bb2292958760e1851e8c7fb189ea535d6
