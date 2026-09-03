@@ -12,25 +12,25 @@
 
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| waist_circumference | exact | 10/10/10/0/0 | 10 | -3.6 | 9.4 | 5.9 | 14.4 | 38.6 |
+| waist_circumference | exact | 10/10/10/0/0 | 10 | -12.2 | 13.5 | 6.4 | 18.6 | 49.8 |
 | across_back_shoulder_width | exact | 10/10/9/1/0 | 9 | +0.7 | 13.4 | 11.7 | 15.8 | 23.7 |
 
 ## 참고 비교 — approximate 매핑 (정의 편차 있음, 성능 판정에 사용 금지)
 
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.8 | 28.1 | 25.7 | 23.6 | 78.1 |
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.9 | 28.2 | 25.9 | 23.6 | 78.1 |
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
 | upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -16.1 | 17.4 | 16.8 | 14.1 | 33.9 |
 | sleeve_length | approximate | 10/10/9/1/0 | 9 | +178.8 | 178.8 | 176.9 | 36.1 | 253.5 |
-| back_length | approximate | 10/10/10/0/0 | 10 | +3.7 | 21.9 | 14.5 | 31.5 | 69.1 |
+| back_length | approximate | 10/10/10/0/0 | 10 | +17.6 | 21.8 | 18.4 | 21.6 | 55.9 |
 
 **NOMO — pilot baseline (N=10, male)**
 
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +7.6 | 25.7 | 22.4 | 31.2 | 61.0 |
-| chest_circumference | approximate | 10/10/10/0/0 | 10 | +12.8 | 45.3 | 31.6 | 63.0 | 162.6 |
+| chest_circumference | approximate | 10/10/10/0/0 | 10 | +20.8 | 37.0 | 30.9 | 38.1 | 80.7 |
 | upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -13.6 | 17.9 | 8.2 | 32.6 | 102.5 |
 
 Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계산하였다 (`N 통계` 열). `manual_review`와 `reject` 표본은 헤드라인 통계에서 제외하였다. SD는 signed delta의 표본표준편차(`ddof=1`)이다. 소매 구간 감사의 N=9 통계는 산출 가능한 `accepted + manual_review` 전체를 사용했으므로 헤드라인 결과와 모집단이 다르다.
@@ -39,7 +39,7 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 | 측정 | bucket 분포 |
 |---|---|
-| chest_circumference | arm_clipped: 10 |
+| chest_circumference | low_confidence: 1, arm_clipped: 9 |
 | waist_circumference | clean: 10 |
 | neck_circumference | clean: 10 |
 | upper_arm_girth | clean: 10 |
@@ -88,12 +88,12 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 ## 실행 정보
 
-- generated (UTC): 2026-09-03T13:58:59+00:00
-- git commit: 891472135c60940f6ce8c035fb86eab2eaeb5d6f — working tree: clean
+- generated (UTC): 2026-09-03T14:41:19+00:00
+- git commit: 0927acff2dd8bb6b45b1904b96ffc8042547da0b — working tree: clean
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 6; spec SHA-256: caee4a1f8a9dba9db7f2b73e78cb3c1bb2292958760e1851e8c7fb189ea535d6
-- thresholds SHA-256: 420470aec4ce0a66d62e72f470b2806f4020822962e5d504efb9ad0f79e11de9
+- spec_version 7; spec SHA-256: f773ea6c5d894b16949f26ffba851c4064bd4fff64f271b976a0c2c8a3977d5a
+- thresholds SHA-256: 97263bc8f00acd1f3b9873491ed82df364d06c4640dc54c9eca018ae6ede6d56
 - pytest: 195 passed in 128.77s
 - random seed (SMPL generation): 20260817
 - commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
