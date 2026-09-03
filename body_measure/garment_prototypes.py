@@ -44,8 +44,10 @@ class PrototypeValue:
     unit: str = "mm"
     flags: list[str] = field(default_factory=list)
     note: str = ""
-    #: height of the horizontal slice, when the prototype is a girth
+    #: height of the slice's origin, when the prototype is a girth
     level_mm: float | None = None
+    #: the slice plane itself, when it is not horizontal: {"origin_mm", "normal"}
+    plane: dict | None = None
 
     @property
     def available(self) -> bool:
@@ -54,7 +56,7 @@ class PrototypeValue:
     def to_dict(self) -> dict:
         return {
             "value": self.value, "unit": self.unit, "flags": self.flags,
-            "note": self.note, "level_mm": self.level_mm,
+            "note": self.note, "level_mm": self.level_mm, "plane": self.plane,
             "status": "prototype_not_in_spec",
         }
 
@@ -98,7 +100,11 @@ def hip_girth(mesh, waist: Landmark | None, crotch: float | None) -> PrototypeVa
 
 
 def sleeve_opening_girth(mesh, armpit: Landmark | None,
-                         wrist: Landmark | None) -> PrototypeValue:
+                         wrist: Landmark | None, axes: dict | None = None) -> PrototypeValue:
+    """Arm girth where a short sleeve ends. Cut perpendicular to each arm's
+    axis (decision #46) at the station whose height is SLEEVE_END_FRACTION
+    of the way from the armpit down to the wrist; the horizontal slice is
+    the flagged fallback when no axis can be trusted."""
     if armpit is None:
         return PrototypeValue("sleeve_opening_girth", "Sleeve opening girth", None,
                               note="no armpit landmark")
@@ -107,21 +113,41 @@ def sleeve_opening_girth(mesh, armpit: Landmark | None,
         level = armpit_y - SLEEVE_END_FRACTION * (armpit_y - float(wrist.position_mm[1]))
     else:
         level = armpit_y - 0.08 * float(mesh.bounds[1][1])
-    loops, flags = E.arm_loops_at(mesh, level, armpit)
-    values = []
-    for loop in loops.values():
+    axes = axes if axes is not None else E.estimate_arm_axes(mesh, armpit, wrist)
+    values, flags, plane = [], [], None
+    for side, axis in sorted(axes.items()):
+        if not axis.usable:
+            continue
+        loop = E.arm_loop_perpendicular(mesh, axis, axis.station_at_height(level))
+        if loop is None:
+            continue
         circ = measure_circumference(loop, close_gap=not loop.closed)
         if circ.selected_value_mm is not None:
             values.append(circ.selected_value_mm)
+            if plane is None or side == "right":
+                origin = axis.point_at(axis.station_at_height(level))
+                plane = {"origin_mm": [float(v) for v in origin],
+                         "normal": [float(v) for v in axis.direction], "side": side}
+    method = "perpendicular_to_arm_axis"
+    if not values:
+        # fall back to the horizontal cut, and say so
+        method = "horizontal_slice_fallback"
+        flags.append("arm_axis_unresolved_horizontal_slice_fallback")
+        loops, axis_flags = E.arm_loops_at(mesh, level, armpit)
+        flags += list(axis_flags)
+        for loop in loops.values():
+            circ = measure_circumference(loop, close_gap=not loop.closed)
+            if circ.selected_value_mm is not None:
+                values.append(circ.selected_value_mm)
     if not values:
         return PrototypeValue("sleeve_opening_girth", "Sleeve opening girth", None,
-                              flags=list(flags), level_mm=level,
+                              flags=flags, level_mm=level,
                               note="no arm loop at the sleeve-end height")
     return PrototypeValue(
         "sleeve_opening_girth", "Sleeve opening girth", float(np.mean(values)),
-        flags=list(flags), level_mm=level,
+        flags=flags, level_mm=level, plane=plane,
         note=f"arm girth {int(SLEEVE_END_FRACTION * 100)} % down armpit-to-wrist, "
-             f"{len(values)} arm(s)")
+             f"{len(values)} arm(s), {method}")
 
 
 def armhole_depth(shoulders, armpit: Landmark | None) -> PrototypeValue:
@@ -217,9 +243,10 @@ def run_prototypes(mesh, measurements, landmarks) -> dict[str, PrototypeValue]:
     wrist = landmarks.get("wrist_point_right") or landmarks.get("wrist_point_left")
     chest_flags = list(measurements["chest_circumference"].quality)
 
+    axes = {k[len("arm_axis_"):]: v for k, v in landmarks.items() if k.startswith("arm_axis_")}
     values = [
         hip_girth(mesh, waist, E.estimate_crotch_level(mesh)),
-        sleeve_opening_girth(mesh, armpit, wrist),
+        sleeve_opening_girth(mesh, armpit, wrist, axes or None),
         armhole_depth(shoulders, armpit),
         shoulder_slope(shoulders, back_neck),
         front_back_width(mesh, None if chest is None else float(chest.position_mm[1]),

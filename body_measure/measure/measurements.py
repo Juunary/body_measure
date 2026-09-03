@@ -273,9 +273,14 @@ def _estimate_circumferences(mesh: trimesh.Trimesh) -> tuple[dict, dict]:
         if wrist is not None:
             landmarks[wrist.name] = wrist
     side = "right" if (wrist is None or wrist.name.endswith("right")) else "left"
-    measurements["upper_arm_girth"] = measure_upper_arm_girth(
+    measurements["upper_arm_girth"], station, arm_axes = measure_upper_arm_girth(
         mesh, armpit, wrist, side=side
     )
+    if station is not None:
+        landmarks[station.name] = station
+    for axis_side, arm_axis in arm_axes.items():
+        # not a point: the line each arm's girth is cut against (decision #46)
+        landmarks[f"arm_axis_{axis_side}"] = arm_axis
 
     return measurements, landmarks
 
@@ -286,49 +291,87 @@ def measure_upper_arm_girth(
     wrist: Landmark | None,
     side: str = "right",
     step_mm: float = 6.0,
-) -> MeasurementValue:
+) -> tuple[MeasurementValue, Landmark | None, dict]:
     """Widest girth of the upper arm — the sleeve-width measurement a short
-    sleeve is built around. Same plane-slice primitive as the torso girths,
-    applied to the arm loop instead of the torso loop."""
-    from ..landmarks.estimated import arm_loops_at, upper_arm_window
+    sleeve is built around.
+
+    The cut is perpendicular to the ARM'S OWN AXIS, not to the floor
+    (decision #46): in an A pose the upper arm hangs 20-40 degrees off
+    vertical, and a horizontal plane through it is an oblique section — an
+    ellipse whose perimeter is longer than the girth by up to a quarter at
+    SMPL's 50-degree abduction. The axis is the line through the horizontal
+    arm loops' centroids across the upper-arm window; the search then walks
+    that line at `step_mm` and keeps the widest perpendicular section.
+
+    Returns the value, a landmark at the station of the maximum (so the
+    ring can be drawn where it was measured), and the axes of BOTH arms
+    (the sleeve-opening prototype cuts each arm against its own). When no
+    axis can be trusted — a near-horizontal arm, too few loops — the
+    horizontal slice of v1 is used and flagged.
+    """
+    from ..landmarks.estimated import (
+        arm_loop_perpendicular, arm_loops_at, estimate_arm_axes, upper_arm_window)
 
     if armpit is None:
-        return MeasurementValue(
-            method="plane_slice", quality=["armpit_not_detected"]
-        )
+        return MeasurementValue(method="plane_slice", quality=["armpit_not_detected"]), None, {}
     lo, hi, window_flags = upper_arm_window(mesh, armpit, wrist)
-    best: tuple[float, MeasurementValue] | None = None
+    axes = estimate_arm_axes(mesh, armpit, wrist)
+    axis = axes.get(side)
+
+    best: tuple[float, MeasurementValue, np.ndarray] | None = None
     axis_flags: list[str] = []
-    for level in np.arange(lo, hi, step_mm):
-        loops, flags = arm_loops_at(mesh, float(level), armpit)
-        axis_flags = flags
-        loop = loops.get(side)
-        if loop is None:
-            continue
-        circ = measure_circumference(loop, close_gap=not loop.closed)
-        if circ.selected_value_mm is None:
-            continue
-        value = MeasurementValue(
-            raw_contour_mm=circ.raw_contour_mm,
-            taut_tape_hull_mm=circ.taut_tape_hull_mm,
-            selected_value_mm=circ.selected_value_mm,
-            selection_method=circ.selection_method,
-            method="plane_slice",
-            quality=circ.quality_flags,
-            disposition="accepted",
-        )
-        if best is None or circ.selected_value_mm > best[0]:
-            best = (circ.selected_value_mm, value)
+    if axis is not None and axis.usable:
+        method = "plane_slice_perpendicular_to_arm_axis"
+        s_top, s_bottom = axis.station_at_height(hi), axis.station_at_height(lo)
+        for s in np.arange(s_top, s_bottom, step_mm):
+            loop = arm_loop_perpendicular(mesh, axis, float(s))
+            if loop is None:
+                continue
+            circ = measure_circumference(loop, close_gap=not loop.closed)
+            if circ.selected_value_mm is None:
+                continue
+            if best is None or circ.selected_value_mm > best[0]:
+                best = (circ.selected_value_mm, _arm_value(circ, method), axis.point_at(float(s)))
+        axis_flags = list(axis.flags) + [f"arm_axis_tilt_{axis.tilt_deg:.0f}deg_from_{axis.n_loops}_loops"]
+    else:
+        method = "plane_slice"
+        axis_flags = ["arm_axis_unresolved_horizontal_slice_fallback"] + \
+            (list(axis.flags) if axis is not None else [])
+        for level in np.arange(lo, hi, step_mm):
+            loops, flags = arm_loops_at(mesh, float(level), armpit)
+            axis_flags = axis_flags + [f for f in flags if f not in axis_flags]
+            loop = loops.get(side)
+            if loop is None:
+                continue
+            circ = measure_circumference(loop, close_gap=not loop.closed)
+            if circ.selected_value_mm is None:
+                continue
+            if best is None or circ.selected_value_mm > best[0]:
+                best = (circ.selected_value_mm, _arm_value(circ, method), loop.points.mean(axis=0))
 
     if best is None:
         return MeasurementValue(
-            method="plane_slice",
+            method=method,
             quality=["no_arm_loop_in_upper_arm_window"] + window_flags + axis_flags,
-        )
-    value = best[1]
+        ), None, axes
+    _, value, station = best
     flags = [f for f in value.quality if f != "ok"] + window_flags + axis_flags
     value.quality = flags or ["ok"]
-    return value
+    landmark = Landmark(f"upper_arm_girth_station_{side}", np.asarray(station, dtype=np.float64),
+                        0.7 if method.endswith("axis") else 0.4, method, list(axis_flags))
+    return value, landmark, axes
+
+
+def _arm_value(circ, method: str) -> MeasurementValue:
+    return MeasurementValue(
+        raw_contour_mm=circ.raw_contour_mm,
+        taut_tape_hull_mm=circ.taut_tape_hull_mm,
+        selected_value_mm=circ.selected_value_mm,
+        selection_method=circ.selection_method,
+        method=method,
+        quality=circ.quality_flags,
+        disposition="accepted",
+    )
 
 
 #: How far the bust level may sit from the maximum-girth level before the

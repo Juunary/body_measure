@@ -2064,3 +2064,86 @@ gate is a check on the booth, and the verdict should say so), or a
 dataset arrives whose A pose is shallower than SMPL's 50° abduction and
 the arm fraction lands between 0.09 and 1.00 — the gap is empty today,
 not by law.
+
+## 46. The upper arm is cut perpendicular to its own axis, not to the floor
+
+**Date:** 2026-09-03 · **Status:** accepted · **Spec v6**
+
+`upper_arm_girth` was the widest *horizontal* slice of the arm in the
+upper-arm window, and the spec said so as a known deviation
+(`horizontal_slice_v1_a_relaxed_arm_may_not_be_vertical`). A person
+reviewing the studio's 3D view filed the deviation as a report — "the A
+pose makes the arm be measured obliquely" — against `upper_arm_girth` and
+`sleeve_opening_girth`, and they were right to. In an A pose the upper
+arm hangs 20–45° off vertical, and a horizontal plane through a tilted
+near-cylinder is an ellipse whose perimeter is longer than the girth:
+for a cylinder of radius r cut at tilt θ the long semi-axis is r/cos θ,
+which at SMPL's 43° adds roughly a tenth to the perimeter and at a
+scanner's 25° a few per cent. The number depended on how far the arm
+hung out, which is not a body dimension.
+
+**Change.** `landmarks.estimated.estimate_arm_axes` fits a straight line
+through the centroids of the horizontal arm loops across the upper-arm
+window — the horizontal loops are still how an arm is *found*, since an
+arm loop is the one whose centroid lies outside the torso's lateral
+extent — and `arm_loop_perpendicular` cuts the mesh perpendicular to
+that line at a station along it, taking the closed loop whose centroid
+sits on the axis (within 90 mm; the torso, when an oblique plane clips
+it, is hundreds of millimetres away). `measure_upper_arm_girth` walks
+the axis through the window at the same 6 mm step and keeps the widest
+perpendicular section; it now also returns the station of the maximum as
+a landmark and both arms' axes, so the ring is drawn where it was
+measured (the viewer had never been able to draw it — no level was
+recorded) and `sleeve_opening_girth` cuts each arm against its own axis
+at the sleeve-end height. Method strings, flags and the spec say which
+cut produced a number: `plane_slice_perpendicular_to_arm_axis` with
+`arm_axis_tilt_43deg_from_19_loops`, or the v1 horizontal cut with
+`arm_axis_unresolved_horizontal_slice_fallback` when the axis is too
+near horizontal (a T pose: |vertical component| < 0.35) or rests on fewer
+than four loops. The fallback exists so a T pose, which the pose gate
+refuses upstream anyway, is never cut *along* the arm by a plane
+perpendicular to a horizontal axis.
+
+**What it did to the numbers.** SMPL neutral A pose (43° tilt):
+342.5 → 308.7 mm, the oblique excess removed. Against the tape:
+
+| `upper_arm_girth` vs reference | before (horizontal) | after (perpendicular) |
+|---|---|---|
+| Texel m15_r, n=10 | mean −3.3 mm, sd 12.2 | **mean −16.1 mm, sd 13.3** |
+| NOMO Bicep_Circ, n=10 | mean −5.5 mm, sd 31.8 | **mean −13.6 mm, sd 31.0** |
+| every other measurement | unchanged | unchanged |
+
+Every Texel subject moved the same way, by 6–22 mm, at arm tilts of
+21–30°. That is the size of the oblique excess at those tilts (a 25°
+tilt lengthens a cylinder's section by about 5 %, some 15 mm on a
+300 mm arm), and the spread did not change — so the perpendicular cut
+removed a *constant* that the horizontal cut had been adding, and the
+reference agreed with the horizontal cut because it carries the same
+constant. Texel's m15 and NOMO's Bicep_Circ are scanner-software
+extractions whose cutting plane is not documented; a tape at the widest
+point of a hanging arm is close to horizontal too. So "agreement got
+worse" here means the number is now further from a reference that was
+never shown to be perpendicular to the arm, and the choice between the
+two is the ISO definition's to make (5.3.16 — girth of the upper arm,
+which a tape reads *around* the arm, i.e. perpendicular to it), not the
+reference's. The cut is kept; the disagreement is recorded rather than
+tuned away, and `definition_verified` stays false until the ISO text is
+read (ITA library task).
+
+**Rules out:** reading `upper_arm_girth` from a horizontal slice; a
+viewer that draws an arm ring anywhere other than the station the number
+came from (the studio's own horizontal rescan was removed for this
+reason).
+
+**What this is not.** A straight line through the upper arm is an
+approximation — the arm is not straight below the elbow, which is why
+the axis is fitted over the upper-arm window only and the sleeve-end
+station reuses it rather than refitting on the forearm. The definition
+is still unverified against ISO 8559-1 5.3.16 (`definition_verified:
+false`); the change is to *how* the girth is cut, and the reference
+comparison says what that was worth.
+
+**Revisit if:** the ISO text places the girth at a named level rather
+than at the maximum, or if a dataset arrives with the arm bent at the
+elbow inside the window — the straight axis would then be wrong in a
+way the tilt flag does not show.

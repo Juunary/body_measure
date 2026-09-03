@@ -781,3 +781,116 @@ def estimate_neck_base_level(
         step_mm=step_mm,
     )
     return neck
+
+
+# ------------------------------------------------------------ arm axis ---
+#: Below this |vertical component| of the axis direction the arm is close
+#: to horizontal (a T pose) and a plane perpendicular to it would cut
+#: along the body; the measurement then falls back to the horizontal
+#: slice and says so.
+ARM_AXIS_MIN_VERTICAL = 0.35
+#: Fewer horizontal loops than this and a line through their centroids is
+#: not an axis; fall back, flagged.
+ARM_AXIS_MIN_LOOPS = 4
+#: A perpendicular slice can hit more than one closed loop (the other arm,
+#: the torso where the plane is oblique). The arm is the loop whose
+#: centroid lies nearest the axis point, and no farther than this.
+ARM_LOOP_MAX_OFFSET_MM = 90.0
+
+
+@dataclass
+class ArmAxis:
+    """A straight line through the upper arm: the least-squares line
+    through the centroids of the horizontal arm loops in the upper-arm
+    window. `direction` is a unit vector pointing DOWN the arm."""
+
+    side: str
+    origin_mm: np.ndarray
+    direction: np.ndarray
+    n_loops: int
+    tilt_deg: float
+    flags: list[str] = field(default_factory=list)
+
+    @property
+    def usable(self) -> bool:
+        return abs(float(self.direction[1])) >= ARM_AXIS_MIN_VERTICAL and \
+            self.n_loops >= ARM_AXIS_MIN_LOOPS
+
+    def station_at_height(self, y_mm: float) -> float:
+        """Parameter s (mm along the axis from the origin) where the axis
+        crosses height y."""
+        return float((y_mm - self.origin_mm[1]) / self.direction[1])
+
+    def point_at(self, s_mm: float) -> np.ndarray:
+        return self.origin_mm + s_mm * self.direction
+
+    def to_dict(self) -> dict:
+        return {
+            "side": self.side,
+            "origin_mm": [float(v) for v in self.origin_mm],
+            "direction": [float(v) for v in self.direction],
+            "n_loops": int(self.n_loops),
+            "tilt_deg": round(float(self.tilt_deg), 1),
+            "usable": bool(self.usable),
+            "flags": list(self.flags),
+        }
+
+
+def estimate_arm_axes(
+    mesh: trimesh.Trimesh, armpit: Landmark, wrist: Landmark | None,
+    step_mm: float = 10.0,
+) -> dict[str, ArmAxis]:
+    """One `ArmAxis` per arm found in the upper-arm window (decision #46).
+
+    The horizontal loops are still how an arm is *found* — their centroid
+    is outside the torso's lateral extent — and their centroids trace the
+    arm's line. The girth is then taken perpendicular to that line, not to
+    the floor, so an abducted arm is not measured as an oblique ellipse."""
+    lo, hi, window_flags = upper_arm_window(mesh, armpit, wrist)
+    centroids: dict[str, list[np.ndarray]] = {"left": [], "right": []}
+    for level in np.arange(lo, hi, step_mm):
+        loops, _ = arm_loops_at(mesh, float(level), armpit)
+        for side, loop in loops.items():
+            centroids[side].append(loop.points.mean(axis=0))
+
+    axes: dict[str, ArmAxis] = {}
+    for side, pts in centroids.items():
+        if not pts:
+            continue
+        arr = np.asarray(pts, dtype=np.float64)
+        origin = arr.mean(axis=0)
+        flags = list(window_flags)
+        if len(arr) >= 2:
+            _, _, vt = np.linalg.svd(arr - origin, full_matrices=False)
+            direction = vt[0]
+        else:
+            direction = np.array([0.0, -1.0, 0.0])
+            flags.append("arm_axis_single_loop_assumed_vertical")
+        if direction[1] > 0:                       # point down the arm
+            direction = -direction
+        direction = direction / np.linalg.norm(direction)
+        tilt = float(np.degrees(np.arccos(np.clip(-direction[1], -1.0, 1.0))))
+        if len(arr) < ARM_AXIS_MIN_LOOPS:
+            flags.append("arm_axis_too_few_loops")
+        if abs(float(direction[1])) < ARM_AXIS_MIN_VERTICAL:
+            flags.append("arm_axis_near_horizontal")
+        axes[side] = ArmAxis(side, origin, direction, len(arr), tilt, flags)
+    return axes
+
+
+def arm_loop_perpendicular(
+    mesh: trimesh.Trimesh, axis: ArmAxis, s_mm: float
+) -> SliceLoop | None:
+    """The arm's cross-section at station `s_mm` along the axis, cut
+    perpendicular to it; None if no closed loop sits on the axis there."""
+    origin = axis.point_at(s_mm)
+    best: tuple[float, SliceLoop] | None = None
+    for lp in slice_mesh(mesh, origin, axis.direction):
+        if not lp.closed:
+            continue
+        offset = float(np.linalg.norm(lp.points.mean(axis=0) - origin))
+        if offset > ARM_LOOP_MAX_OFFSET_MM:
+            continue
+        if best is None or offset < best[0]:
+            best = (offset, lp)
+    return None if best is None else best[1]

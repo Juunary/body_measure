@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 5          # v5: plausible_mm 추가 (인체 범위 게이트, 결정 #39, 2026-09-02)
+spec_version: 6          # v6: upper_arm_girth 를 팔 축에 수직으로 (결정 #46, 2026-09-03); v5: plausible_mm 추가 (결정 #39)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -73,14 +73,15 @@ measurements:
     definition: maximum_girth_of_the_upper_arm
     definition_verified: false      # ISO 8559-1 5.3.16 원문 대조 전
     method: plane_slice
-    plane: horizontal
-    landmarks: [armpit_level, wrist_point]
+    plane: perpendicular_to_arm_axis   # v6: 수평 루프 중심점을 지나는 직선에 수직 (결정 #46)
+    landmarks: [armpit_level, wrist_point, arm_axis]
     side: right                     # Texel m15_r / NOMO Bicep_Circ 와 대조
     known_deviations:
-      - horizontal_slice_v1_a_relaxed_arm_may_not_be_vertical
+      - arm_axis_is_a_straight_line_through_horizontal_loop_centroids_v2
+      - horizontal_slice_fallback_when_axis_unresolved_flagged
       - search_window_bounded_by_armpit_and_wrist_no_elbow_landmark
     priority: core
-    implementation_status: plane_slice_v1
+    implementation_status: plane_slice_v2
     no_reference: false             # Texel m15 (5.3.16), NOMO Bicep_Circ
 
   across_back_shoulder_width:

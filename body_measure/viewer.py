@@ -104,22 +104,45 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
 
     armpit = landmarks.get("armpit_level")
     if armpit is not None:
-        arm_levels = []
+        # the upper-arm ring, cut where and how it was measured: at the
+        # station landmark, perpendicular to the arm axis (decision #46)
         for key, label in _ARM_CURVES:
             value = measurements.get(key)
-            level = landmarks.get(f"{key}_level")
-            if value is not None and value.selected_value_mm is not None and level is not None:
-                arm_levels.append((float(level.position_mm[1]),
-                                   f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C))
+            if value is None or value.selected_value_mm is None:
+                continue
+            for side in ("right", "left"):
+                station = landmarks.get(f"{key}_station_{side}")
+                axis = landmarks.get(f"arm_axis_{side}")
+                if station is None:
+                    continue
+                loop = None
+                if axis is not None and getattr(axis, "usable", False):
+                    s = float((station.position_mm - axis.origin_mm) @ axis.direction)
+                    loop = E.arm_loop_perpendicular(mesh, axis, s)
+                else:
+                    loops, _ = E.arm_loops_at(mesh, float(station.position_mm[1]), armpit)
+                    loop = loops.get(side)
+                if loop is not None:
+                    curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C,
+                                   np.asarray(loop.points, dtype=float), "loop"))
         sleeve = prototypes.get("sleeve_opening_girth")
         if sleeve is not None and sleeve.available and sleeve.level_mm is not None:
-            arm_levels.append((sleeve.level_mm, f"{sleeve.label}  {sleeve.value:.0f} mm",
-                               PROTO_C))
-        for level, label, colour in arm_levels:
-            loops, _ = E.arm_loops_at(mesh, level, armpit)
-            for i, loop in enumerate(loops.values()):
-                curves.append((label if i == 0 else None, colour,
-                               np.asarray(loop.points, dtype=float), "loop"))
+            label = f"{sleeve.label}  {sleeve.value:.0f} mm"
+            drawn = 0
+            for side in ("right", "left"):
+                axis = landmarks.get(f"arm_axis_{side}")
+                loop = None
+                if axis is not None and getattr(axis, "usable", False):
+                    loop = E.arm_loop_perpendicular(mesh, axis, axis.station_at_height(sleeve.level_mm))
+                if loop is not None:
+                    curves.append((label if drawn == 0 else None, PROTO_C,
+                                   np.asarray(loop.points, dtype=float), "loop"))
+                    drawn += 1
+            if drawn == 0:
+                loops, _ = E.arm_loops_at(mesh, sleeve.level_mm, armpit)
+                for i, loop in enumerate(loops.values()):
+                    curves.append((label if i == 0 else None, PROTO_C,
+                                   np.asarray(loop.points, dtype=float), "loop"))
 
     graph = EdgeGraph(mesh)
     back_neck = landmarks.get("back_neck_point")
