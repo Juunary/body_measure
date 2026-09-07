@@ -13,7 +13,7 @@
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | waist_circumference | exact | 10/10/10/0/0 | 10 | -12.2 | 13.5 | 6.4 | 18.6 | 49.8 |
-| across_back_shoulder_width | exact | 10/10/9/1/0 | 9 | +0.7 | 13.4 | 11.7 | 15.8 | 23.7 |
+| across_back_shoulder_width | exact | 10/10/9/1/0 | 9 | +0.8 | 13.1 | 13.6 | 15.5 | 24.8 |
 
 ## 참고 비교 — approximate 매핑 (정의 편차 있음, 성능 판정에 사용 금지)
 
@@ -22,8 +22,8 @@
 | chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.9 | 28.2 | 25.9 | 23.6 | 78.1 |
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
 | upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -16.1 | 17.4 | 16.8 | 14.1 | 33.9 |
-| sleeve_length | approximate | 10/10/9/1/0 | 9 | +178.8 | 178.8 | 176.9 | 36.1 | 253.5 |
-| back_length | approximate | 10/10/10/0/0 | 10 | +17.6 | 21.8 | 18.4 | 21.6 | 55.9 |
+| sleeve_length | approximate | 10/10/9/1/0 | 9 | +170.8 | 170.8 | 168.9 | 22.3 | 206.2 |
+| back_length | approximate | 10/10/10/0/0 | 10 | -2.7 | 16.4 | 14.3 | 20.8 | 37.3 |
 
 **NOMO — pilot baseline (N=10, male)**
 
@@ -47,7 +47,7 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 | sleeve_length | manual_review: 1, clean: 9 |
 | back_length | clean: 10 |
 
-소매길이 구간 감사 (n=10): back_neck→shoulder ↔ m36은 **mismatch**(m36 기점은 side neck point)로 수치 비교 제외. shoulder→wrist ↔ m2(approximate, 자세 상이) 평균 +156.7 mm, 전체 ↔ m55(approximate) 평균 +173.3 mm — **과대 편차는 shoulder→wrist 구간에 국소화**되어 있으며, edge-graph 근사·손목점 배치·자세 편차가 후보 원인이다.
+소매길이 구간 감사 (n=10): back_neck→shoulder ↔ m36은 **mismatch**(m36 기점은 side neck point)로 수치 비교 제외. shoulder→wrist ↔ m2(approximate, 자세 상이) 평균 +156.7 mm, 전체 ↔ m55(approximate) 평균 +165.1 mm — **과대 편차는 shoulder→wrist 구간에 국소화**되어 있으며, edge-graph 근사·손목점 배치·자세 편차가 후보 원인이다.
 
 ## 측정별 현재 판정
 
@@ -88,13 +88,13 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 ## 실행 정보
 
-- generated (UTC): 2026-09-03T14:41:19+00:00
-- git commit: 0927acff2dd8bb6b45b1904b96ffc8042547da0b — working tree: clean
+- generated (UTC): 2026-09-07T09:34:33+00:00
+- git commit: e228a1be8799bf7bd9c40603193fba1dd0f34ff9 — working tree: clean
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 7; spec SHA-256: f773ea6c5d894b16949f26ffba851c4064bd4fff64f271b976a0c2c8a3977d5a
+- spec_version 8; spec SHA-256: 26f7c13b1e7c9eb3dfa5babad233908d830e2785d6cf33ba8b29a36eff69842d
 - thresholds SHA-256: 97263bc8f00acd1f3b9873491ed82df364d06c4640dc54c9eca018ae6ede6d56
-- pytest: 195 passed in 128.77s
+- pytest: 237 passed in 582.66s (0:09:42)
 - random seed (SMPL generation): 20260817
 - commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
 - report paths: reports/validation-results.json; docs/report-formal.ko.md; docs/report-formal.en.md
