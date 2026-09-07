@@ -32,7 +32,10 @@ measurements:
   chest_circumference:
     plausible_mm: [600, 1600]
     definition: horizontal_torso_girth_at_maximum_chest_level
-    definition_verified: false
+    definition_verified: false   # ISO 조항 후보가 둘 — 5.3.4 Bust girth 와
+                                 # 5.3.6 Chest girth (at axilla). audit 은 5.3.4
+                                 # 로 판정했으나 5.3.6 은 겨드랑이 높이 고정이라
+                                 # 근거가 다르게 적용된다 (결정 #52)
     method: plane_slice
     plane: horizontal            # v1; 실제 ISO 정의가 경사면이면 spec_version 올려서 변경
     landmarks: [chest_level]
@@ -127,7 +130,10 @@ measurements:
   back_length:
     plausible_mm: [300, 650]
     definition: back_neck_point_to_waist_level_along_back_surface
-    definition_verified: false
+    definition_verified: false   # ISO 조항 후보가 둘 — 5.4.5 Back neck point to
+                                 # waist 와 5.4.13 Back neck point to waist level.
+                                 # 구현은 waist level 까지 가므로 5.4.13 일 수 있다
+                                 # (결정 #52)
     method: sagittal_slice_polyline
     route: [back_neck_point, waist_level]
     requires: [front_back_orientation, back_neck_point]

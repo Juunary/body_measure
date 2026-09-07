@@ -45,9 +45,25 @@ The requirement list is itself a claim. Most entries come from
 polo-line-sim's measurement list, which records that the Maß-DPP plan
 lists no body measurements at all and that its own list is derived from
 garment pattern practice and ISO 8559-1. Three more were identified while
-reading that list against what a draft needs, and stay `unsourced`: the
-manufacturers' POM sheets name them, but a finished-garment point cannot
-source a body requirement without the ease term that separates them.
+reading that list against what a draft needs, and were marked `unsourced`
+on the reasoning that only the manufacturers' POM sheets named them — and
+a finished-garment point cannot source a body requirement without the
+ease term that separates them.
+
+That reasoning was wrong, and reading the standard's own table of
+contents settled it (decision #52): ISO 8559-1:2017 defines all three as
+BODY measurements — 5.4.7 across front width, 5.4.8 front neck point to
+waist, 5.3.15 armscye girth. No drafting textbook was needed. Every
+entry here now carries the clause that names it, and only
+`sleeve_opening_girth` has none, because where a short sleeve ends is a
+design choice and the standard does not measure garments.
+
+A clause number is not a definition. It says the standard has an item by
+that name, read off its contents; what the item MEANS is clause 5's text,
+which is behind the paywall the `definition_verified` task is about. So
+this changes provenance, not validation: the prototypes stay prototypes
+until each is audited, and two entries name two candidate clauses each
+because the titles alone cannot separate them.
 """
 from __future__ import annotations
 
@@ -90,29 +106,42 @@ class Requirement:
     location: str
     #: where the requirement itself comes from
     source: str
+    #: the ISO 8559-1:2017 clause that names this measurement, when one
+    #: does. Read off the standard's table of contents (decision #52), so
+    #: it identifies the item, not its definition text — `measurement-
+    #: audit.md` still rates every mapping, and `definition_verified` in
+    #: the spec is still false for all of them.
+    iso_clause: str | None = None
 
 
 #: The body measurements a polo draft starts from. Every one is measured
 #: on a body; none is a finished-garment point. Order follows the garment:
 #: torso, then arm.
 LIST = "polo-line-sim measurement list"
-UNSOURCED = ("unsourced — identified from the list; the manufacturers' POM "
-             "sheets name it, but as a finished-garment point, which cannot "
-             "source a body requirement without the ease term")
+#: The standard names them. Until 2026-09-07 these three were `unsourced`,
+#: on the reasoning that only the manufacturers' POM sheets named them and
+#: a finished-garment point cannot source a body requirement. That was
+#: wrong: ISO 8559-1:2017 defines all three as body measurements, in
+#: clause 5. The clause number is the source (decision #52).
+ISO = "ISO 8559-1:2017"
 
 POLO_REQUIREMENTS = (
     Requirement("chest_circumference", "chest girth", "body width — the "
-                "critical one", "spec", BY_ANATOMY, LIST),
+                "critical one", "spec", BY_ANATOMY, LIST,
+                "5.3.4 or 5.3.6 — unresolved, see measurement-audit.md"),
     Requirement("waist_circumference", "waist girth", "side seam silhouette",
-                "spec", BY_ANATOMY, LIST),
+                "spec", BY_ANATOMY, LIST, "5.3.10 Waist girth"),
     Requirement("neck_circumference", "neck base girth",
-                "rib collar length, neckline", "spec", BY_ANATOMY, LIST),
+                "rib collar length, neckline", "spec", BY_ANATOMY, LIST,
+                "5.3.3 Neck base girth"),
     Requirement("across_back_shoulder_width", "acromion to acromion across "
-                "the back", "yoke and shoulder seam", "spec", BY_ANATOMY, LIST),
+                "the back", "yoke and shoulder seam", "spec", BY_ANATOMY, LIST,
+                "5.4.3 Across back shoulder width (through the back neck point)"),
     Requirement("back_length", "back neck point to waist", "body length, "
-                "drop tail", "spec", BY_ANATOMY, LIST),
+                "drop tail", "spec", BY_ANATOMY, LIST,
+                "5.4.5 or 5.4.13 — unresolved, see measurement-audit.md"),
     Requirement("upper_arm_girth", "upper arm girth", "sleeve width",
-                "spec", BY_ANATOMY, LIST),
+                "spec", BY_ANATOMY, LIST, "5.3.16 Upper-arm girth"),
     # `sleeve_length` is deliberately NOT here. The spec defines it as
     # back neck point to WRIST and marks it `priority: deferred`; a short
     # sleeve stops part-way down the upper arm, and where it stops is a
@@ -120,26 +149,32 @@ POLO_REQUIREMENTS = (
     # dimension. Listing it made the gate demand a long-sleeve measurement
     # to draft a short sleeve — see decision #35.
     Requirement("hip_girth", "widest torso girth below the waist",
-                "hem width, once ease is added", "prototype", BY_ANATOMY, LIST),
+                "hem width, once ease is added", "prototype", BY_ANATOMY, LIST,
+                "5.3.14 Maximum hip girth (seat measure girth)"),
     Requirement("sleeve_opening_girth", "arm girth where the sleeve ends",
                 "rib cuff length, once ease is added", "prototype",
-                BY_DESIGN, LIST),
+                BY_DESIGN, LIST, None),  # no clause: the level is a design choice
     Requirement("armhole_depth", "shoulder to armpit vertical drop",
-                "armhole curve, sleeve cap", "prototype", BY_ANATOMY, LIST),
+                "armhole curve, sleeve cap", "prototype", BY_ANATOMY, LIST,
+                "5.4.6 Scye depth length"),
     Requirement("shoulder_slope", "degrees below horizontal, neck to "
                 "shoulder tip", "shoulder seam angle", "prototype",
-                BY_ANATOMY, LIST),
+                BY_ANATOMY, LIST, "5.6.2 Shoulder slope"),
     Requirement("front_back_width", "how the chest girth divides front to "
-                "back", "front / back balance", "prototype", BY_ANATOMY, LIST),
+                "back", "front / back balance", "prototype", BY_ANATOMY, LIST,
+                "5.2.4 Armscye front to back width — likely, unconfirmed"),
     Requirement("centre_front_length", "neck to waist down the front",
                 "front length; the drop tail is the difference from back "
-                "length", "unimplemented", BY_ANATOMY, UNSOURCED),
+                "length", "unimplemented", BY_ANATOMY, ISO,
+                "5.4.8 Front neck point to waist"),
     Requirement("armhole_girth", "the armscye loop on the body",
                 "sleeve cap length; armhole_depth gives the depth, not the "
-                "girth", "unimplemented", BY_ANATOMY, UNSOURCED),
+                "girth", "unimplemented", BY_ANATOMY, ISO,
+                "5.3.15 Armscye girth"),
     Requirement("across_front", "shoulder to shoulder across the front",
                 "front width; front_back_width gives the difference, not the "
-                "width", "unimplemented", BY_ANATOMY, UNSOURCED),
+                "width", "unimplemented", BY_ANATOMY, ISO,
+                "5.4.7 Across front width"),
 )
 
 
@@ -163,6 +198,7 @@ class RequirementStatus:
             "measured_at": self.requirement.location,
             "provision": self.requirement.provision,
             "requirement_source": self.requirement.source,
+            "iso_clause": self.requirement.iso_clause,
             "value": self.value,
             "unit": self.unit,
             "bucket": self.bucket,
@@ -280,9 +316,22 @@ def assess(measurements, prototypes=None, *, garment: str = "polo",
     unsourced = [s for s in statuses if "unsourced" in s.requirement.source]
     if unsourced:
         notes.append(
-            f"{len(unsourced)} of the {len(statuses)} requirements are unsourced. "
-            "The manufacturers' POM sheets name all three, but as "
-            "finished-garment points — which cannot source a body requirement "
-            "without the ease term that separates them. The list is a claim "
-            "like any other.")
+            f"{len(unsourced)} of the {len(statuses)} requirements are unsourced: "
+            + ", ".join(s.requirement.key for s in unsourced)
+            + ". The list is a claim like any other.")
+    unnamed = [s for s in statuses if s.requirement.iso_clause is None]
+    if unnamed:
+        notes.append(
+            f"{len(unnamed)} requirement(s) have no clause in ISO 8559-1: "
+            + ", ".join(s.requirement.key for s in unnamed)
+            + ". The standard measures bodies, and where a short sleeve ends "
+            "is not a property of one.")
+    unresolved = [s for s in statuses
+                  if s.requirement.iso_clause and "unresolved" in s.requirement.iso_clause]
+    if unresolved:
+        notes.append(
+            f"{len(unresolved)} requirement(s) match more than one clause and the "
+            "standard's text has not been read to choose: "
+            + ", ".join(s.requirement.key for s in unresolved)
+            + ". A clause number identifies the item, not its definition.")
     return Readiness(garment, verdict, statuses, notes)

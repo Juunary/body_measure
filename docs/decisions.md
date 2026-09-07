@@ -2332,6 +2332,17 @@ has `definition_verified: false` and an `approximate` reference mapping,
 so −2.7 mm against Texel says the two now disagree less, not that either
 is the ISO 8559-1 back length.
 
+**Confirmed by the standard, 2026-09-07.** ISO 8559-1:2017 3.1.6 defines
+the back neck point as the spinous process of the seventh cervical
+vertebra "in the mid-sagittal plane, and projected posteriorly to the
+surface of the skin" (identical to cervicale in ISO 7250-1). The
+mid-sagittal plane is exactly what this decision moved the landmark to.
+The placement it replaced — the most-backward point of the torso loop,
+26 to 89 mm off that plane — was wrong by the standard's own definition,
+not merely noisy. The change was made from the zigzag on the screen and
+the +17.6 mm bias, before the text was seen; the text agreeing is
+evidence, not the reason (decision #52).
+
 **Rules out:** an argmax over a flat surface as a landmark placement; an
 edge-graph walk for a path the spec defines as planar.
 
@@ -2493,3 +2504,98 @@ strength of summaries.
 
 **Revisit if:** the standard's text is read (then every band is checked
 against it at once, gap included), or a 5XL body arrives.
+
+
+## 52. The standard's contents page answered three open questions
+
+**Date:** 2026-09-07 · **Status:** accepted · **Spec unchanged**
+
+ISO 8559-1 has been an ITA library task since the first commit: every
+measurement carries `definition_verified: false` because nobody had read
+it. Looking for a substitute in the university's subscriptions (the
+Woodhead volume *Anthropometry, Apparel Sizing and Design*, which
+Kwangwoon does not license) turned up something better — ISO distributes
+a **free 15-page preview** of ISO 8559-1:2017: cover, copyright, the
+complete table of contents, Scope, and clause 3.1.1 to 3.1.13 verbatim.
+
+**What a contents page is worth.** It gives the clause NUMBER and TITLE
+of every measurement the standard defines, and nothing about what any of
+them means. That is enough to settle provenance — does the standard have
+an item by this name — and not enough to settle definition. So this
+decision changes `unsourced` labels and adds clause numbers; it moves no
+measurement, promotes no prototype, and leaves `definition_verified`
+false everywhere.
+
+**1. The three "unsourced" requirements are in the standard.**
+`pattern_readiness.py` carried `centre_front_length`, `armhole_girth`
+and `across_front` as unsourced, reasoning that only the manufacturers'
+POM sheets name them and a finished-garment point cannot source a body
+requirement without the ease term. The reasoning was sound and the
+premise was false: ISO 8559-1 defines all three as body measurements —
+5.4.8 Front neck point to waist, 5.3.15 Armscye girth, 5.4.7 Across
+front width. Decision #30 was waiting on a comparison against M. Müller
+& Sohn or Aldrich; it was never needed.
+
+**2. Four of the five prototypes are standard measurements too.**
+`hip_girth` (5.3.13 / 5.3.14), `armhole_depth` (5.4.6 Scye depth
+length), `shoulder_slope` (5.6.2) and probably `front_back_width` (5.2.4
+Armscye front to back width). They stay prototypes — promotion needs a
+definition audit, a reference to compare against, and the robustness
+battery, and a clause number is none of those — but "not in the
+standard" was the wrong reason to hold them. Only
+`sleeve_opening_girth` has no clause, and that is correct: the standard
+measures bodies, and where a short sleeve ends is a design choice.
+
+**3. Two mappings turn out to be ambiguous, both in core measurements.**
+
+* `chest_circumference` was audited against 5.3.4 Bust girth. The
+  standard splits this four ways — 5.3.4 Bust girth, 5.3.5 Bust girth
+  contoured, **5.3.6 Chest girth (at axilla)**, 5.3.7 Upper chest girth.
+  The audit's stated grounds ("ISO fixes the height at the bust point,
+  we search for a maximum") apply to 5.3.4 and mean something different
+  against 5.3.6, which fixes the height at the axilla instead. This is
+  the measurement the size rests on, and its +26.8 mm bias is the
+  project's largest known definition gap, so which clause it answers to
+  is not a filing question.
+* `back_length` was audited against 5.4.5 Back neck point to waist. The
+  standard also has 5.4.13 Back neck point to waist **level**. This
+  pipeline measures to the waist level, so 5.4.13 may be the match.
+
+Both are now marked unresolved rather than quietly kept, because the
+titles alone cannot separate them and the text is behind the paywall.
+
+**4. One landmark is confirmed and one is not.** 3.1.6 back neck point
+is defined in the mid-sagittal plane, which is what decision #48 moved
+it to a day earlier — recorded there. 3.1.1 shoulder point is "the most
+LATERAL point of the acromial process, projected vertically to the
+surface of the skin"; `estimate_shoulder_points` fixes the height from
+the armpit crease and takes the HIGHEST point in a narrow lateral slab.
+Those are different extrema on the same bone, and the standing
+`acromion_approximation` flag can now say which. Nothing is changed here
+— decision #32 rejected an argmax along a monotonic axis for good
+reasons, and swapping one extremum for another needs its own evidence,
+not a title.
+
+**A stale row was found while writing this up.** The audit rates
+`waist_circumference` **exact** against Texel m102 with m16 as auxiliary.
+`adapters/texel.py` has used m16 as the reference since decision #47,
+with m102 kept for the v1 comparison — the code and the table say
+opposite things. The verdict decides which measurements enter the
+headline statistics, so it is flagged and left standing rather than
+re-judged in passing.
+
+**What this is not.** Not a reading of the standard. Fifteen pages of a
+seventy-page document, of which the substantive part is thirteen
+landmark definitions. Clause 5 — every girth and every surface distance,
+which is where "maximum girth" versus "at the axilla" is settled — is
+not in it, nor is Annex C's landmark-to-measurement mapping, nor Annex
+B's postures, which is what the pose gate would be checked against. The
+library task is unchanged; it is now better specified.
+
+**Rules out:** treating a clause number as a definition; recording a
+requirement as unsourced without checking the standard that governs it.
+
+**Revisit if:** the full text arrives — RWTH's Beuth access is the
+likeliest route, a KS adoption the next — at which point the two
+ambiguous mappings, the shoulder extremum and `definition_verified`
+itself all become answerable.

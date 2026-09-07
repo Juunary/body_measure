@@ -128,13 +128,36 @@ def test_a_design_located_requirement_is_named_as_such():
     assert "sleeve_opening_girth" in joined
 
 
-def test_the_unsourced_requirements_are_declared_as_such():
-    """Three entries were identified by reading, not taken from a drafting
-    system. The gate reports the provenance of its own requirements."""
+def test_every_requirement_is_sourced():
+    """Three entries were `unsourced` until the standard's own contents page
+    was read: ISO 8559-1 names all three (decision #52). The gate reports
+    the provenance of its own requirements, so nothing may be unsourced
+    without saying so."""
     unsourced = [r for r in POLO_REQUIREMENTS if "unsourced" in r.source]
-    assert len(unsourced) == 3
+    assert unsourced == []
     readiness = assess(measured())
-    assert any("unsourced" in note for note in readiness.notes)
+    assert not any("unsourced" in note for note in readiness.notes)
+
+
+def test_the_standard_names_every_requirement_but_the_design_located_one():
+    """A clause number is provenance, not a definition — but its ABSENCE is
+    a claim too, and only one requirement may make it: where a short sleeve
+    ends is a design choice, and the standard measures bodies."""
+    without = {r.key for r in POLO_REQUIREMENTS if r.iso_clause is None}
+    assert without == {"sleeve_opening_girth"}
+    readiness = assess(measured())
+    assert any("no clause in ISO 8559-1" in note for note in readiness.notes)
+
+
+def test_the_ambiguous_clause_mappings_are_declared_unresolved():
+    """chest_circumference and back_length each match two clause titles and
+    the text has not been read to choose. A mapping that is not settled must
+    not read as one that is."""
+    unresolved = {r.key for r in POLO_REQUIREMENTS
+                  if r.iso_clause and "unresolved" in r.iso_clause}
+    assert unresolved == {"chest_circumference", "back_length"}
+    readiness = assess(measured())
+    assert any("more than one clause" in note for note in readiness.notes)
 
 
 def test_the_spec_requirements_are_all_real_spec_keys():
