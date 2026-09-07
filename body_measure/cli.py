@@ -46,7 +46,9 @@ def _build_parser() -> argparse.ArgumentParser:
     measure.add_argument("--size-chart",
                          choices=["none", "en13402", "en13402-women", "lacoste"],
                          default="none",
-                         help="assign a ready-to-wear size from the measured body")
+                         help="assign a reference size by chest girth from the measured "
+                              "body — a chart lookup, not a fit recommendation; "
+                              "'lacoste' is the EN bands with Lacoste's numeric labels")
     measure.add_argument("--skip-pose-gate", action="store_true",
                          help="measure even if the scan is not a standing A pose; "
                               "the verdict is still recorded in meta.pose")

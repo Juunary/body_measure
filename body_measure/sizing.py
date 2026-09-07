@@ -1,5 +1,14 @@
 """The end of the pipeline: turn measured body dimensions into a size.
 
+What this module is: a chest-girth classifier. It takes ONE measured
+body dimension — the primary measurement of the chosen chart, chest (or
+bust) girth on every chart here — and returns the letter whose published
+band contains it. That is a reference size by chest girth. It is not a
+fit recommendation: height, waist, shoulder width and the ease a pattern
+adds play no part in it, and EN 13402 itself names height and waist as
+secondary dimensions this module does not read. Anything downstream that
+calls the result a "recommended size" is overstating it.
+
 A size chart maps BODY girths to a label. It does not describe the
 garment — a size-M polo is wider than a 94-102 cm chest, by whatever ease
 the pattern adds — so nothing here may be read as a finished-garment
@@ -61,10 +70,14 @@ EN_13402_3 = SizeChart(
     checked="2026-08-28",
     dimension_kind="body",
     population="men",
-    note="The European standard for the market this line produces for. Each "
-         "letter spans two adjacent 4 cm size steps, so the bands are 8 cm "
-         "wide. Men's upper-body garments are designated by chest girth "
-         "alone; height and waist are optional secondary indicators.",
+    note="The European standard for the market this line produces for. S to "
+         "XL each span two adjacent 4 cm size steps (8 cm); XXL is 118-129 "
+         "as the source page prints it, 11 cm, so the two-step rule is not "
+         "uniform. Men's upper-body garments are designated by chest girth "
+         "as the primary dimension; height and waist are secondary "
+         "dimensions the standard allows and this classifier does not use. "
+         "Copied from a summary web page, not from the standard's text; the "
+         "edition is unrecorded.",
     bands=(
         SizeBand("S", 86.0, 94.0),
         SizeBand("M", 94.0, 102.0),
@@ -76,18 +89,23 @@ EN_13402_3 = SizeChart(
 
 LACOSTE_MEN = SizeChart(
     key="lacoste",
-    name="Lacoste men, numeric sizes 3-7",
-    source="Lacoste men's size guide (numeric 3=S, 4=M, 5=L, 6=XL, 7=XXL); "
-           "published body chest range for S-XXL is 86-117 cm",
+    name="Lacoste numeric labels on EN 13402-3 bands (derived, unofficial)",
+    source="Derived: the EN 13402-3 men's bands above, relabelled with "
+           "Lacoste's numeric sizes (3=S, 4=M, 5=L, 6=XL, 7=XXL). Not the "
+           "brand's own table. A span of 86-117 cm for S-XXL was noted from "
+           "the brand's guide on 2026-08-28 and is recorded as noted; it "
+           "could not be re-verified on 2026-09-07 (the site refused the "
+           "fetch) and it does not match this table's 86-129, which is EN's.",
     checked="2026-08-28",
     dimension_kind="body",
     population="men",
-    note="A polo maker's own chart, kept as a cross-check rather than an "
-         "authority. Its S-XXL span (86-117 cm) agrees with EN 13402-3 to "
-         "within a centimetre, which is the useful fact: a brand chart and "
-         "the standard do not disagree enough to change a size here. Bands "
-         "below are the standard's, relabelled to Lacoste's numbers — the "
-         "brand publishes the span, not the per-size cut points.",
+    note="A label conversion, not a brand chart: every band edge here is "
+         "EN 13402-3's, and only the label differs. It exists so a size can "
+         "be written the way this polo maker writes it. It cannot serve as "
+         "a cross-check of the standard — it IS the standard, renamed — and "
+         "agreement between the two says nothing. Replace the bands with "
+         "the brand's published per-size cut points, with a citation, "
+         "before reading it as Lacoste's.",
     bands=(
         SizeBand("3 (S)", 86.0, 94.0),
         SizeBand("4 (M)", 94.0, 102.0),
@@ -105,13 +123,16 @@ EN_13402_3_WOMEN = SizeChart(
     checked="2026-08-28",
     dimension_kind="body",
     population="women",
-    note="Two irregularities are recorded AS PUBLISHED rather than smoothed. "
-         "L ends at 106 cm and XL begins at 107, leaving a 1 cm gap that no "
-         "letter covers; a bust in it is refused, which is what a chart that "
-         "does not cover a body should do. And XL and XXL span 12 cm where the "
-         "smaller letters span 8, so the two-step rule the men's table follows "
-         "does not hold across this one. Closing the gap or evening the widths "
-         "would make the table tidier and no longer the published table.",
+    note="Two irregularities are kept as the source page's letter table "
+         "prints them rather than smoothed. L ends at 106 cm and XL begins "
+         "at 107, leaving a 1 cm gap no letter covers; a bust in it is "
+         "refused. And XL and XXL span 12 cm where the smaller letters span "
+         "8. Neither is verified against the standard's text: the same page's "
+         "detailed women's table runs 98-102 / 102-107 / 107-113 with no "
+         "gap, so the page contradicts itself and the gap may be the page's, "
+         "not EN's. Until the edition is read, the letter table is used as "
+         "printed and the refusal stands; closing the gap by hand would be "
+         "guessing which of the two tables is right.",
     bands=(
         SizeBand("XS", 74.0, 82.0),
         SizeBand("S", 82.0, 90.0),
@@ -151,11 +172,22 @@ class SizeAssignment:
             "dimension_kind": self.chart.dimension_kind,
             "chart_population": self.chart.population,
             "primary_measurement": self.chart.primary_measurement,
+            "chart_note": self.chart.note,
             "chest_mm": self.chest_mm,
             "reason": self.reason,
             "flags": self.flags,
             "alternative": self.alternative,
         }
+
+
+def _band_overlaps(chart: SizeChart, band: SizeBand, lo_cm: float, hi_cm: float) -> bool:
+    """Whether the closed window [lo, hi] shares a point with `band`. The
+    band's upper edge is exclusive except on the chart's last band, the
+    same rule `assign` selects by, so a window that ends exactly on a
+    shared edge reaches the band above it and not the band below."""
+    last = band is chart.bands[-1]
+    below_top = lo_cm <= band.chest_max_cm if last else lo_cm < band.chest_max_cm
+    return below_top and hi_cm >= band.chest_min_cm
 
 
 def assign(measurements, *, chart: SizeChart = EN_13402_3,
@@ -251,13 +283,21 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
                    "the published table covers no letter there",
             flags=flags + ["between_bands"])
 
+    # The alternative is a band the measurement could actually be in: the
+    # error window [chest - margin, chest + margin] has to overlap the
+    # neighbour under the neighbour's own edge rule. Distance to this
+    # band's edge is not enough — on the women's table 105.5 cm is 5 mm
+    # from L's edge and 15 mm from XL's start, and naming XL there was
+    # naming a band the window never reached (decision #49).
     alternative = None
-    for edge, neighbour in ((band.chest_min_cm, -1), (band.chest_max_cm, +1)):
-        if abs(chest_mm - edge * 10.0) <= BOUNDARY_MARGIN_MM:
-            index = chart.bands.index(band) + neighbour
-            if 0 <= index < len(chart.bands):
-                alternative = chart.bands[index].label
-                flags.append("near_size_boundary")
+    lo_cm = (chest_mm - BOUNDARY_MARGIN_MM) / 10.0
+    hi_cm = (chest_mm + BOUNDARY_MARGIN_MM) / 10.0
+    index = chart.bands.index(band)
+    for neighbour in (index - 1, index + 1):
+        if 0 <= neighbour < len(chart.bands) and _band_overlaps(
+                chart, chart.bands[neighbour], lo_cm, hi_cm):
+            alternative = chart.bands[neighbour].label
+            flags.append("near_size_boundary")
 
     reason = f"chest {chest_cm:.1f} cm falls in {band.chest_min_cm:.0f}-{band.chest_max_cm:.0f} cm"
     if alternative:

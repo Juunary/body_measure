@@ -2339,3 +2339,72 @@ edge-graph walk for a path the spec defines as planar.
 the code falls back to the edge walk and says so in `method`, and no
 scan in the current data has needed it — or if the ISO text places the
 back neck point somewhere other than the midline behind the axis.
+
+## 49. The size is a chest-girth lookup, and its alternative must be reachable
+
+**Date:** 2026-09-07 · **Status:** accepted · **Supersedes the Lacoste
+wording in #17**
+
+An outside review of `sizing.py` (received 2026-09-07) was checked claim
+by claim against the code and, where reachable, its sources. Every claim
+about the code held. This decision takes the two that need no policy
+choice and records the rest for the size-methodology meeting.
+
+**What was wrong, and is fixed.**
+
+* **The alternative size could name a band the measurement never
+  reached.** The rule was "within 10 mm of this band's edge, name the
+  band on that side". On the women's table L ends at 106 and XL begins
+  at 107: a bust of 105.5 cm is 5 mm from L's edge, so XL was offered as
+  "equally defensible" — 15 mm away, outside the very margin the rule
+  is built on. Mirror case at 107.5. The alternative is now a band the
+  error window `[chest − 10 mm, chest + 10 mm]` actually overlaps, under
+  that band's own edge rule (upper edge exclusive, except the last
+  band's). Consequences pinned by test: men's 93.0 → S with M (the
+  window reaches 94, which is M's); 94.0 → M with S; **95.0 → M, no
+  alternative** — 95 ± 1 is 94 at its lowest and 94 is already M, so S
+  was never in reach, though the old rule named it. Across the women's
+  gap nothing is offered in either direction. 129.0 stays XXL (the last
+  band's top is inclusive), 129.1 stays outside the chart. The bands
+  themselves and the assignment policy are unchanged.
+
+* **The Lacoste chart claimed to be something it is not.** Its bands are
+  EN 13402-3's with the brand's numbers on the labels, and its own note
+  said so — while its `source` claimed a brand span of 86–117 cm that the
+  table (86–129) does not have, and its note called that "agreement
+  within a centimetre". The test comparing the two charts compared a
+  table with a copy of itself. The chart is now named and described as a
+  **derived, unofficial label conversion**; the 86–117 figure stays
+  recorded as noted on 2026-08-28 and is marked unverified (the brand's
+  site refused a fetch on 2026-09-07) rather than corrected to fit. The
+  test now pins exactly what the table is: every edge equal to EN's,
+  every label a number plus the letter it stands for.
+
+* Two notes said false things about their own numbers: "bands are 8 cm
+  wide" (XXL is 118–129, 11 cm, as the source page prints it) and the
+  women's 106–107 gap "as published" — the same source page's detailed
+  women's table runs 98-102 / 102-107 / 107-113 with no gap, so the page
+  contradicts itself and the gap is unverified against the standard. The
+  notes now say so. The gap is still refused; closing it by hand would be
+  choosing between the page's two tables without reading the standard.
+
+* `to_dict()` now carries `chart_note`, and the studio's size card shows
+  it, with a line stating what the size is: a reference size by chest
+  girth against published bands, not a fit recommendation. The module
+  docstring says the same, and so does `--size-chart`'s help.
+
+**Deliberately not changed here** — each is a policy question, not a
+defect, and goes to the methodology meeting: correcting or gating on the
++26.9 mm chest bias (Texel n=10; larger than the 10 mm boundary margin,
+so a true-M can read L with no alternative); widening the margin; treating
+`population=None` as provisional rather than assigned; checking
+`dimension_kind` at assignment; recording which edition of EN 13402-3 the
+bands came from, which needs the standard's text, not a web page.
+
+**Rules out:** describing this module as a size recommender; using the
+Lacoste table as a cross-check of the standard; an alternative that is
+not inside the error window.
+
+**Revisit if:** the brand's per-size cut points are obtained with a
+citation (then the table stops being derived and its test changes with
+it), or the standard's text settles the women's gap either way.

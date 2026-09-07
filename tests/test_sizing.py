@@ -19,6 +19,7 @@ from body_measure.sizing import (
     BOUNDARY_MARGIN_MM,
     CHARTS,
     EN_13402_3,
+    EN_13402_3_WOMEN,
     LACOSTE_MEN,
     assign,
 )
@@ -167,15 +168,94 @@ def test_the_lowest_and_highest_bands_have_no_outward_neighbour():
     assert high.label == "XXL" and high.alternative is None
 
 
-def test_the_brand_chart_agrees_with_the_standard_on_the_size_taken():
-    """The cross-check is only useful while it agrees; if Lacoste's bands
-    are ever changed to real per-size cut points this will say so."""
-    for value_mm in (880.0, 980.0, 1050.0, 1140.0, 1250.0):
-        standard = assign(chest(value_mm), chart=EN_13402_3, population="men")
-        brand = assign(chest(value_mm), chart=LACOSTE_MEN, population="men")
-        # the brand labels its bands "3 (S)", "4 (M)" and so on, so the
-        # standard's letter is contained in, not equal to, the brand's
-        assert f"({standard.label})" in brand.label
+@pytest.mark.parametrize("chest_cm, label, alternative", [
+    # the S/M edge is 94, exclusive on S's side: [86, 94) then [94, 102)
+    (93.0, "S", "M"),     # window 92-94 reaches M, which begins AT 94
+    (94.0, "M", "S"),     # window 93-95 reaches S, which runs up to 94
+    (95.0, "M", None),    # window 94-96: 94 is already M, S ends below it
+])
+def test_the_alternative_is_a_band_the_error_window_reaches(chest_cm, label, alternative):
+    """Decision #49. 95.0 is exactly the margin from the edge and used to
+    name S; a measurement of 95 +/- 1 cm is 94 at its lowest, and 94 is
+    M. The window has to overlap the neighbour, not merely approach it."""
+    result = assign(chest(chest_cm * 10.0), population="men")
+    assert result.label == label
+    assert result.alternative == alternative
+    assert ("near_size_boundary" in result.flags) == (alternative is not None)
+
+
+@pytest.mark.parametrize("chest_cm, label, alternative", [
+    (105.5, "L", None),   # 5 mm from L's edge, but XL starts 15 mm away
+    (107.5, "XL", None),  # 5 mm from XL's start, but L ended 15 mm below
+    (105.0, "L", None),   # window 104-106: 106 is not in L and not in XL
+    (108.0, "XL", None),  # window 107-109: 107 is XL's own start
+])
+def test_no_alternative_reaches_across_the_womens_gap(chest_cm, label, alternative):
+    """Before #49 both 105.5 and 107.5 named the band on the far side of
+    the 106-107 gap as 'equally defensible', when no measurement within
+    the margin could land there."""
+    result = assign(chest(chest_cm * 10.0), chart=EN_13402_3_WOMEN, population="women")
+    assert result.label == label
+    assert result.alternative is alternative
+    assert "near_size_boundary" not in result.flags
+
+
+def test_the_gap_itself_is_still_refused():
+    """Unchanged by #49: the bands and the refusal policy are as before."""
+    for chest_cm in (106.0, 106.5, 106.9):
+        result = assign(chest(chest_cm * 10.0), chart=EN_13402_3_WOMEN, population="women")
+        assert not result.assigned
+        assert "between_bands" in result.flags
+
+
+@pytest.mark.parametrize("chest_cm, label, alternative", [
+    (129.0, "XXL", None),   # the last band's top edge is inclusive
+    (128.5, "XXL", None),   # nothing above XXL to be an alternative
+    (118.5, "XXL", "XL"),   # window 117.5-119.5 reaches XL, which ends at 118
+    (119.0, "XXL", None),   # window 118-120: 118 is XXL's own start
+    (117.5, "XL", "XXL"),   # window 116.5-118.5 reaches XXL at 118
+])
+def test_the_last_band_keeps_its_inclusive_top_and_its_one_neighbour(chest_cm, label, alternative):
+    result = assign(chest(chest_cm * 10.0), population="men")
+    assert result.label == label
+    assert result.alternative == alternative
+
+
+def test_just_past_the_last_band_is_outside_the_chart():
+    result = assign(chest(1291.0), population="men")
+    assert not result.assigned
+    assert "outside" in result.reason
+
+
+def test_the_lacoste_table_is_a_label_conversion_of_the_en_bands():
+    """Not a brand check — there is no brand data to check against. The
+    table is EN 13402-3's bands with Lacoste's numbers on them, and this
+    pins exactly that: every edge equal, every label a number plus the
+    letter it stands for, and the chart saying so in its own name."""
+    assert len(LACOSTE_MEN.bands) == len(EN_13402_3.bands)
+    for numbered, standard, number in zip(LACOSTE_MEN.bands, EN_13402_3.bands, "34567"):
+        assert (numbered.chest_min_cm, numbered.chest_max_cm) ==             (standard.chest_min_cm, standard.chest_max_cm)
+        assert numbered.label == f"{number} ({standard.label})"
+    assert "derived" in LACOSTE_MEN.name.lower()
+    assert "not the brand's own table" in LACOSTE_MEN.source.lower()
+    assert "label conversion" in LACOSTE_MEN.note.lower()
+
+
+def test_the_assignment_carries_the_charts_note():
+    """The note is where a chart says what it is not — the Lacoste table
+    that it is derived, the women's table that its gap is unverified. A
+    consumer that sees only the name would take both at face value."""
+    for chart in CHARTS.values():
+        result = assign(chest(1000.0), chart=chart, population=chart.population)
+        assert result.to_dict()["chart_note"] == chart.note
+        assert result.to_dict()["chart_note"]
+
+
+def test_the_module_says_what_it_is_not():
+    import body_measure.sizing as sizing
+    doc = " ".join(sizing.__doc__.lower().split())
+    assert "not a fit recommendation" in doc
+    assert "chest-girth classifier" in doc
 
 
 # ---------------------------------------------------------------- the CLI ---
