@@ -18,7 +18,8 @@ from scipy.sparse.csgraph import dijkstra
 
 from .garment_prototypes import torso_girth_at
 from .landmarks import estimated as E
-from .measure.surface_path import MAX_WAYPOINT_SNAP_MM, EdgeGraph
+from .measure.surface_path import (MAX_WAYPOINT_SNAP_MM, EdgeGraph,
+                                   plane_section_arc_mm)
 
 MESH_FACE, MESH_EDGE = "#C7D2DA", "#B3C0CA"
 SPEC_C, PROTO_C, INK, MUTED = "#1E5F8C", "#B85042", "#20303F", "#7A8B99"
@@ -151,10 +152,23 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
     right = landmarks.get("shoulder_point_right")
     wrist = landmarks.get("wrist_point_right") or landmarks.get("wrist_point_left")
 
+    # back_length is a plane section, not a walk (decision #48): drawing it
+    # from the edge graph would put a staircase on the screen under a
+    # number that no longer has one.
+    facing = landmarks.get("facing")
+    direction = getattr(facing, "direction", None)
+    back_length = measurements.get("back_length")
+    if (back_neck is not None and back_waist is not None and direction is not None
+            and back_length is not None and back_length.selected_value_mm is not None):
+        _, arc, _ = plane_section_arc_mm(
+            mesh, back_neck.position_mm, back_waist.position_mm,
+            E.sagittal_normal(direction),
+        )
+        if arc is not None and len(arc) > 1:
+            curves.append((f"Back length  {back_length.selected_value_mm:.0f} mm",
+                           SPEC_C, arc, "path"))
+
     routes = []
-    if back_neck is not None and back_waist is not None:
-        routes.append(("back_length", "Back length",
-                       [back_neck.position_mm, back_waist.position_mm]))
     if back_neck is not None and left is not None and right is not None:
         routes.append(("across_back_shoulder_width", "Across-back width",
                        [left.position_mm, back_neck.position_mm, right.position_mm]))

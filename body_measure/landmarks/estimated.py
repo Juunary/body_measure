@@ -696,28 +696,86 @@ def _torso_loop_at(mesh: trimesh.Trimesh, level_mm: float):
     return loops, selection
 
 
+def sagittal_normal(facing_xz: np.ndarray) -> np.ndarray:
+    """Unit normal of the body's sagittal plane: horizontal, across the
+    facing direction. The plane itself also needs a point on the body
+    axis; every caller here uses `body_axis_point`."""
+    f = np.asarray(facing_xz, dtype=np.float64)
+    normal = np.array([-f[1], 0.0, f[0]])
+    return normal / np.linalg.norm(normal)
+
+
+def _midline_crossing_behind(
+    points: np.ndarray, axis_xz: np.ndarray, facing_xz: np.ndarray
+) -> np.ndarray | None:
+    """Where a closed loop crosses the sagittal plane behind the body axis.
+
+    Interpolated on the segment that changes side, so the point does not
+    depend on where the triangulation happened to put a vertex.
+    """
+    rel = points[:, [0, 2]] - np.asarray(axis_xz, dtype=np.float64)
+    lateral = np.array([-facing_xz[1], facing_xz[0]], dtype=np.float64)
+    side = rel @ lateral
+    behind = -(rel @ facing_xz)
+
+    best, best_behind = None, 0.0
+    n = len(points)
+    for i in range(n):
+        j = (i + 1) % n
+        s0, s1 = side[i], side[j]
+        if s0 == s1 or (s0 > 0) == (s1 > 0):
+            continue
+        t = s0 / (s0 - s1)
+        depth = behind[i] + t * (behind[j] - behind[i])
+        if depth <= 0.0 or depth <= best_behind:
+            continue        # the front crossing, or a shallower back one
+        best_behind = depth
+        best = points[i] + t * (points[j] - points[i])
+    return best
+
+
 def estimate_back_point_at(
     mesh: trimesh.Trimesh, level_mm: float, facing_xz: np.ndarray, name: str
 ) -> Landmark | None:
-    """Most-backward point of the torso loop at a height (e.g. the back
-    neck point at the neck-base level, the back waist point)."""
+    """Where the torso loop at a height crosses the body's midline behind
+    the axis — the spine, as a tape laid down the back would find it
+    (e.g. the back neck point at the neck-base level, the back waist
+    point). Decision #48.
+
+    The most-backward point of the loop, which this used to return, is an
+    argmax over a nearly flat surface: across the datasets it slid 26 to
+    89 mm off the midline at the waist while staying on it at the nape,
+    because the nape is a crease and the small of the back is not. The
+    crossing is a definition rather than an extremum, so it stays put.
+    """
     _, selection = _torso_loop_at(mesh, level_mm)
     if selection is None:
         return None
     if selection.method != "axis_containment":
-        # the most-backward point of a loop that is merely *near* the
-        # axis can sit anywhere — on HSRD it landed 104 degrees off the
-        # back. No back point beats a wrong one.
+        # a loop that is merely *near* the axis does not have a midline
+        # worth crossing — on HSRD the old argmax landed 104 degrees off
+        # the back. No back point beats a wrong one.
         return None
     pts = selection.loop.points
-    backwardness = -(pts[:, [0, 2]] @ facing_xz)
-    point = pts[int(np.argmax(backwardness))]
+    flags = list(selection.quality_flags)
+    axis_xz = body_axis_point(mesh)
+    point = _midline_crossing_behind(pts, axis_xz, facing_xz) if selection.loop.closed else None
+    method = "midline_crossing_behind_body_axis"
+    confidence = 0.6 * selection.confidence / 0.9
+    if point is None:
+        # an open loop, or one that never reaches its own midline: the
+        # extremum is worse, but it is on the body and it is flagged
+        backwardness = -(pts[:, [0, 2]] @ facing_xz)
+        point = pts[int(np.argmax(backwardness))]
+        method = "most_backward_point_of_torso_loop"
+        flags.append("midline_crossing_not_found")
+        confidence *= 0.5
     return Landmark(
         name=name,
         position_mm=np.asarray(point, dtype=np.float64),
-        confidence=0.6 * selection.confidence / 0.9,
-        method="most_backward_point_of_torso_loop",
-        quality_flags=list(selection.quality_flags),
+        confidence=confidence,
+        method=method,
+        quality_flags=flags,
     )
 
 

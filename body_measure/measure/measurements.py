@@ -457,8 +457,10 @@ def _estimate_measurements(
         estimate_facing,
         estimate_shoulder_points,
         estimate_wrist_points,
+        sagittal_normal,
     )
-    from .surface_path import METHOD, EdgeGraph, surface_path_length_mm
+    from .surface_path import (METHOD, SECTION_METHOD, EdgeGraph,
+                               plane_section_arc_mm, surface_path_length_mm)
 
     # the orientation comes first: the waist band needs to know which way
     # is 'behind' (decision #47), and the feet say so without any landmark
@@ -544,16 +546,32 @@ def _estimate_measurements(
         landmarks["back_waist_point"] = back_waist
 
     if back_neck is not None and back_waist is not None:
-        length, flags = surface_path_length_mm(
-            graph, [back_neck.position_mm, back_waist.position_mm]
+        # The spine is a planar path: a tape laid down the back stays in
+        # the sagittal plane, which is what the spec has always asked for
+        # (`method: sagittal_slice_polyline`). Cutting the mesh with that
+        # plane measures the curve directly; the edge graph, which walked
+        # this route until decision #48, could only hop between vertices
+        # and read 6 to 18 % long for it.
+        method = SECTION_METHOD
+        length, _, flags = plane_section_arc_mm(
+            mesh, back_neck.position_mm, back_waist.position_mm,
+            sagittal_normal(facing.direction),
         )
+        if length is None:
+            # no section through both points: rather than refuse a core
+            # measurement, fall back to the walk and say which was used
+            method = METHOD
+            length, edge_flags = surface_path_length_mm(
+                graph, [back_neck.position_mm, back_waist.position_mm]
+            )
+            flags = flags + edge_flags
         # a length anchored on a boundary-flagged waist inherits the doubt:
         # the path may be flawless while the waist level it walks to is
         # only where the search ran out of window
         measurements["back_length"] = orientation_gate(_length_value(
             length,
             flags + waist.quality_flags + neck.quality_flags + facing_flags,
-            METHOD,
+            method,
         ))
 
     shoulders = estimate_shoulder_points(mesh, armpit) if armpit is not None else None

@@ -1,11 +1,18 @@
-"""Surface path lengths via shortest paths on the mesh edge graph.
+"""Surface path lengths, by plane section where the path is planar and by
+shortest paths on the mesh edge graph where it is not.
 
-This is explicitly an approximation (`edge_graph_approximation`): the
-path is constrained to mesh edges, so it depends on triangulation and
-tends to overestimate true surface geodesics on coarse meshes. The
-remeshing/decimation robustness tests quantify that error; a heat-method
-library is the planned upgrade (docs/decisions.md, measurement-spec
-known_deviations).
+The edge graph is explicitly an approximation
+(`edge_graph_approximation`): the path is constrained to mesh edges, so
+it depends on triangulation and tends to overestimate true surface
+geodesics — measured on this project's data, by 6 to 18 % (decision
+#48). The remeshing/decimation robustness tests quantify that error; a
+heat-method library is the planned upgrade for the paths that need one
+(docs/decisions.md, measurement-spec known_deviations).
+
+A path that is planar by definition needs none of that. Down the spine
+the tape stays in the sagittal plane, so `plane_section_arc_mm` cuts the
+mesh with that plane and measures the curve, which crosses faces instead
+of hopping between vertices and therefore does not staircase.
 
 Connectivity is the other thing this module has to be honest about. A
 real scan is never one clean shell: hair, shoes, the floor and stray
@@ -28,6 +35,7 @@ from scipy.sparse.csgraph import connected_components, dijkstra
 from scipy.spatial import cKDTree
 
 METHOD = "edge_graph_approximation"
+SECTION_METHOD = "sagittal_slice_polyline"
 
 #: How far a waypoint may be pulled onto the main surface and still be
 #: treated as the same landmark. Body measurements move by roughly this
@@ -47,6 +55,96 @@ MAX_WAYPOINT_SNAP_MM = 15.0
 #: refusal and starts producing a plausible-looking length, and nothing
 #: downstream can tell the difference. The ratio can.
 MAX_PATH_CHORD_RATIO = 1.5
+
+
+#: A waypoint further than this from the section plane is not on the
+#: midline the arc traces, and the arc would be measuring a curve the
+#: landmark does not sit on.
+MAX_SECTION_OFFSET_MM = 10.0
+
+#: A body's sagittal section is a closed curve around the whole
+#: silhouette, so two points on it are joined by two arcs. The short one
+#: is the back; the long one climbs over the head and comes back up
+#: through the crotch. Taking the shorter settles it, and this margin
+#: catches the case where even the shorter one wanders out of the band
+#: the endpoints span.
+SECTION_OVERSHOOT_FRACTION = 0.15
+
+#: How far a section vertex may be from a waypoint and still be treated
+#: as the place the arc starts. The section passes through the waypoint
+#: exactly — both lie on the surface and on the plane — but its vertices
+#: are at edge crossings, so the nearest one is up to an edge away.
+MAX_SECTION_ENDPOINT_GAP_MM = 30.0
+
+
+def plane_section_arc_mm(
+    mesh: trimesh.Trimesh, a_mm, b_mm, normal
+) -> tuple[float | None, np.ndarray | None, list[str]]:
+    """Length of the surface curve between two points, cut by the plane
+    through them with the given normal, and the curve itself.
+
+    This is what a tape measure does and what the spec asks for
+    (`method: sagittal_slice_polyline`). Unlike the edge graph it does not
+    staircase: the curve crosses faces instead of hopping between
+    vertices, so it does not inflate with triangulation.
+    """
+    a = np.asarray(a_mm, dtype=np.float64)
+    b = np.asarray(b_mm, dtype=np.float64)
+    normal = np.asarray(normal, dtype=np.float64)
+    normal = normal / np.linalg.norm(normal)
+    origin = (a + b) / 2.0
+    if max(abs(float((a - origin) @ normal)), abs(float((b - origin) @ normal))) > MAX_SECTION_OFFSET_MM:
+        return None, None, ["waypoints_not_coplanar"]
+
+    try:
+        section = mesh.section(plane_origin=origin, plane_normal=normal)
+    except Exception:
+        section = None
+    if section is None:
+        return None, None, ["no_section_at_plane"]
+
+    span = abs(float(a[1] - b[1]))
+    lo = min(a[1], b[1]) - SECTION_OVERSHOOT_FRACTION * span
+    hi = max(a[1], b[1]) + SECTION_OVERSHOOT_FRACTION * span
+
+    best: tuple[float, np.ndarray] | None = None
+    for poly in section.discrete:
+        poly = np.asarray(poly, dtype=np.float64)
+        if len(poly) < 2:
+            continue
+        closed = bool(np.linalg.norm(poly[0] - poly[-1]) < 1e-6)
+        ring = poly[:-1] if closed else poly
+        da = np.linalg.norm(ring - a, axis=1)
+        db = np.linalg.norm(ring - b, axis=1)
+        if da.min() > MAX_SECTION_ENDPOINT_GAP_MM or db.min() > MAX_SECTION_ENDPOINT_GAP_MM:
+            continue
+        i, j = int(np.argmin(da)), int(np.argmin(db))
+        lo_i, hi_i = min(i, j), max(i, j)
+        arcs = [ring[lo_i:hi_i + 1]]
+        if closed:
+            arcs.append(np.vstack([ring[hi_i:], ring[:lo_i + 1]]))
+        for arc in arcs:
+            if len(arc) < 2:
+                continue
+            # the exact waypoints replace the vertices that stood in for
+            # them, so the two ends of the arc are the two landmarks
+            arc = arc.copy()
+            starts_at_a = np.linalg.norm(arc[0] - a) < np.linalg.norm(arc[0] - b)
+            arc[0], arc[-1] = (a, b) if starts_at_a else (b, a)
+            if arc[:, 1].min() < lo or arc[:, 1].max() > hi:
+                continue
+            length = float(np.linalg.norm(np.diff(arc, axis=0), axis=1).sum())
+            if best is None or length < best[0]:
+                best = (length, arc)
+
+    if best is None:
+        return None, None, ["no_section_arc_between_waypoints"]
+    length, arc = best
+    flags: list[str] = []
+    chord = float(np.linalg.norm(a - b))
+    if chord > 0.0 and length / chord > MAX_PATH_CHORD_RATIO:
+        flags.append("surface_path_detour")
+    return length, arc, flags
 
 
 class EdgeGraph:

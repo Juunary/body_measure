@@ -18,7 +18,7 @@
 | across_back_shoulder_width | 좌견봉→등목점→우견봉 표면 경로 | 5.4.3 | m1 "Across Back Shoulder Width (through the back neck point)" | Across_Back(?) | **exact** (Texel) / unverified (NOMO) | 정의 문구 일치. 견봉을 '겨드랑이 기둥 최고점'으로 놓는 것은 구현 근사(플래그) |
 | upper_arm_girth (v3 신규) | 위팔 최대 둘레 수평 슬라이스, 오른팔 | 5.3.16 | m15_r "Upper Arm Girth (R)" | Bicep_Circ | **approximate** (양쪽) | 1단계 반팔 확정으로 추가. ISO가 '최대'인지 특정 높이인지 원문 미확인; TC2 Bicep_Circ 정의도 미확보. 첫 결과: Texel bias −3.3 / MAE 11.3 / max 20.9, NOMO bias −5.5 / MAE 19.0 (max 93.1은 구멍 많은 male_0007) |
 | sleeve_length | 등목점→어깨점→손목 표면 경로 / **팔 내림·팔꿈치 경유 생략** | 5.4.17 | m55 "Back Neck Point to Wrist (L/R)" | 없음 | **approximate — 성능 판정 보류** | 시작·종료 일치. ISO/참조는 팔꿈치 굽힘 자세 + 팔꿈치 경유 추정 — 자세·경로 편차 미정량. 구간 분해 감사(하단) 전까지 '사용 불가' 판정 유보 |
-| back_length | 등목점→허리 높이, 등 표면 경로 | 5.4.5 | m3 "Back Neck Point to Waist" | 없음 | **approximate** | 시작·종료 일치. 참조의 경로(척주 추종 vs 지오데식) 미확인 |
+| back_length | 등목점→허리 높이, **시상면 절단** (결정 #48) | 5.4.5 | m3 "Back Neck Point to Waist" | 없음 | **approximate** | 시작·종료 일치. 경로 질문에 첫 증거: 지오데식(엣지 그래프) → 척주 추종(시상면)으로 바꾸자 bias +17.6 → −2.7 mm, max 55.9 → 37.3 (Texel n=10). 참조가 척주를 따른다는 쪽을 지지하나, 원문 미확인이라 approximate 유지 |
 
 ## 소매길이 구간 분해용 매핑
 
@@ -37,4 +37,7 @@
 
 ## 갱신 이력
 
+- 2026-09-07 back_length 경로를 시상면 절단으로 (결정 #48). 스펙의 `no_reference: true`
+  가 이 표와 모순되어 있었고 — 결정 #32 가 across_back_shoulder_width 에서 찾은 것과
+  같은 종류의 낡은 플래그 — audit 우선 규칙대로 `false` 로 정정
 - 2026-08-17 최초 작성 (ISO 원문 미대조 상태의 명칭 기반 판정)

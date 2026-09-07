@@ -3,7 +3,7 @@
 # definition_verified: ISO 8559-1 원문 대조 완료 여부 (ITA 도서관 태스크 전까지 false).
 # implementation_status: not_implemented | implemented_v1 | ...
 
-spec_version: 7          # v7: waist 를 자연 허리 띠의 중간으로 (결정 #47); v6: upper_arm_girth 팔 축 수직 (결정 #46); v5: plausible_mm (결정 #39)
+spec_version: 8          # v8: back_length 를 선언대로 시상면 절단으로 (결정 #48); v7: waist 를 자연 허리 띠의 중간으로 (결정 #47); v6: upper_arm_girth 팔 축 수직 (결정 #46); v5: plausible_mm (결정 #39)
 standard: ISO 8559-1
 posture_default: standing
 
@@ -131,8 +131,8 @@ measurements:
     method: sagittal_slice_polyline
     route: [back_neck_point, waist_level]
     requires: [front_back_orientation, back_neck_point]
-    known_deviations:
-      - implemented_as_edge_graph_geodesic_v1_not_sagittal_slice
+    known_deviations: []   # v8: 결정 #48 로 실제 시상면 절단이 됨
     priority: core
     implementation_status: implemented_v1
-    no_reference: true
+    no_reference: false          # Texel m3 (5.4.5), audit 판정 approximate — 결정 #32 의
+                                 # 규칙대로 audit 이 우선. 이 플래그는 #48 에서 정정됨

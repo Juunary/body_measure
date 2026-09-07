@@ -2243,3 +2243,99 @@ than its hips.
 this pipeline could find directly (the iliac crest is not visible on a
 surface; the lowest rib sometimes is), or if a dataset with tape-measured
 natural-waist heights arrives — Texel's m43 is scanner software.
+
+## 48. The back length is the sagittal section it always said it was
+
+**Date:** 2026-09-07 · **Status:** accepted · **Spec v8**
+
+Reported from the studio's 3D view: the back-length line does not drop
+to the waist, it zigzags down the back, and (from the week before) the
+number reads long — Texel mean +17.6 mm after decision #47 moved the
+waist down.
+
+**What was wrong.** Two things, and the spec had already named the
+second one. `measurement-spec.v1.yaml` has said `method:
+sagittal_slice_polyline` since v1, with
+`implemented_as_edge_graph_geodesic_v1_not_sagittal_slice` sitting in
+`known_deviations` — the sixth time in this project that a document and
+the code disagreed and the code won (#32, #35, #38, #42, #44, #47).
+
+* **The endpoints were not on the same line.** Both came from
+  `estimate_back_point_at`, the *most-backward point* of the torso loop:
+  an argmax. The nape is a crease, so it held; the small of the back is
+  nearly flat, so it slid. Across 19 scans the two points' lateral
+  coordinates were **26 to 89 mm apart** (9 synthetic SMPL, 10 Texel;
+  median ~44 mm, worst `texel/Man0` 89, `smpl_rand1` 85). A path between
+  two points that are not on one vertical line runs diagonally. That is
+  the visible zigzag, though it costs little length — 50 mm of lateral
+  offset over a 390 mm drop is 4 mm.
+* **The path staircased.** The length was a Dijkstra shortest path over
+  mesh *edges*, so it could only hop vertex to vertex. Against the pure
+  vertical drop between the same two points it read **6 to 18 % long**
+  (ratio 1.058 to 1.180 over the 19), which is the classic edge-graph
+  overestimate and 25 to 55 mm on these bodies. This is where the length
+  error was.
+
+**Change.** Both back points are now the crossing of the body's sagittal
+plane — vertical, through the body axis, normal to the facing direction
+— on the side behind the axis, interpolated on the loop segment that
+changes side so the point does not depend on where the triangulation put
+a vertex. `back_length` is then the arc of the mesh section by that same
+plane between them (`plane_section_arc_mm`), which crosses faces instead
+of hopping between vertices and so does not staircase. A tape laid down
+a spine stays in that plane; this is not a new definition, it is the
+declared one. `known_deviations` is now empty.
+
+The two points' lateral coordinates now agree to **0.00 mm on all 19**
+scans — exactly, because they are two crossings of one plane rather than
+two extrema that happen to be close. A test pins the gap at ≤ 2 mm.
+
+**Effect (Texel Part 1, n=10, mean / worst |d|):**
+
+| | before | after |
+|---|---|---|
+| back_length | +17.6 / 55.9 | **−2.7 / 37.3** |
+| across_back_shoulder_width | +9.0 / 84.0 | +9.3 / 86.0 |
+| sleeve_length | +173.3 / 253.5 | +165.1 / 206.2 |
+
+The four girths are bit-identical. The other two lengths move only
+because `back_neck_point` is a waypoint on them: the across-back width
+is unchanged within noise and very slightly worse, and `sleeve_length`
+is rated `approximate` by the audit with its performance verdict
+explicitly deferred, so its column is a reference comparison, not a
+performance claim.
+
+**A stale spec flag was found and corrected, again.** The spec carried
+`no_reference: true` for `back_length`, with no comment.
+`docs/measurement-audit.md` maps it to Texel m3 "Back Neck Point to
+Waist" (5.4.5) and rates the mapping `approximate`, which is why the
+formal report has compared it at n=10 all along. Decision #32 found the
+same contradiction on `across_back_shoulder_width` and settled the rule:
+the audit is the definition-based verdict and wins. The flag is now
+`false`. Nothing reads the field in logic, which is how it survived a
+second time.
+
+The audit's open question about this measurement was whether the
+reference follows the spine or takes a geodesic. This change is the
+first evidence: moving from geodesic to spine-following took the bias
+from +17.6 to −2.7 mm. That supports the spine, but the reference's
+definition is still unread, so the rating stays `approximate`.
+
+**What this is not.** The staircase is removed for this one measurement
+because this one measurement is planar by definition. `across_back_
+shoulder_width` and `sleeve_length` cross the shoulder and run down the
+arm; no single plane contains them, they still walk the edge graph, and
+they still carry the same 6–18 %. That is the same defect, untouched,
+and the heat-method upgrade the module docstring names is still what
+would close it. Nor does this make the number *right*: `back_length`
+has `definition_verified: false` and an `approximate` reference mapping,
+so −2.7 mm against Texel says the two now disagree less, not that either
+is the ISO 8559-1 back length.
+
+**Rules out:** an argmax over a flat surface as a landmark placement; an
+edge-graph walk for a path the spec defines as planar.
+
+**Revisit if:** a body's sagittal section does not reach both points —
+the code falls back to the edge walk and says so in `method`, and no
+scan in the current data has needed it — or if the ISO text places the
+back neck point somewhere other than the midline behind the axis.
