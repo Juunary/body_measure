@@ -111,7 +111,9 @@ def test_a_clothed_scan_gets_no_size():
 
 
 def test_a_chest_outside_the_chart_is_refused_not_extrapolated():
-    for value in (700.0, 1400.0):
+    # 1439 mm is smpl_rand1's chest — the body decision #50 was asked for
+    # and still does not size, since the page's last row ends at 141 cm
+    for value in (700.0, 1439.0):
         result = assign(chest(value), population="men")
         assert not result.assigned
         assert "outside the chart" in result.reason
@@ -164,8 +166,8 @@ def test_a_chest_well_inside_a_band_names_only_one_size():
 def test_the_lowest_and_highest_bands_have_no_outward_neighbour():
     low = assign(chest(EN_13402_3.bands[0].chest_min_cm * 10.0), population="men")
     high = assign(chest(EN_13402_3.bands[-1].chest_max_cm * 10.0), population="men")
-    assert low.label == "S" and low.alternative is None
-    assert high.label == "XXL" and high.alternative is None
+    assert low.label == EN_13402_3.bands[0].label and low.alternative is None
+    assert high.label == EN_13402_3.bands[-1].label and high.alternative is None
 
 
 @pytest.mark.parametrize("chest_cm, label, alternative", [
@@ -209,8 +211,11 @@ def test_the_gap_itself_is_still_refused():
 
 
 @pytest.mark.parametrize("chest_cm, label, alternative", [
-    (129.0, "XXL", None),   # the last band's top edge is inclusive
-    (128.5, "XXL", None),   # nothing above XXL to be an alternative
+    (141.0, "3XL", None),   # the last band's top edge is inclusive
+    (140.5, "3XL", None),   # nothing above 3XL to be an alternative
+    (129.0, "3XL", "XXL"),  # 129 is 3XL's start; window 128-130 reaches XXL
+    (128.5, "XXL", "3XL"),  # window 127.5-129.5 reaches 3XL at 129
+    (130.0, "3XL", None),   # window 129-131: 129 is 3XL's own start
     (118.5, "XXL", "XL"),   # window 117.5-119.5 reaches XL, which ends at 118
     (119.0, "XXL", None),   # window 118-120: 118 is XXL's own start
     (117.5, "XL", "XXL"),   # window 116.5-118.5 reaches XXL at 118
@@ -222,9 +227,24 @@ def test_the_last_band_keeps_its_inclusive_top_and_its_one_neighbour(chest_cm, l
 
 
 def test_just_past_the_last_band_is_outside_the_chart():
-    result = assign(chest(1291.0), population="men")
+    result = assign(chest(1411.0), population="men")
     assert not result.assigned
     assert "outside" in result.reason
+
+
+def test_the_charts_end_where_their_source_page_ends():
+    """Decision #50: 3XL is the page's last row for both populations, and
+    the body that prompted it (smpl_rand1, chest 143.9 cm) is still
+    outside — the chart is not extended past what the page prints."""
+    assert EN_13402_3.range_cm == (86.0, 141.0)
+    assert EN_13402_3_WOMEN.range_cm == (74.0, 143.0)
+    assert EN_13402_3.bands[-1].label == "3XL" and EN_13402_3_WOMEN.bands[-1].label == "3XL"
+    refused = assign(chest(1439.0), population="men")
+    assert not refused.assigned and "outside" in refused.reason
+    assert assign(chest(1350.0), population="men").label == "3XL"
+    assert assign(chest(1400.0), chart=EN_13402_3_WOMEN, population="women").label == "3XL"
+    # the Lacoste conversion is not guessed past the labels it records
+    assert LACOSTE_MEN.bands[-1].label == "7 (XXL)"
 
 
 def test_the_lacoste_table_is_a_label_conversion_of_the_en_bands():
@@ -232,7 +252,9 @@ def test_the_lacoste_table_is_a_label_conversion_of_the_en_bands():
     table is EN 13402-3's bands with Lacoste's numbers on them, and this
     pins exactly that: every edge equal, every label a number plus the
     letter it stands for, and the chart saying so in its own name."""
-    assert len(LACOSTE_MEN.bands) == len(EN_13402_3.bands)
+    # a prefix of the EN table: the recorded label mapping ends at 7 = XXL,
+    # so EN's 3XL (decision #50) has no Lacoste row rather than a guessed one
+    assert len(LACOSTE_MEN.bands) == 5 and len(EN_13402_3.bands) == 6
     for numbered, standard, number in zip(LACOSTE_MEN.bands, EN_13402_3.bands, "34567"):
         assert (numbered.chest_min_cm, numbered.chest_max_cm) ==             (standard.chest_min_cm, standard.chest_max_cm)
         assert numbered.label == f"{number} ({standard.label})"

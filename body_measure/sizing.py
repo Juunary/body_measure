@@ -67,7 +67,7 @@ EN_13402_3 = SizeChart(
     name="EN 13402-3 letter codes, men",
     source="EN 13402-3 (European size designation), letter-code table for men, "
            "chest girth in cm — via onlineconversion.com/clothing_en13402_standard.htm",
-    checked="2026-08-28",
+    checked="2026-09-07",
     dimension_kind="body",
     population="men",
     note="The European standard for the market this line produces for. S to "
@@ -76,14 +76,20 @@ EN_13402_3 = SizeChart(
          "uniform. Men's upper-body garments are designated by chest girth "
          "as the primary dimension; height and waist are secondary "
          "dimensions the standard allows and this classifier does not use. "
-         "Copied from a summary web page, not from the standard's text; the "
-         "edition is unrecorded.",
+         "XS (78-86) is not carried: no body on this line has needed it and "
+         "adding bands on speculation is how a chart drifts. 3XL (129-141) "
+         "is the page's last row and the chart's top; beyond it the page "
+         "says nothing and neither does this chart. Copied from a summary "
+         "web page, not from the standard's text; the edition is unrecorded.",
     bands=(
         SizeBand("S", 86.0, 94.0),
         SizeBand("M", 94.0, 102.0),
         SizeBand("L", 102.0, 110.0),
         SizeBand("XL", 110.0, 118.0),
         SizeBand("XXL", 118.0, 129.0),
+        # the page's last men's row; added 2026-09-07 (decision #50) after a
+        # body at 143.9 cm was refused — which it still is, 3XL ends at 141
+        SizeBand("3XL", 129.0, 141.0),
     ),
 )
 
@@ -100,7 +106,10 @@ LACOSTE_MEN = SizeChart(
     dimension_kind="body",
     population="men",
     note="A label conversion, not a brand chart: every band edge here is "
-         "EN 13402-3's, and only the label differs. It exists so a size can "
+         "EN 13402-3's, and only the label differs. It stops at 7 (XXL) "
+         "because that is where the recorded label mapping stops; the EN "
+         "chart's 3XL has no recorded Lacoste number and is not guessed. It "
+         "exists so a size can "
          "be written the way this polo maker writes it. It cannot serve as "
          "a cross-check of the standard — it IS the standard, renamed — and "
          "agreement between the two says nothing. Replace the bands with "
@@ -120,7 +129,7 @@ EN_13402_3_WOMEN = SizeChart(
     name="EN 13402-3 letter codes, women",
     source="EN 13402-3 (European size designation), letter-code table for women, "
            "bust girth in cm — via onlineconversion.com/clothing_en13402_standard.htm",
-    checked="2026-08-28",
+    checked="2026-09-07",
     dimension_kind="body",
     population="women",
     note="Two irregularities are kept as the source page's letter table "
@@ -140,6 +149,7 @@ EN_13402_3_WOMEN = SizeChart(
         SizeBand("L", 98.0, 106.0),
         SizeBand("XL", 107.0, 119.0),
         SizeBand("XXL", 119.0, 131.0),
+        SizeBand("3XL", 131.0, 143.0),   # the page's last women's row (decision #50)
     ),
 )
 

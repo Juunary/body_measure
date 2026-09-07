@@ -2408,3 +2408,47 @@ not inside the error window.
 **Revisit if:** the brand's per-size cut points are obtained with a
 citation (then the table stops being derived and its test changes with
 it), or the standard's text settles the women's gap either way.
+
+## 50. 3XL, from the same page, and no further
+
+**Date:** 2026-09-07 · **Status:** accepted
+
+`smpl_rand1_apose` — a heavy body whose chest level the pipeline places
+correctly, 40 mm under the armpit, at 143.9 cm — was refused a size:
+outside the men's chart, which ended at XXL = 129 cm. The user, looking
+at the body, asked for more sizes.
+
+**What is added.** The source page's last row for each population, which
+was on the page all along and had been left off: men's **3XL 129–141**,
+women's **3XL 131–143**. Both were re-read on 2026-09-07 together with
+every other row (the fetch returned XS–3XL for both tables and every
+existing band matched), so `checked` moves to that date. 3XL is a size
+option of the QR schema already (`3xl`), so it reaches the passport
+without a mapping change. The last-band rule (inclusive top) now applies
+to 3XL, and the boundary tests moved with it: 129.0 is 3XL with XXL as
+the alternative, 141.0 is 3XL, 141.1 is outside.
+
+**What is not added.** Anything past 141: the page prints nothing there,
+and the chart does not either — so **the body that prompted this is
+still refused** at 143.9 cm, and correctly so. XS (78–86) is also left
+off; no body on this line has needed it and a chart that grows on
+speculation is how the Lacoste table came to claim a span it did not
+have (#49). The Lacoste conversion stops at 7 = XXL, because that is
+where its recorded label mapping stops; a number for 3XL would be a
+guess.
+
+**The measurement is not the problem here.** On this body the torso
+girth profile is flat from belly to chest — 1429 mm at the navel, 1438 at
+the chest, 1423 at the waist — and the chest maximum sits where a chest
+should. The size is refused because the chart does not cover the body,
+which is the answer a chart should give. What a heavy customer gets
+instead of a letter is a design question (a nearest-band-plus-excess
+readout, a made-to-measure path that needs no letter at all) and is not
+settled by adding rows.
+
+**Rules out:** extending a chart past its printed rows; inventing a
+brand label for a band the brand mapping does not record.
+
+**Revisit if:** the standard's text gives rows past 3XL, or the line
+decides that lot-size-one production does not need a letter size for a
+body the letter table does not cover.
