@@ -85,7 +85,12 @@ def summarize(entries: list[dict]) -> dict:
 # Definition-mapping verdicts per dataset (docs/measurement-audit.md).
 # Only "exact" rows may enter headline statistics.
 TEXEL_MAPPING = {
-    "waist_circumference": "exact",
+    # exact until decision #53. The v1 waist WAS the minimum torso girth
+    # and m102 IS "Minimum Waist Girth" — one word, both sides. Decision
+    # #47 changed the definition to the natural waist and moved the
+    # reference to m16; the rating stayed behind, and a definition that
+    # no longer says the same word as its reference is not exact.
+    "waist_circumference": "approximate",
     "across_back_shoulder_width": "exact",
     "upper_arm_girth": "approximate",  # pending the ISO 5.3.16 text check
     "chest_circumference": "approximate",

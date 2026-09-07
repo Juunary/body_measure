@@ -2599,3 +2599,71 @@ requirement as unsourced without checking the standard that governs it.
 likeliest route, a KS adoption the next — at which point the two
 ambiguous mappings, the shoulder extremum and `definition_verified`
 itself all become answerable.
+
+
+## 53. The waist is no longer an exact mapping, and the headline is one measurement
+
+**Date:** 2026-09-07 · **Status:** accepted · **Spec unchanged**
+
+`docs/measurement-audit.md` rated `waist_circumference` **exact** against
+Texel m102, with m16 as an auxiliary. `adapters/texel.py` has compared
+against m16 since decision #47, with m102 kept for the v1 comparison. The
+code and the table said opposite things; found while writing decision #52
+and flagged there rather than re-judged in passing.
+
+**Why exact was right, and then was not.** In v1 the definition was the
+*minimum torso girth* and the reference was m102, *"Minimum Waist
+Girth"*. Same word, both sides — an exact mapping in the audit's own
+sense, and it belonged in the headline. Decision #47 changed the
+definition to the natural waist and moved the reference to m16, *"Waist
+Girth"* (5.3.10). Only the rating stayed behind.
+
+The audit's test for `exact` is that the definition WORDING matches; an
+implementation approximation of a landmark does not break it, which is
+why `across_back_shoulder_width` keeps `exact` while approximating the
+acromion. Applied to the waist honestly, three things are missing:
+
+* the pipeline locates the natural waist between a **girth minimum and a
+  back concavity**, and the spec's own `known_deviations` says these are
+  "not rib and crest landmarks" — so the wording of our definition and
+  the wording of ISO 5.3.10 are not known to agree;
+* ISO 5.3.10's text has not been read (`definition_verified: false`, and
+  the free preview stops before clause 5 — decision #52);
+* Texel's own placement of m16 is undocumented, as decision #47 recorded
+  about m43.
+
+Two of those are ignorance rather than deviation, which is what
+`unverified` is for. But the deviation is measured, against a reference
+chosen for definition-match, on ten subjects — mean −12.2 mm, sd 17.6,
+worst −49.8, with the waist height +13.1 mm above m43 on average. A
+comparison that informative is a reference comparison, not a deferral.
+So: **approximate**.
+
+**Consequence, stated plainly.** Headline statistics are accepted values
+with exact mappings only, and there is now exactly one: `across_back_
+shoulder_width`. The headline table in both formal reports drops from two
+rows to one. That is a narrowing of what this project claims, and it is
+the correct number — it was two only because a rating outlived the
+definition under it.
+
+The one that remains is better evidenced than before. ISO 8559-1's
+contents page gives 5.4.3 the title "Across back shoulder width (through
+the back neck point)", which is Texel m1's name character for character
+(decision #52).
+
+**What this does not change.** No measurement moves; the waist is
+computed exactly as decision #47 left it, and its numbers are identical.
+Only where they are printed changes: out of the headline section, into
+the reference-comparison section, with the deviation quoted. The
+regression bound in `validate/thresholds.py` is untouched — it was
+re-based on the first v7 run against m16 and that basis is unaffected by
+what the comparison is called.
+
+**Rules out:** letting a definition change without re-reading the
+mapping it was rated under; a headline built on a name match that no
+longer holds.
+
+**Revisit if:** ISO 5.3.10's text arrives and its wording does match the
+band this pipeline builds — in which case the question becomes whether
+the band midpoint is an implementation approximation like the acromion,
+which would restore `exact`. Or if Texel documents how m16 is placed.
