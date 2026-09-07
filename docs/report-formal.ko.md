@@ -12,7 +12,6 @@
 
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| waist_circumference | exact | 10/10/10/0/0 | 10 | -12.2 | 13.5 | 6.4 | 18.6 | 49.8 |
 | across_back_shoulder_width | exact | 10/10/9/1/0 | 9 | +0.8 | 13.1 | 13.6 | 15.5 | 24.8 |
 
 ## 참고 비교 — approximate 매핑 (정의 편차 있음, 성능 판정에 사용 금지)
@@ -20,6 +19,7 @@
 | 측정 | 매핑 | N 전체/산출/accepted/review/reject | N 통계 | Bias | MAE | Median AE | SD | Max AE |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | chest_circumference | approximate | 10/10/10/0/0 | 10 | +26.9 | 28.2 | 25.9 | 23.6 | 78.1 |
+| waist_circumference | approximate | 10/10/10/0/0 | 10 | -12.2 | 13.5 | 6.4 | 18.6 | 49.8 |
 | neck_circumference | approximate | 10/10/10/0/0 | 10 | +8.8 | 24.2 | 19.7 | 28.1 | 58.9 |
 | upper_arm_girth | approximate | 10/10/10/0/0 | 10 | -16.1 | 17.4 | 16.8 | 14.1 | 33.9 |
 | sleeve_length | approximate | 10/10/9/1/0 | 9 | +170.8 | 170.8 | 168.9 | 22.3 | 206.2 |
@@ -88,13 +88,13 @@ Bias, MAE, Median AE, SD 및 Max AE는 `accepted` 표본만을 대상으로 계�
 
 ## 실행 정보
 
-- generated (UTC): 2026-09-07T12:31:18+00:00
-- git commit: 509abeaabfa44bafc439dbbf7e78068d03fa852b — working tree: clean
+- generated (UTC): 2026-09-07T13:42:40+00:00
+- git commit: eeb4b9179aaaa8e7b55e9154741ad77835165d4d — working tree: clean
 - platform: Windows-11-10.0.26200-SP0
 - python 3.12.10; numpy 2.5.2, trimesh 5.0.0, shapely 2.1.2, scipy 1.18.0
-- spec_version 8; spec SHA-256: 26f7c13b1e7c9eb3dfa5babad233908d830e2785d6cf33ba8b29a36eff69842d
+- spec_version 8; spec SHA-256: d96a3fcabdcd68ae92206b7affe9e74617426b56dbbe816ba246f11e5e4d81a0
 - thresholds SHA-256: 97263bc8f00acd1f3b9873491ed82df364d06c4640dc54c9eca018ae6ede6d56
-- pytest: 260 passed in 340.49s (0:05:40)
+- pytest: 262 passed in 198.43s (0:03:18)
 - random seed (SMPL generation): 20260817
 - commands: python -m pytest tests; python scripts/build_validation_results.py; python scripts/render_formal_report.py
 - report paths: reports/validation-results.json; docs/report-formal.ko.md; docs/report-formal.en.md
