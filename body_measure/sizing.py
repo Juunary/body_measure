@@ -66,7 +66,9 @@ EN_13402_3 = SizeChart(
     key="en13402",
     name="EN 13402-3 letter codes, men",
     source="EN 13402-3 (European size designation), letter-code table for men, "
-           "chest girth in cm — via onlineconversion.com/clothing_en13402_standard.htm",
+           "chest girth in cm — XS-3XL via onlineconversion.com/clothing_en13402_standard.htm "
+           "(re-read 2026-09-07); 4XL via en.wikipedia.org/wiki/EN_13402 'Letter codes' "
+           "(read 2026-09-07), whose XS-3XL rows agree with the first page",
     checked="2026-09-07",
     dimension_kind="body",
     population="men",
@@ -78,9 +80,10 @@ EN_13402_3 = SizeChart(
          "dimensions the standard allows and this classifier does not use. "
          "XS (78-86) is not carried: no body on this line has needed it and "
          "adding bands on speculation is how a chart drifts. 3XL (129-141) "
-         "is the page's last row and the chart's top; beyond it the page "
-         "says nothing and neither does this chart. Copied from a summary "
-         "web page, not from the standard's text; the edition is unrecorded.",
+         "is the first page's last row; 4XL (141-154, 13 cm) comes from a "
+         "second summary page that also lists 5XL (154-166), not carried. "
+         "Both pages are summaries, not the standard's text; the edition is "
+         "unrecorded on either.",
     bands=(
         SizeBand("S", 86.0, 94.0),
         SizeBand("M", 94.0, 102.0),
@@ -90,6 +93,10 @@ EN_13402_3 = SizeChart(
         # the page's last men's row; added 2026-09-07 (decision #50) after a
         # body at 143.9 cm was refused — which it still is, 3XL ends at 141
         SizeBand("3XL", 129.0, 141.0),
+        # 4XL is not on the first page; the Wikipedia table carries it and
+        # 5XL (154-166). 4XL was asked for and is added (decision #51);
+        # 5XL is not, for want of a body that needs it
+        SizeBand("4XL", 141.0, 154.0),
     ),
 )
 
@@ -128,7 +135,9 @@ EN_13402_3_WOMEN = SizeChart(
     key="en13402-women",
     name="EN 13402-3 letter codes, women",
     source="EN 13402-3 (European size designation), letter-code table for women, "
-           "bust girth in cm — via onlineconversion.com/clothing_en13402_standard.htm",
+           "bust girth in cm — XS-3XL via onlineconversion.com/clothing_en13402_standard.htm "
+           "(re-read 2026-09-07); 4XL via en.wikipedia.org/wiki/EN_13402 'Letter codes' "
+           "(read 2026-09-07)",
     checked="2026-09-07",
     dimension_kind="body",
     population="women",
@@ -139,9 +148,11 @@ EN_13402_3_WOMEN = SizeChart(
          "8. Neither is verified against the standard's text: the same page's "
          "detailed women's table runs 98-102 / 102-107 / 107-113 with no "
          "gap, so the page contradicts itself and the gap may be the page's, "
-         "not EN's. Until the edition is read, the letter table is used as "
+         "not EN's. A second summary page (Wikipedia, read 2026-09-07) prints "
+         "L as 98-107 with no gap, so two of three tables say the gap is not "
+         "there. Until the edition is read, the letter table is used as "
          "printed and the refusal stands; closing the gap by hand would be "
-         "guessing which of the two tables is right.",
+         "choosing between sources without the standard.",
     bands=(
         SizeBand("XS", 74.0, 82.0),
         SizeBand("S", 82.0, 90.0),
@@ -150,6 +161,7 @@ EN_13402_3_WOMEN = SizeChart(
         SizeBand("XL", 107.0, 119.0),
         SizeBand("XXL", 119.0, 131.0),
         SizeBand("3XL", 131.0, 143.0),   # the page's last women's row (decision #50)
+        SizeBand("4XL", 143.0, 155.0),   # second source (decision #51); it also lists 5XL 155-167
     ),
 )
 

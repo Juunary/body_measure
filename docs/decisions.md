@@ -2452,3 +2452,44 @@ brand label for a band the brand mapping does not record.
 **Revisit if:** the standard's text gives rows past 3XL, or the line
 decides that lot-size-one production does not need a letter size for a
 body the letter table does not cover.
+
+## 51. 4XL, from a second source — and what that source says about the women's gap
+
+**Date:** 2026-09-07 · **Status:** accepted · **Amends #50**
+
+#50 added 3XL and stopped there because the source page stops there,
+which left `smpl_rand1` (chest 143.9 cm) still refused. The user asked
+for 4XL. #50's rule was "no rows the page does not print", not "no rows
+at all", so the question was whether a second citable table exists.
+
+**Source.** The English Wikipedia article on EN 13402, "Letter codes"
+section, read 2026-09-07: men XXS 70–78 … 3XL 129–141, **4XL 141–154**,
+5XL 154–166; women XXS 66–74 … 3XL 131–143, **4XL 143–155**, 5XL
+155–167. Its XS–3XL rows agree with the first page's row for row on the
+men's side. It is a summary page like the first, names no edition, and
+is cited as such in `source`. Two summaries that agree are still not
+the standard, and `definition`-level trust does not rise with this.
+
+**Added:** men's 4XL 141–154 (13 cm — the "two adjacent steps" rule is
+not uniform up here either) and women's 4XL 143–155. `4xl` is a QR
+schema option already. `smpl_rand1` now sizes as 4XL, with the same
+flags it had (bust cue on the belly, population unverified).
+
+**Not added:** 5XL, on either chart. It is on the second page, but no
+body on this line has needed it and #50's reason for not carrying XS
+applies upward as well. The Lacoste conversion stays at 7 = XXL.
+
+**What the second source also says.** Its women's L is **98–107**, with
+XL from 107 — no gap. The first page's letter table has the 106–107 gap;
+the first page's own detailed table does not. That is now two tables
+against one. The gap is still kept as the letter table prints it and
+`between_bands` still refuses 106.0–106.9, because the user has asked
+that band edges stay as they are and because the honest fix is reading
+EN 13402-3's text, not counting web pages. It is recorded here so the
+next reader does not rediscover it.
+
+**Rules out:** 5XL without a body; closing the women's gap on the
+strength of summaries.
+
+**Revisit if:** the standard's text is read (then every band is checked
+against it at once, gap included), or a 5XL body arrives.
