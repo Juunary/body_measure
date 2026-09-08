@@ -2762,3 +2762,77 @@ the pipeline can already locate. Texel carries m45 "Chest Girth (at
 axilla)" and m5 alongside each other, so which of the two this pipeline
 is closer to is answerable from data already on disk, without the
 standard's text.
+
+
+## 55. Fixing the chest at the height ISO names makes it worse, on both of ISO's heights
+
+**Date:** 2026-09-08 · **Status:** accepted · **Spec unchanged**
+
+Decision #52 left a question open — is `chest_circumference` ISO 8559-1
+5.3.4 *Bust girth* or 5.3.6 *Chest girth (at axilla)*? — and said the
+text was needed to answer it. It is not: Texel ships **both** references,
+m5 and m45, and `adapters/texel.py` has carried m45 in `AUX_IDS` as
+`chest_girth_at_axilla` all along, unused. Ten subjects, three ways of
+producing the number, both references.
+
+**The two references do not separate.**
+
+| | mean | MAE | sd | max abs |
+|---|---|---|---|---|
+| m45 − m5 | +10.4 | 28.6 | 36.7 | 86.0 |
+
+Ten millimetres apart on average. Whatever Texel does differently between
+its 5.3.4 and its 5.3.6, it is not enough to tell which one this
+pipeline is answering to. The question #52 opened cannot be closed from
+this data, and the reason is the data, not the missing text.
+
+**The maximum search agrees with both better than either fixed height.**
+
+| | vs m5 (5.3.4) | vs m45 (5.3.6) |
+|---|---|---|
+| search — what the pipeline does | +26.9 / MAE **28.2** | +16.5 / MAE **22.3** |
+| girth at `bust_level` (5.3.4's anchor) | −11.2 / MAE 42.4 | −21.6 / MAE 53.0 |
+| girth at `axilla_level` (5.3.6's anchor) | −46.6 / MAE 51.3 | −57.0 / MAE 64.7 |
+
+The intuition this was run to test — the standard fixes a height, so
+fixing ours at that height should bring us closer — is refuted on its own
+terms. Measuring at the axilla is the WORST of the three against m45,
+the reference that shares its clause: −57.0 mm, MAE 64.7. It is not that
+the fixed heights are slightly behind; they are further away than the
+search that ignores them.
+
+**`estimate_bust_level` is unstable, and something rests on it.** Its
+mean against m5 looks the best of any row at −11.2 mm, and that is an
+artefact of signs cancelling: MAE 42.4, sd 65.5, worst −164.6 (Man3)
+against +44.5 (Man4). The bust level is what produces the
+`chest_max_exceeds_bust_level_girth_by_NNmm` flag printed on every scan,
+so a flag that reads as a per-scan measurement of the definition gap is
+resting on a landmark that misses by a sixth of a metre on one subject in
+ten. That wants its own investigation.
+
+**What this does not establish.** Not that the search is right. Texel's
+placement of m5 and m45 is undocumented, as decision #47 recorded about
+m43. If the scanner software also looks for an extremum rather than
+implementing the clause text, then our agreement with it is two errors
+pointing the same way, and "+26.9 mm from ISO" was never what that number
+meant. The best row here is still 22 mm on an 80 mm size band, and the
+four reports that opened decision #54 — the chest measured 32 to 86 mm
+above the armpit, with the arm inside the loop — describe something this
+comparison cannot see, because the reference may be doing it too.
+
+**The report stays open.** Three ways of acting on it have now been
+measured and reverted: restricting the search below the arm merge
+(decision #54), moving `armpit_level` to the join (#54), and fixing the
+height at either clause (here). Each was diagnosed correctly and each
+failed against data.
+
+**Rules out:** fixing the chest at `axilla_level` or at `bust_level` on
+the strength of the clause wording; closing #52's 5.3.4/5.3.6 question
+from Texel; reading `chest_max_exceeds_bust_level_girth_by_NNmm` as a
+reliable per-scan definition gap.
+
+**Revisit if:** a reference arrives whose placement method is documented,
+or a body is measured by a trained measurer with a tape — either would
+say whether the agreement here is correctness or shared error. Or if
+`estimate_bust_level` is made stable, which would make the bust-anchored
+row worth re-running.
