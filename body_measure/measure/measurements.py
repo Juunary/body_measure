@@ -228,6 +228,7 @@ def _estimate_circumferences(mesh: trimesh.Trimesh, facing=None) -> tuple[dict, 
     """
     from ..landmarks.estimated import (
         estimate_armpit_level,
+        estimate_axilla_level,
         estimate_neck_base_level,
         estimate_waist_band,
     )
@@ -240,6 +241,12 @@ def _estimate_circumferences(mesh: trimesh.Trimesh, facing=None) -> tuple[dict, 
     armpit = estimate_armpit_level(mesh)
     if armpit is not None:
         landmarks["armpit_level"] = armpit
+        # where the arm actually joins, for the eye and for reports. No
+        # measurement reads it — armpit_level stays the one that feeds the
+        # clip bounds and the arm window (decision #54).
+        axilla = estimate_axilla_level(mesh, armpit)
+        if axilla is not None:
+            landmarks["axilla_level"] = axilla
 
     band = estimate_waist_band(mesh, armpit, facing=facing)
     landmarks.update({k: v for k, v in band.items() if k != "waist_level"})

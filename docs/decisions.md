@@ -2667,3 +2667,98 @@ longer holds.
 band this pipeline builds — in which case the question becomes whether
 the band midpoint is an implementation approximation like the acromion,
 which would restore `exact`. Or if Texel documents how m16 is placed.
+
+
+## 54. Two wrong fixes for one right report, and the landmark that was doing two jobs
+
+**Date:** 2026-09-08 · **Status:** accepted · **Spec unchanged**
+
+Four reports filed from the studio's 3-D view, one line each: *the chest
+is measured above the armpit*. On the four generated bodies named, the
+chest level sat 32 to 86 mm above `armpit_level` and read 4 to 63 mm over
+the girth at that level. The report was right. Two attempts to act on it
+were not, and both are recorded because each looked obviously correct
+before it was measured.
+
+**The mechanism the report found.** Above the height where the arms merge
+into the torso the loop is clipped at the armpit's lateral extent — an
+approximation, always flagged. The clipped branch reads LARGER than the
+unclipped one, and the chest level is an argmax over both. So the
+approximation does not merely add error to a value: it decides the height
+the chest is measured at, and pulls it upward. `_estimate_chest`'s own
+comment says a maximum across the two branches answers "which method
+returned the largest number", cites decision #22 forbidding it for the
+waist, and then takes that maximum anyway. The comment was right and the
+code did not keep it.
+
+**First attempt: restrict the argmax to the unclipped levels.** It did
+what it promised on the generated bodies — all four came down to within
+5 mm of the armpit — and destroyed the Texel agreement: chest bias +26.9
+→ **−58.4 mm**, worst case −112, one subject declining 104 mm. The cause
+is in the function's docstring, written from Texel data: *"the true
+chest/bust level can sit ABOVE the height where the slice loops merge
+(merge at 0.69 h, bust at 0.72 h)"*. Clipping exists precisely to reach a
+chest that is above the merge on a real body. Forbidding the clipped
+branch forbids the measurement. Reverted.
+
+**Second attempt: make `armpit_level` accurate.** The report also gave a
+height — the armpit at about 1233.5 mm where the landmark said 1222.4.
+Both were right about different things. Loop counts every 2 mm on
+`smpl_rand0_apose`:
+
+| height | closed loops | |
+|---|---|---|
+| ≤ 1224 | 3 | both arms separate |
+| 1226–1230 | 2 | one arm joined |
+| ≥ 1232 | 1 | both joined |
+
+`armpit_level` is the highest 10 mm GRID height with three loops, so it
+lands up to a full step below the join, and the zone where one arm has
+joined is invisible to a `>= 3` test. Bisecting to 0.5 mm moved it to
+1225.5. That broke `upper_arm_girth`: the arm window starts at the armpit,
+and starting it where the arms are no longer separable flipped the left
+arm's axis to the right side. Reverted.
+
+**What both attempts missed.** `armpit_level` serves two purposes that
+want different heights:
+
+* the clip bounds for the chest, and the upper-arm window, need a height
+  where the torso loop IS the torso — comfortably below the join. Reading
+  the torso's lateral extent at the join includes an arm about to touch,
+  which widens the bounds and clips away too little;
+* "where is the armpit", as a person sees it and as ISO 8559-1 5.3.6
+  means it, is the join.
+
+Any change that makes one right makes the other wrong, which is why two
+different fixes broke two different things.
+
+**Change.** `armpit_level` is untouched, and so is every measurement.
+A second landmark, `axilla_level`, records where the first arm joins the
+torso, bisected to 0.5 mm, and finds where the second joins as well —
+6 mm higher on `smpl_rand0_apose`, flagged `second_arm_joins_6mm_higher`,
+and `arm_merge_asymmetric_Nmm` past 15 mm, because one level cannot stand
+for two armpits at different heights. Nothing in the measurement path
+reads it. The studio shows it, reports are written against it, and it is
+the anchor available if the chest is ever fixed at the axilla the way
+5.3.6 defines it.
+
+Reports now carry the height a value was taken at, not only the value:
+`"level": {"landmark": "chest_level", "y_mm": 1254.2, "axilla_y_mm":
+1225.5, "armpit_y_mm": 1222.4, "above_armpit_mm": 28.7}`. The four
+reports that started this said "above the armpit" and recorded no height,
+so the level had to be recomputed to read them.
+
+**What this is not.** Not a fix for the chest. The measurement still
+searches for a maximum, still crosses the clip boundary while doing it,
+and still reads +26.9 mm high against Texel. The report stands open.
+
+**Rules out:** restricting the chest search below the arm merge; moving
+`armpit_level` to the join; treating one landmark as both a safe slicing
+boundary and an anatomical location.
+
+**Revisit if:** the chest is redefined at a fixed height rather than a
+maximum — 5.3.6 at the axilla, or 5.3.4 at the bust point, both of which
+the pipeline can already locate. Texel carries m45 "Chest Girth (at
+axilla)" and m5 alongside each other, so which of the two this pipeline
+is closer to is answerable from data already on disk, without the
+standard's text.

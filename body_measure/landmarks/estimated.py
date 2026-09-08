@@ -380,6 +380,93 @@ def estimate_armpit_level(mesh: trimesh.Trimesh, step_mm: float = 10.0) -> Landm
     return None
 
 
+#: How close the bisection gets to a merge height. The armpit search runs
+#: on a 10 mm grid whose position is arbitrary relative to the body, so a
+#: level read off that grid is up to a full step below the place a person
+#: points at when asked where the armpit is (decision #54).
+AXILLA_BISECTION_TOLERANCE_MM = 0.5
+#: The two arms rarely leave the torso at the same height. Beyond this the
+#: pose is asymmetric enough that one level cannot stand for both armpits,
+#: and the landmark says so instead of averaging them away.
+ARM_MERGE_ASYMMETRY_MM = 15.0
+
+
+def _closed_loop_count(mesh: trimesh.Trimesh, level: float) -> int:
+    return sum(1 for lp in slice_mesh(mesh, np.array([0.0, float(level), 0.0]), _UP)
+               if lp.closed)
+
+
+def _merge_height(mesh: trimesh.Trimesh, below: float, above: float, keep: int) -> float:
+    """Height between `below` and `above` where the closed-loop count falls
+    under `keep`. `below` must satisfy the count and `above` must not."""
+    lo, hi = float(below), float(above)
+    while hi - lo > AXILLA_BISECTION_TOLERANCE_MM:
+        mid = 0.5 * (lo + hi)
+        if _closed_loop_count(mesh, mid) >= keep:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
+def estimate_axilla_level(
+    mesh: trimesh.Trimesh, armpit: Landmark | None, step_mm: float = 10.0
+) -> Landmark | None:
+    """Where an arm actually joins the torso — the axilla a person sees.
+
+    This is NOT `armpit_level` and does not replace it. That landmark is
+    the highest GRID height at which both arms are still their own closed
+    loops, and every measurement that depends on it needs exactly that: a
+    height where the torso loop is the torso, so the chest's clip bounds
+    and the upper-arm window can be read from it. Moving it up to the join
+    breaks both — the clip bounds widen to include an arm about to touch,
+    and the arm window starts where the arms are no longer separable
+    (measured: the left arm axis flipped side). Decision #54.
+
+    So this is a second landmark, for display, for reports, and as the
+    candidate anchor if the chest is ever fixed at the axilla the way ISO
+    8559-1 5.3.6 defines it. Nothing in the measurement path reads it.
+
+    The level returned is where the FIRST arm joins. The second is found
+    too: between them one arm is attached and the other is not, and a gap
+    past ARM_MERGE_ASYMMETRY_MM means one level cannot stand for both.
+    """
+    if armpit is None:
+        return None
+    base = float(armpit.position_mm[1])
+    if _closed_loop_count(mesh, base) < 3:
+        return None
+    height = float(mesh.bounds[1][1])
+    ceiling = min(base + step_mm, ARMPIT_WINDOW[1] * height)
+    if ceiling <= base or _closed_loop_count(mesh, ceiling) >= 3:
+        return None                      # the grid level was already the join
+
+    first = _merge_height(mesh, base, ceiling, 3)
+    flags: list[str] = []
+    confidence = 0.7
+    gap = None
+    if _closed_loop_count(mesh, ceiling) < 2:
+        second = _merge_height(mesh, first, ceiling, 2)
+        gap = second - first
+        if gap > AXILLA_BISECTION_TOLERANCE_MM:
+            flags.append(f"second_arm_joins_{round(gap)}mm_higher")
+        if gap > ARM_MERGE_ASYMMETRY_MM:
+            flags.append(f"arm_merge_asymmetric_{round(gap)}mm")
+            confidence = 0.4
+    else:
+        flags.append("second_arm_join_above_search_ceiling")
+        confidence = 0.5
+
+    axis_xz = body_axis_point(mesh)
+    return Landmark(
+        name="axilla_level",
+        position_mm=np.array([axis_xz[0], first, axis_xz[1]]),
+        confidence=confidence,
+        method="bisected_height_where_the_first_arm_joins_the_torso",
+        quality_flags=flags,
+    )
+
+
 def estimate_chest_level(
     mesh: trimesh.Trimesh,
     waist: Landmark,
