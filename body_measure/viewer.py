@@ -78,6 +78,33 @@ def surface_path_points(graph: EdgeGraph, waypoints):
 _UP = np.array([0.0, 1.0, 0.0])
 
 
+def _taut_ring(points):
+    """The convex hull of a girth loop in its own plane — the taut tape.
+
+    Every girth number this project reports is `taut_tape_hull_mm`, not
+    the skin contour (decision #3). Drawing the contour under that number
+    puts a longer line on screen than the label says — 1 to 4 mm on most
+    loops, +33 mm on a clipped chest whose cut edges and bust leave the
+    contour concave (decision #56). The loop may be tilted (the upper-arm
+    ring is perpendicular to the arm axis), so the hull is taken in the
+    loop's own plane, found by PCA."""
+    from scipy.spatial import ConvexHull
+
+    pts = np.asarray(points, dtype=float)
+    if len(pts) < 4:
+        return pts
+    c = pts.mean(axis=0)
+    _, _, vt = np.linalg.svd(pts - c, full_matrices=False)
+    u, v = vt[0], vt[1]
+    uv = np.column_stack([(pts - c) @ u, (pts - c) @ v])
+    try:
+        hull = ConvexHull(uv)
+    except Exception:
+        return pts
+    ring = uv[hull.vertices]
+    return c + ring[:, :1] * u + ring[:, 1:2] * v
+
+
 def _clipped_ring(mesh, level_mm, armpit):
     """The polygon a clipped girth was measured on, as 3-D points: the
     merged slice at `level_mm` cut to the torso's lateral extent at the
@@ -153,14 +180,14 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
             clipped = _clipped_ring(mesh, level, landmarks.get("armpit_level"))
             if clipped is not None:
                 points = clipped
-        curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C, points, "loop"))
+        curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C, _taut_ring(points), "loop"))
 
     hem = prototypes.get("hip_girth")
     if hem is not None and hem.available and hem.level_mm is not None:
         _, selection = torso_girth_at(mesh, hem.level_mm)
         if selection is not None:
             curves.append((f"{hem.label}  {hem.value:.0f} mm", PROTO_C,
-                           np.asarray(selection.loop.points, dtype=float), "loop"))
+                           _taut_ring(selection.loop.points), "loop"))
 
     armpit = landmarks.get("armpit_level")
     if armpit is not None:
@@ -184,10 +211,19 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
                     loop = loops.get(side)
                 if loop is not None:
                     curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C,
-                                   np.asarray(loop.points, dtype=float), "loop"))
+                                   _taut_ring(loop.points), "loop"))
         sleeve = prototypes.get("sleeve_opening_girth")
         if sleeve is not None and sleeve.available and sleeve.level_mm is not None:
-            label = f"{sleeve.label}  {sleeve.value:.0f} mm"
+            # The prototype's value is the MEAN of both arms. One label with
+            # that number hung on one arm's ring was 9 mm off the ring it
+            # sat on (Texel Man0, arms 19 mm apart — decision #56). Each
+            # ring carries its own girth; the mean stays in the table.
+            from .measure.circumference import measure_circumference
+
+            def own(loop):
+                circ = measure_circumference(loop, close_gap=not loop.closed)
+                return "" if circ.selected_value_mm is None else f"  {circ.selected_value_mm:.0f} mm"
+
             drawn = 0
             for side in ("right", "left"):
                 axis = landmarks.get(f"arm_axis_{side}")
@@ -195,14 +231,14 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
                 if axis is not None and getattr(axis, "usable", False):
                     loop = E.arm_loop_perpendicular(mesh, axis, axis.station_at_height(sleeve.level_mm))
                 if loop is not None:
-                    curves.append((label if drawn == 0 else None, PROTO_C,
-                                   np.asarray(loop.points, dtype=float), "loop"))
+                    curves.append((f"{sleeve.label} {side[0].upper()}{own(loop)}", PROTO_C,
+                                   _taut_ring(loop.points), "loop"))
                     drawn += 1
             if drawn == 0:
                 loops, _ = E.arm_loops_at(mesh, sleeve.level_mm, armpit)
-                for i, loop in enumerate(loops.values()):
-                    curves.append((label if i == 0 else None, PROTO_C,
-                                   np.asarray(loop.points, dtype=float), "loop"))
+                for side, loop in loops.items():
+                    curves.append((f"{sleeve.label} {side[0].upper()}{own(loop)}", PROTO_C,
+                                   _taut_ring(loop.points), "loop"))
 
     graph = EdgeGraph(mesh)
     back_neck = landmarks.get("back_neck_point")

@@ -2922,10 +2922,34 @@ same class of defect as decision #48's back-length staircase — a drawing
 that is not the number beside it — and it means the four reports were an
 accurate reading of an inaccurate picture.
 
+**And the same defect, smaller, on every girth.** Asked whether the other
+curves were also not their numbers, an audit compared each drawn curve's
+length with the label beside it, seven bodies. The three surface paths
+match to ±0.5 mm — they are drawn from the graph they were summed on. The
+girths do not: every girth number is the taut-tape convex hull (decision
+#3) and every ring was drawn as the skin contour. Neck and upper arm
+differ by under 1 mm, waist by up to 4, hip by up to 13.5
+(`smpl_rand0`), sleeve opening by up to 9.4 (`Man0`) — and the chest by
+**+32.6 mm on `Woman0`** even after the clip fix, because the cut edges
+and the bust leave the clipped polygon concave and the tape bridges what
+the skin does not. Rings are now drawn as the hull in the loop's own plane
+(`viewer._taut_ring`; the upper-arm ring is tilted, so the plane is found
+by PCA, not assumed horizontal). After the change every drawn girth
+matches its label to within a millimetre — except one, which was not a
+hull problem: `sleeve_opening_girth` is the MEAN of both arms, and one
+label with that number was hung on the right arm's ring, 9 mm off the
+ring it sat on where the arms differ (`Man0`, 19 mm apart). Each ring now
+carries its own girth; the mean stays in the table with its "2 arm(s)"
+note. Landmarks were checked too:
+every `*_level` landmark is drawn at the body axis, 30–80 mm inside the
+mesh, which is what a level is and is not a defect, but is why those
+spheres are not on the skin.
+
 **Rules out:** treating `arm_clipped_at_merged_level` as a large or
 one-sided error; a T-pose twin as ground truth at any height inside the
 arm-root band; changing where the chest is measured on the grounds that
-the arm is inside the loop; drawing a merged loop under a clipped number.
+the arm is inside the loop; drawing a merged loop under a clipped number;
+drawing a skin contour under a taut-tape number.
 
 **Revisit if:** a scan arrives with body-part labels, or a scanned
 subject is tape-measured — either would say whether the ±15 mm holds on
