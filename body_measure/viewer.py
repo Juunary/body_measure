@@ -75,6 +75,55 @@ def surface_path_points(graph: EdgeGraph, waypoints):
     return graph.mesh.vertices[chain]
 
 
+_UP = np.array([0.0, 1.0, 0.0])
+
+
+def _clipped_ring(mesh, level_mm, armpit):
+    """The polygon a clipped girth was measured on, as 3-D points: the
+    merged slice at `level_mm` cut to the torso's lateral extent at the
+    armpit, largest piece kept — the same construction as
+    `clipped_circumference_xz`, so the ring on screen is the ring in the
+    number. None when it cannot be rebuilt; the caller then draws the
+    merged loop as before."""
+    if armpit is None:
+        return None
+    from shapely.geometry import Polygon, box
+
+    from .landmarks.estimated import body_lateral_axis
+    from .measure.slicing import project_axis_to_plane, select_torso_loop, slice_mesh
+
+    axis_xz = E.body_axis_point(mesh)
+    armpit_y = float(armpit.position_mm[1])
+    lateral, _ = body_lateral_axis(mesh, armpit_y)
+    o = np.array([0.0, armpit_y, 0.0])
+    at_armpit = select_torso_loop(slice_mesh(mesh, o, _UP), project_axis_to_plane(axis_xz, o, _UP))
+    if at_armpit is None:
+        return None
+    t = at_armpit.loop.points[:, [0, 2]] @ lateral
+    lo, hi = float(t.min()), float(t.max())
+
+    o = np.array([0.0, float(level_mm), 0.0])
+    merged = select_torso_loop(slice_mesh(mesh, o, _UP), project_axis_to_plane(axis_xz, o, _UP))
+    if merged is None:
+        return None
+    ortho = np.array([-lateral[1], lateral[0]])
+    xz = merged.loop.points[:, [0, 2]]
+    uv = np.column_stack([xz @ lateral, xz @ ortho])
+    poly = Polygon(uv)
+    if not poly.is_valid:
+        poly = poly.buffer(0)
+    clipped = poly.intersection(box(lo, -1e9, hi, 1e9))
+    if clipped.is_empty:
+        return None
+    if clipped.geom_type == "MultiPolygon":
+        clipped = max(clipped.geoms, key=lambda g: g.area)
+    if clipped.geom_type != "Polygon":
+        return None
+    ring = np.asarray(clipped.exterior.coords, dtype=float)[:-1]
+    back = ring[:, :1] * lateral + ring[:, 1:2] * ortho          # (n, 2) xz
+    return np.column_stack([back[:, 0], np.full(len(back), float(level_mm)), back[:, 1]])
+
+
 def gather_curves(mesh, measurements, landmarks, prototypes=None):
     """(label, colour, points, kind) for everything with real geometry."""
     curves = []
@@ -92,9 +141,19 @@ def gather_curves(mesh, measurements, landmarks, prototypes=None):
         if value is None or value.selected_value_mm is None or level is None:
             continue
         _, selection = torso_girth_at(mesh, level)
-        if selection is not None:
-            curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C,
-                           np.asarray(selection.loop.points, dtype=float), "loop"))
+        if selection is None:
+            continue
+        points = np.asarray(selection.loop.points, dtype=float)
+        if "arm_clipped_at_merged_level" in value.quality:
+            # The number came from the clipped polygon, so draw that. The
+            # merged loop runs through both arms and is ~160 mm longer than
+            # the label beside it; drawn under a torso-only number it says
+            # the arm was measured, and four reports said exactly that
+            # (decision #56).
+            clipped = _clipped_ring(mesh, level, landmarks.get("armpit_level"))
+            if clipped is not None:
+                points = clipped
+        curves.append((f"{label}  {value.selected_value_mm:.0f} mm", SPEC_C, points, "loop"))
 
     hem = prototypes.get("hip_girth")
     if hem is not None and hem.available and hem.level_mm is not None:

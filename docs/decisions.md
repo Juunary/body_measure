@@ -2908,10 +2908,24 @@ that cannot be measured without a labelled scan. And the truth uses the
 same chord convention as the clip, so it validates the clip against the
 tape-bridging model, not against a tape.
 
+**Where the reports came from, found afterwards.** The 3-D view drew the
+chest as the MERGED slice loop — through both upper arms — under a label
+that carried the clipped, torso-only number. On `smpl_rand7_apose` the
+ring on screen was 1290 mm and the label 1126 mm. Anyone reading the
+picture would say the arm was being measured; the picture said so and
+the number did not. The viewer now draws the clipped polygon the number
+came from (`viewer._clipped_ring`, the same construction as
+`clipped_circumference_xz`), so the ring is the ring in the number:
+`rand7` draws 1131 mm within x −204…200 instead of 1290 within −282…274.
+Unclipped girths draw as before. No measurement changed. This is the
+same class of defect as decision #48's back-length staircase — a drawing
+that is not the number beside it — and it means the four reports were an
+accurate reading of an inaccurate picture.
+
 **Rules out:** treating `arm_clipped_at_merged_level` as a large or
 one-sided error; a T-pose twin as ground truth at any height inside the
 arm-root band; changing where the chest is measured on the grounds that
-the arm is inside the loop.
+the arm is inside the loop; drawing a merged loop under a clipped number.
 
 **Revisit if:** a scan arrives with body-part labels, or a scanned
 subject is tape-measured — either would say whether the ±15 mm holds on
