@@ -2836,3 +2836,83 @@ or a body is measured by a trained measurer with a tape — either would
 say whether the agreement here is correctness or shared error. Or if
 `estimate_bust_level` is made stable, which would make the bust-anchored
 row worth re-running.
+
+
+## 56. The arm clip is unbiased to within 15 mm, so the chest's +27 mm is not the clip
+
+**Date:** 2026-09-08 · **Status:** accepted · **Spec unchanged**
+
+Decisions #54 and #55 each ended on the same gap: the arm clip that
+produces every chest girth on a real scan is "an approximation, always
+flagged", and nobody had measured how wrong it is. Four reports from the
+3-D view said the arm was being counted into the chest. This measures
+whether it is.
+
+**A first ground truth was wrong, and is recorded so it is not retried.**
+Every generated A-pose body has a T-pose twin with identical betas, and
+the plan was that a horizontal slice of the twin at the A-pose chest
+height holds the torso alone. It does not: the chest level sits 32 to
+85 mm above the armpit, inside the band the arm root occupies, and the
+T-pose slice there cuts through both horizontal arms as one loop —
+"torso girths" of 1487, 2061 and 3080 mm. Not a clip error, an arm
+length.
+
+**The ground truth that holds.** The generated bodies keep SMPL's
+6890-vertex order, and the model's skinning weights say which joint owns
+each vertex; joints 16–23 are the arms. At the chest level, each point of
+the merged contour is labelled arm or torso by its nearest vertex, the
+arm runs are dropped, and the torso arcs are bridged by a chord across
+each gap — the tape crossing the armpit, which is the convention the clip
+imitates and the right model of a tape. The five bodies whose chest is
+NOT clipped are the check: no arm points in the contour, truth equals the
+measured girth to within −4 … +1 mm.
+
+**Result, four clipped bodies:**
+
+| body | above armpit | measured | truth | error | arm points |
+|---|---|---|---|---|---|
+| smpl_neutral0 | +40 | 1017.4 | 1003.2 | +14.1 | 63 |
+| smpl_rand0 | +32 | 789.0 | 772.0 | +17.0 | 73 |
+| smpl_rand3 | +53 | 909.7 | 907.7 | +2.0 | 58 |
+| smpl_rand7 | +85 | 1125.8 | 1148.8 | −22.9 | 54 |
+
+Mean **+2.5 mm, MAE 14.0**, both signs. Against the convex hull of the
+torso points instead of the arcs: mean +7.3, MAE 16.0. Fifty to seventy
+contour points are arm, the clip removes them, and what is left is
+±15–23 mm with no direction — `smpl_rand7` reads LOW because the clip
+window, taken at the armpit, is narrower than the torso at chest height
+and cuts into it.
+
+**On Texel the clip does the same size of work.** It removes 182 to
+250 mm from the merged loop, 14 to 20 % of its perimeter; the armpit
+window is 267–384 mm wide against a merged width of 450–576 mm at the
+chest, about 90 mm of arm each side. No ground truth on a scan, but the
+magnitudes match the synthetic bodies.
+
+**What this settles.** The chest reads +26.9 mm against Texel m5. If the
+clip were the cause, the synthetic bodies would show a bias of that sign
+and size; they show +2.5. So the +26.9 is not clip error. What is left is
+what #55 left: the definition — a maximum search against a reference
+whose placement is undocumented — or the reference itself. The four
+reports were accurate about what they saw and the arm is not, in fact,
+counted into the girth: it is removed to within the precision this
+project measures anything at.
+
+The fourth proposal, cap the chest at the armpit when the search goes
+above it, is #55's `axilla` row: every Texel subject is above, so the
+condition selects all ten, and that row is 57 mm from its own reference.
+
+**What this does not settle.** n = 4. SMPL bodies are smoother than scans
+and their armpits are simpler, so the clip may be worse on a real body;
+that cannot be measured without a labelled scan. And the truth uses the
+same chord convention as the clip, so it validates the clip against the
+tape-bridging model, not against a tape.
+
+**Rules out:** treating `arm_clipped_at_merged_level` as a large or
+one-sided error; a T-pose twin as ground truth at any height inside the
+arm-root band; changing where the chest is measured on the grounds that
+the arm is inside the loop.
+
+**Revisit if:** a scan arrives with body-part labels, or a scanned
+subject is tape-measured — either would say whether the ±15 mm holds on
+real armpit geometry.
