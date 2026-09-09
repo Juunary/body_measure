@@ -150,8 +150,11 @@ pattern geometry. Finishing and QC remain unexecuted.
 ## Run
 
 ```powershell
-git clone --recurse-submodules https://github.com/Juunary/body_measure.git
-cd body_measure\studio
+git clone https://github.com/Juunary/body_measure.git
+cd body_measure
+# Requires access to the private Juunary/ita-qr-configurator repository.
+git submodule update --init --recursive
+cd studio
 .\setup.ps1     # once: venv, requirements, three.js vendored from the DPP viewer
 .\run.ps1       # http://127.0.0.1:8010
 ```

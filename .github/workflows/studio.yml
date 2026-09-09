@@ -28,19 +28,34 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - name: Check out private QR dependency
+        id: qr
+        shell: bash
+        env:
+          QR_TOKEN: ${{ secrets.QR_CONFIGURATOR_TOKEN }}
+        run: |
+          if [ -z "$QR_TOKEN" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Studio tests need the QR_CONFIGURATOR_TOKEN repository secret; running the public polo tests only."
+            exit 0
+          fi
+          git config url."https://x-access-token:${QR_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init --recursive
+          echo "available=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: studio/requirements.txt
-      - run: pip install -r studio/requirements.txt
       - name: Polo process model
         run: python -m unittest
         working-directory: polo-line-sim
+      - name: Install Studio dependencies
+        if: steps.qr.outputs.available == 'true'
+        run: pip install -r studio/requirements.txt
       - name: Studio
+        if: steps.qr.outputs.available == 'true'
         run: python -m pytest -q -p no:cacheprovider
         working-directory: studio
         env:

@@ -10,6 +10,7 @@ Clone the QR dependency, install the Studio environment, and start the local
 server from the repository root:
 
 ```powershell
+# qr-configurator is a private dependency; authenticate to GitHub first.
 git submodule update --init --recursive
 cd studio
 .\setup.ps1
@@ -20,6 +21,11 @@ Open <http://127.0.0.1:8010/>. The workflow is split across `/measure`,
 `/simulation`, and `/qr`; all three pages share the same job ID. See
 [`studio/README.md`](studio/README.md) for the simulation, CLI, passport, and
 research-boundary documentation.
+
+Repository CI can run the complete Studio suite when the private
+`QR_CONFIGURATOR_TOKEN` secret has read access to `Juunary/ita-qr-configurator`.
+Without that secret it runs the public polo process tests and reports the
+Studio suite as skipped.
 
 A measurement pipeline that extracts seven shirt measurements from a 3D
 body mesh. Built for the Maß-DPP project (ITA, RWTH Aachen) ahead of the
