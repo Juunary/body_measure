@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "units": "mm",
+  "pathway": "estimated",
+  "source_id": "synthetic-research-example-no-person",
+  "measurements": {},
+  "meta": {"note": "All body values are explicit synthetic manual inputs in cutting-config.json. No scan, validated measurement, or fit claim."}
+}

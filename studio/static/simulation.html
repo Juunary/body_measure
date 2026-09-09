@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maß-DPP Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/workflow.css">
+  <script type="importmap">
+    {"imports": {"three": "/static/vendor/three.module.js",
+                 "three/addons/controls/OrbitControls.js": "/static/vendor/OrbitControls.js"}}
+  </script>
+<link rel="stylesheet" href="/static/simulation.css"></head>
+<body data-page="simulation">  <header class="masthead">
+    <div class="masthead-row">
+      <div>
+        <h1>Maß-DPP Studio</h1>
+        <p id="subtitle"></p>
+      </div>
+      <nav id="workflow-nav" class="workflow-nav" aria-label="Workflow"></nav>
+      <div class="masthead-tools">
+        <nav class="langs" id="langs" aria-label="Language">
+          <button data-lang="de">DE</button>
+          <button data-lang="en">EN</button>
+          <button data-lang="ko">KO</button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+<div class="workflow-context"><div id="workflow-status"></div><p id="workflow-message" role="status"></p></div>
+<main class="page-content">  <section class="panel simulation-panel" id="simulation-panel" data-mode="both">
+    <div class="sim-header">
+      <div><div class="sim-eyebrow" data-st="eyebrow"></div><h2 data-st="title"></h2><p data-st="research"></p></div>
+      <div class="sim-header-actions">
+        <div class="sim-toggle" role="group" data-st-aria="visual">
+          <button type="button" data-view="visual" data-st="visual" aria-pressed="false"></button>
+          <button type="button" data-view="terminal" data-st="terminal" aria-pressed="false"></button>
+          <button type="button" data-view="both" data-st="both" class="selected" aria-pressed="true"></button>
+        </div>
+        <button id="sim-example" type="button" data-st="example"></button>
+        <button id="sim-start" type="button" data-st="start" disabled></button>
+      </div>
+    </div>
+    <div class="sim-metrics">
+      <div><span data-st="cut"></span><strong id="sim-cut">0.00 m</strong></div>
+      <div><span data-st="travel"></span><strong id="sim-travel">0.00 m</strong></div>
+      <div><span data-st="yield"></span><strong id="sim-yield">—</strong></div>
+      <div><span data-st="parts"></span><strong id="sim-parts-count">0 / 9</strong></div>
+      <div><span data-st="sewnLength"></span><strong id="sim-sewn">0.00 m</strong></div>
+      <div><span data-st="stitches"></span><strong id="sim-stitches">0</strong></div>
+    </div>
+    <div class="sim-workspace">
+      <div class="sim-visual">
+        <div class="sim-canvas-wrap">
+          <canvas id="cutting-canvas" data-st-aria="visual"></canvas>
+          <div class="sim-toggle sim-camera">
+            <button type="button" data-camera="overview" data-st="overview"></button>
+            <button type="button" data-camera="cutter" data-st="cutter" class="selected"></button>
+            <button type="button" data-camera="top" data-st="top"></button>
+            <button type="button" data-camera="sewing" data-st="sewingView"></button>
+          </div>
+          <div class="sim-empty" id="sim-empty" data-st="empty"></div>
+          <div class="sim-live-tag"><i></i><span data-st="research"></span></div>
+        </div>
+      </div>
+      <aside class="sim-sidebar">
+        <div class="sim-sidebar-head"><span data-st="status"></span><span id="sim-status" data-st="waiting"></span></div>
+        <div id="sim-operation" data-st="plan"></div><div id="sim-active-part">Zünd S3</div>
+        <div id="sim-part-list"></div>
+      </aside>
+    </div>
+    <div class="sim-controls">
+      <div class="sim-control-buttons">
+        <button type="button" data-control="previous" data-st="previous" disabled></button>
+        <button type="button" data-control="play" data-st="play" disabled></button>
+        <button type="button" data-control="pause" data-st="pause" disabled></button>
+        <button type="button" data-control="next" data-st="next" disabled></button>
+        <button type="button" data-control="restart" data-st="restart" disabled></button>
+      </div>
+      <div class="sim-scrub"><div><span data-st="timeline"></span><span id="sim-time">0.0 s</span></div><input id="sim-seek" data-st-aria="timeline" type="range" min="0" max="1" value="0" step="0.01" disabled></div>
+      <label class="sim-speed-label"><span data-st="speed"></span><select id="sim-speed" disabled><option value="0.1">0.1×</option><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="25">25×</option><option value="50">50×</option><option value="100">100×</option></select></label>
+      <button id="sim-download" type="button" data-st="download" disabled></button>
+    </div>
+    <div class="sim-terminal-wrap"><div class="sim-terminal-title"><span>STUDIO / SHARED SIMULATION STREAM</span><span>mm · s</span></div><pre id="sim-terminal" data-st-aria="terminal"></pre><code id="sim-cli"></code></div>
+    <div id="sim-resource-card"></div>
+    <div id="sim-error" role="alert"></div>
+    <div class="sim-equipment"><h3 data-st="machines"></h3><div id="sim-machine-list"></div><p id="sim-machine-detail"></p></div>
+    <details id="sim-inputs" class="sim-inputs"><summary data-st="inputs"></summary>
+      <p id="sim-example-note"></p>
+      <form id="sim-input-form" onsubmit="return false">
+        <label><span data-st="scope"></span> <select id="sim-scope"><option value="through_sewing" data-st="through_sewing"></option><option value="through_cutting" data-st="through_cutting"></option></select></label>
+        <p data-st="sewingNote"></p>
+        <h3 id="resource-input-title"></h3><p id="resource-input-note" class="preset-note"></p><div id="sim-resources-inputs" class="sim-input-grid"></div>
+        <h3 data-st="body"></h3><p data-st="inputNote"></p><div id="sim-body-inputs"></div>
+        <h3 data-st="design"></h3><div id="sim-design-inputs" class="sim-input-grid"></div>
+        <h3 data-st="machine"></h3><p data-st="profileNote"></p><div id="sim-machine-inputs" class="sim-input-grid"></div>
+      </form>
+    </details>
+  </section>
+
+</main><div class="next-row"><a class="next-page" data-next="qr"></a></div><script type="module" src="/static/simulation-page.js"></script></body></html>

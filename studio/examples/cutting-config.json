@@ -1,0 +1,16 @@
+{
+  "speed": 10,
+  "manual": {
+    "chest_circumference": {"value": 1000, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "waist_circumference": {"value": 860, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "neck_circumference": {"value": 390, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "across_back_shoulder_width": {"value": 440, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "back_length": {"value": 450, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "upper_arm_girth": {"value": 330, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "hip_girth": {"value": 1000, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "sleeve_opening_girth": {"value": 300, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "armhole_depth": {"value": 210, "unit": "mm", "reason": "Synthetic research example, not a person"},
+    "shoulder_slope": {"value": 12, "unit": "deg", "reason": "Synthetic research example, not a person"},
+    "front_back_width": {"value": 0, "unit": "mm", "reason": "Synthetic research example, not a person"}
+  }
+}

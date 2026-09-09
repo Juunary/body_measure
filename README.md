@@ -1,5 +1,26 @@
 # body-measure
 
+This repository also contains **Maß-DPP Studio**, the browser workflow that
+connects measurement and size assignment to polo cutting, Pfaff sewing, and a
+QR product passport. The measurement package remains usable on its own.
+
+## Maß-DPP Studio
+
+Clone the QR dependency, install the Studio environment, and start the local
+server from the repository root:
+
+```powershell
+git submodule update --init --recursive
+cd studio
+.\setup.ps1
+.\run.ps1 KR
+```
+
+Open <http://127.0.0.1:8010/>. The workflow is split across `/measure`,
+`/simulation`, and `/qr`; all three pages share the same job ID. See
+[`studio/README.md`](studio/README.md) for the simulation, CLI, passport, and
+research-boundary documentation.
+
 A measurement pipeline that extracts seven shirt measurements from a 3D
 body mesh. Built for the Maß-DPP project (ITA, RWTH Aachen) ahead of the
 3D body scanner's arrival — inputs are abstracted behind adapters, so the

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#14695e">
+  <title>Maß-DPP · Product passport</title>
+  <link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/static/passport.css"><link rel="stylesheet" href="/static/workflow.css">
+  <script type="module" src="/static/passport.js"></script>
+</head>
+<body>
+  <a class="skip" href="#content" data-t="skip">Skip to product</a>
+  <header class="site-header">
+    <a class="wordmark" href="/" aria-label="Maß-DPP Studio">Maß<span>—</span>DPP <small>STUDIO</small></a>
+    <nav class="languages" aria-label="Language"><button data-lang="de" type="button">DE</button><button data-lang="en" type="button">EN</button><button data-lang="ko" type="button">KO</button></nav>
+  </header>
+  <main id="content" tabindex="-1">
+    <div id="page-state" role="status"><p id="state-message" data-t="loading">Loading product passport…</p><button id="retry" hidden type="button" data-t="retry">Try again</button></div>
+    <div id="passport" hidden>
+      <div class="page-heading"><p class="eyebrow">DIGITAL PRODUCT PASSPORT</p><div class="heading-line"><h1 data-t="polo">Polo shirt</h1><span class="record-badge" id="record-badge"></span></div><p class="intro" data-t="intro"></p></div>
+      <div class="passport-layout">
+        <aside class="product-summary" aria-labelledby="product-heading">
+          <figure><div class="product-photo"><img src="/static/passport-polo.webp" width="1024" height="1024" alt="" fetchpriority="high"><p id="image-unavailable" hidden data-t="imageUnavailable"></p></div><figcaption data-t="illustration"></figcaption></figure>
+          <div class="product-facts"><h2 id="product-heading" data-t="configuration"></h2><dl class="facts"><div><dt data-t="colour"></dt><dd><span id="swatch" aria-hidden="true"></span><span id="colour"></span></dd></div><div><dt data-t="size"></dt><dd id="size"></dd></div><div><dt data-t="fit"></dt><dd id="fit"></dd></div></dl><p class="provenance" data-t="configurationSource"></p></div>
+          <div class="record-meta"><span data-t="updated"></span><time id="updated"></time><p id="snapshot-note"></p></div>
+          <div class="actions"><button type="button" id="copy-link" data-t="copy"></button><button type="button" id="download" data-t="download"></button><button type="button" id="print" data-t="print"></button></div><p id="action-message" class="action-message" role="status" aria-live="polite"></p>
+        </aside>
+        <div class="details">
+          <section class="card" aria-labelledby="material-title"><div class="section-title"><span class="section-number">01</span><h2 id="material-title" data-t="material"></h2></div><div id="composition"></div><div class="material-foot"><span data-t="recycled"></span><strong id="recycled"></strong></div><p class="note" data-t="declared"></p></section>
+          <section class="card" aria-labelledby="care-title"><div class="section-title"><span class="section-number">02</span><h2 id="care-title" data-t="care"></h2></div><div class="care-main"><span id="care-value" class="care-value"></span><p id="care-description"></p></div><p class="note" data-t="careSource"></p><details class="additional"><summary data-t="repair"></summary><p data-t="notProvided"></p></details></section>
+          <section class="card process-card" aria-labelledby="process-title"><div class="section-title"><span class="section-number">03</span><h2 id="process-title" data-t="process"></h2></div><p class="simulation-badge" data-t="simulation"></p><p id="process-caption"></p><ol id="timeline" class="timeline"></ol><p id="sizing-note" class="note"></p><dl id="metrics" class="metrics"></dl><p id="time-note" class="note" data-t="timeNote"></p><div id="public-resource-card"></div><div class="process-boundary"><span data-t="finishing"></span><b data-t="not_executed"></b><span data-t="qc"></span><b data-t="not_executed"></b></div><p class="note" data-t="simulationNote"></p></section>
+          <section class="card identity-card" aria-labelledby="identity-title"><div class="section-title"><span class="section-number">04</span><h2 id="identity-title" data-t="identity"></h2></div><dl class="facts"><div><dt data-t="code"></dt><dd><code id="code"></code></dd></div><div><dt data-t="qrVersion"></dt><dd id="qr-version"></dd></div><div><dt data-t="recordType"></dt><dd data-t="configurationRecord"></dd></div></dl><p class="note" data-t="sameCode"></p></section>
+          <details class="card public-json"><summary id="public-json-title"></summary><pre id="public-json"></pre></details>
+        </div>
+      </div>
+    </div>
+    <noscript>This passport needs JavaScript to retrieve its saved record.</noscript>
+  </main>
+  <footer><strong>Maß-DPP Studio</strong><p data-t="footer"></p></footer>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maß-DPP Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/workflow.css">
+  <script type="importmap">
+    {"imports": {"three": "/static/vendor/three.module.js",
+                 "three/addons/controls/OrbitControls.js": "/static/vendor/OrbitControls.js"}}
+  </script>
+</head>
+<body data-page="measure">
+  <header class="masthead">
+    <div class="masthead-row">
+      <div>
+        <h1>Maß-DPP Studio</h1>
+        <p id="subtitle"></p>
+      </div>
+      <nav id="workflow-nav" class="workflow-nav" aria-label="Workflow"></nav>
+      <div class="masthead-tools">
+        <nav class="langs" id="langs" aria-label="Language">
+          <button data-lang="de">DE</button>
+          <button data-lang="en">EN</button>
+          <button data-lang="ko">KO</button>
+        </nav>
+        <button id="btn-settings" class="gear" type="button" title="Settings">⚙ <span id="l-settings"></span></button>
+      </div>
+    </div>
+  </header>
+
+<div class="workflow-context"><div id="workflow-status"></div><p id="workflow-message" role="status"></p></div>
+  <main class="layout">
+    <section class="panel files">
+      <h2 id="h-files"></h2>
+      <div class="pose-filter choices" id="pose-filter"></div>
+      <div class="file-list" id="file-list"></div>
+      <div class="upload">
+        <label class="upload-zone" id="upload-zone">
+          <input type="file" id="upload-input" accept=".obj,.ply,.stl">
+          <span id="l-upload"></span>
+        </label>
+      </div>
+      <div class="file-detail" id="file-detail" hidden>
+        <div class="badge-row"><span class="badge" id="fd-badge"></span></div>
+        <div class="fd-name" id="fd-name"></div>
+        <div class="fd-text" id="fd-detail"></div>
+        <div class="fd-grid">
+          <label><span id="l-unit"></span><select id="fd-unit"></select></label>
+          <label><span id="l-up"></span><select id="fd-up"></select></label>
+          <label><span id="l-population"></span><select id="fd-population"></select></label>
+          <label class="check"><input type="checkbox" id="fd-clothed"><span id="l-clothed"></span></label>
+        </div>
+        <div class="fd-fixed" id="fd-fixed"></div>
+        <button id="btn-load" class="primary" type="button"></button>
+      </div>
+      <div class="error" id="file-error"></div>
+    </section>
+
+    <section class="panel viewer-panel">
+      <div class="viewer-head">
+        <h2 id="h-viewer"></h2>
+        <div class="toggles" id="toggles">
+          <label><input type="checkbox" id="tg-mesh" checked><span id="l-tg-mesh"></span></label>
+          <label><input type="checkbox" id="tg-curves" checked><span id="l-tg-curves"></span></label>
+          <label><input type="checkbox" id="tg-landmarks" checked><span id="l-tg-landmarks"></span></label>
+          <label><input type="checkbox" id="tg-labels" checked><span id="l-tg-labels"></span></label>
+        </div>
+      </div>
+      <div class="viewer-wrap">
+        <canvas id="viewer"></canvas>
+        <div class="viewer-labels" id="viewer-labels"></div>
+        <div class="viewer-empty" id="viewer-empty"></div>
+        <div class="viewer-info" id="viewer-info"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="panel terminal-panel">
+      <div class="terminal-head">
+        <h2 id="h-terminal"></h2>
+        <div class="actions">
+          <button id="btn-measure" type="button" disabled></button>
+          <button id="btn-size" type="button" disabled></button>
+          <button id="btn-clear" type="button" class="ghost"></button>
+        </div>
+      </div>
+      <pre class="terminal" id="terminal"></pre>
+    </section>
+  </main>
+
+  <section class="results measure-results">
+    <div class="panel">
+      <h2 id="h-measurements"></h2>
+      <table class="mtable" id="mtable"><tbody></tbody></table>
+      <div class="muted" id="m-notes"></div>
+      <a id="doc-link" class="doclink" hidden></a>
+    </div>
+    <div class="panel">
+      <h2 id="h-size"></h2>
+      <div class="size-card" id="size-card"></div>
+</div>
+</section>
+
+<div class="next-row"><a class="next-page" data-next="simulation"></a></div>  <aside class="drawer" id="drawer" hidden>
+    <div class="drawer-head">
+      <h2 id="h-settings"></h2>
+      <button id="btn-drawer-close" class="ghost" type="button">✕</button>
+    </div>
+    <div class="drawer-body">
+      <h3 id="h-garment"></h3>
+      <form id="garment-form" onsubmit="return false"></form>
+      <h3 id="h-sizing"></h3>
+      <div id="sizing-form" class="settings-grid"></div>
+      <h3 id="h-replay"></h3>
+      <div id="replay-form" class="settings-grid"></div>
+      <h3 id="h-defaults"></h3>
+      <div id="defaults-form" class="settings-grid"></div>
+    </div>
+  </aside>
+
+<script type="module" src="/static/app.js"></script></body></html>

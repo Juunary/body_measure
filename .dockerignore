@@ -1,0 +1,38 @@
+# Build context is the body_measure repository root (studio/Dockerfile).
+# Nothing licensed, generated or local leaves the machine.
+**/.git
+**/.venv
+**/venv
+**/__pycache__
+**/.pytest_cache
+**/.omc
+**/.claude
+**/node_modules
+data
+models
+reports
+weights
+external
+checkpoints
+# Also protect the earlier ITA workspace layout if it is used as context.
+body-measure/data
+body-measure/models
+body-measure/reports
+body-measure/weights
+studio/uploads
+studio/runs
+studio/static/vendor/three.module.js
+qr-configurator/backend/mfg.sqlite3
+dpp-prototype
+mail
+portfolio
+00_Vorlagen_und_Admin
+01_Literatur
+02_Strategie
+03_Wochenberichte
+_Original_Zips
+*.pdf
+*.pptx
+*.zip
+.env
+.env.*

@@ -1,0 +1,3 @@
+[submodule "qr-configurator"]
+	path = qr-configurator
+	url = https://github.com/Juunary/ita-qr-configurator.git
