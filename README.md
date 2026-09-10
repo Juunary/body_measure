@@ -67,6 +67,49 @@ waypoints, the posture, and the known deviations — never by name alone:
 Reference values are mapped by definition too. Agreement with a dataset's
 own automatic values is `dataset_agreement`; it is not accuracy.
 
+## Size charts
+
+A size letter is assigned from one measurement: chest girth for men, bust
+girth for women — the primary dimension EN ISO 8559-2:2025 names for
+knitted upper garments, which a piqué polo is. Height is the secondary
+dimension and is not carried. The bands are EN 13402-3's letter codes as
+published on two summary pages (onlineconversion.com, Wikipedia — read
+2026-09-07), not the standard's text; `sizing.py` carries the source and
+the date checked with every assignment, and a chest within 10 mm of a band
+edge names the neighbouring letter as equally defensible.
+
+**Men — chest girth**
+
+| Letter | Chest (cm) |
+|---|---|
+| S | 86 – 94 |
+| M | 94 – 102 |
+| L | 102 – 110 |
+| XL | 110 – 118 |
+| XXL | 118 – 129 |
+| 3XL | 129 – 141 |
+| 4XL | 141 – 154 |
+
+**Women — bust girth**
+
+| Letter | Bust (cm) |
+|---|---|
+| XS | 74 – 82 |
+| S | 82 – 90 |
+| M | 90 – 98 |
+| L | 98 – 107 |
+| XL | 107 – 119 |
+| XXL | 119 – 131 |
+| 3XL | 131 – 143 |
+| 4XL | 143 – 155 |
+
+Lower edges are inclusive, upper edges exclusive except on the last band.
+The women's L band ends at 107: the letter table on the first page printed
+98–106 and left 106–107 uncovered, while the same page's detailed table
+and the second page both place the boundary at 107 (decision #57). XL and
+XXL for women span 12 cm where the smaller letters span 8, as printed.
+A Lacoste chart exists only as the men's bands relabelled 3–7.
+
 ## Setup (Windows)
 
 ```powershell

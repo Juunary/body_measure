@@ -141,23 +141,21 @@ EN_13402_3_WOMEN = SizeChart(
     checked="2026-09-07",
     dimension_kind="body",
     population="women",
-    note="Two irregularities are kept as the source page's letter table "
-         "prints them rather than smoothed. L ends at 106 cm and XL begins "
-         "at 107, leaving a 1 cm gap no letter covers; a bust in it is "
-         "refused. And XL and XXL span 12 cm where the smaller letters span "
-         "8. Neither is verified against the standard's text: the same page's "
-         "detailed women's table runs 98-102 / 102-107 / 107-113 with no "
-         "gap, so the page contradicts itself and the gap may be the page's, "
-         "not EN's. A second summary page (Wikipedia, read 2026-09-07) prints "
-         "L as 98-107 with no gap, so two of three tables say the gap is not "
-         "there. Until the edition is read, the letter table is used as "
-         "printed and the refusal stands; closing the gap by hand would be "
-         "choosing between sources without the standard.",
+    note="L runs to 107 cm, closing the 1 cm gap the source page's letter "
+         "table printed between L (98-106) and XL (107-). Two of the three "
+         "tables read for this chart put the boundary at 107 with no gap - "
+         "the same page's detailed women's table (98-102 / 102-107 / "
+         "107-113) and Wikipedia's letter table (L 98-107) - and the letter "
+         "table was the odd one out. Decided 2026-09-10 (decision #57); the "
+         "gap had been kept as printed since #51 because closing it meant "
+         "choosing between sources without the standard, and that is still "
+         "true: the edition's own text can confirm or revert this. XL and "
+         "XXL span 12 cm where the smaller letters span 8, as printed.",
     bands=(
         SizeBand("XS", 74.0, 82.0),
         SizeBand("S", 82.0, 90.0),
         SizeBand("M", 90.0, 98.0),
-        SizeBand("L", 98.0, 106.0),
+        SizeBand("L", 98.0, 107.0),   # was 98-106; gap closed, decision #57
         SizeBand("XL", 107.0, 119.0),
         SizeBand("XXL", 119.0, 131.0),
         SizeBand("3XL", 131.0, 143.0),   # the page's last women's row (decision #50)
@@ -298,7 +296,8 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
                      and b.chest_min_cm <= chest_cm <= b.chest_max_cm)), None)
     if band is None:
         # inside the chart's outer range but between two of its bands — the
-        # women's table has a 1 cm gap where no letter applies
+        # no current chart has one (the women's 106-107 gap closed in
+        # decision #57), but a future chart may, and the refusal is right
         return SizeAssignment(
             chart, None, chest_mm,
             reason=f"{chest_cm:.1f} cm falls in a gap between the chart's bands; "

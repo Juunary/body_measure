@@ -2954,3 +2954,38 @@ drawing a skin contour under a taut-tape number.
 **Revisit if:** a scan arrives with body-part labels, or a scanned
 subject is tape-measured — either would say whether the ±15 mm holds on
 real armpit geometry.
+
+
+## 57. The women's L band runs to 107 — the gap is closed
+
+**Date:** 2026-09-10 · **Status:** accepted · **Spec unchanged**
+
+Decisions #50 and #51 kept a 1 cm gap in the women's chart, 106–107 cm,
+because the source page's letter table printed L as 98–106 and XL from
+107, and closing it by hand meant choosing between sources without the
+standard. A bust in the gap was refused.
+
+**Change.** L now runs 98–107 and meets XL. Asked for on 2026-09-10; the
+basis is that two of the three tables read for this chart already put the
+boundary at 107 with no gap — the same page's detailed women's table
+(98–102 / 102–107 / 107–113) and Wikipedia's letter table (L 98–107) —
+and the letter table with the gap was the odd one out. `between_bands`
+stays in `assign()` for any future chart that has a real gap; no current
+chart triggers it.
+
+**What moves.** A bust of 106.0–106.9 cm is now L instead of refused.
+At the L/XL edge the ±10 mm alternative rule now reaches from XL back
+into L (107.5 cm → XL, or L), where before L ended 15 mm short of that
+window. No men's assignment changes.
+
+**What this is not.** Not a reading of EN 13402-3. It is a choice between
+three secondary sources, made because they are two to one and because a
+refusal for a 1 cm slot the standard probably does not have is a worse
+error than a letter that may be one edge off. The standard's own text can
+confirm or revert it, and the chart note says so.
+
+**Rules out:** refusing a bust between 106 and 107 cm on the strength of
+one summary page.
+
+**Revisit if:** the EN 13402-3 edition is read (RWTH Beuth) and its
+women's letter table does print a gap.

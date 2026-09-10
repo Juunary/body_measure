@@ -45,34 +45,28 @@ def test_a_chest_lands_in_its_band(chest_cm, expected):
 
 def test_the_bands_are_ordered_and_never_overlap():
     """An overlap would make the assignment depend on iteration order.
-    A gap is allowed — the published women's table has one — but it must
-    be a gap, not a reversal."""
+    A gap is allowed — a published table may have one — but it must be a
+    gap, not a reversal."""
     for chart in CHARTS.values():
         for lower, upper in zip(chart.bands, chart.bands[1:]):
             assert lower.chest_min_cm < lower.chest_max_cm
             assert lower.chest_max_cm <= upper.chest_min_cm
 
 
-def test_the_womens_table_gap_is_recorded_not_smoothed():
-    """EN 13402-3's women's table leaves 106-107 cm uncovered. Closing it
-    would make the table tidier and no longer the published table, so a
-    bust in the gap is refused with that as the reason."""
+def test_the_womens_l_band_meets_xl_at_107():
+    """The source page's letter table left 106-107 cm uncovered; two of the
+    three tables read for this chart put the L/XL boundary at 107 with no
+    gap, and decision #57 closed it. A bust of 106.5 cm is L, and nothing
+    in the chart is refused as between bands."""
     from body_measure.sizing import EN_13402_3_WOMEN
 
     labels = {b.label: (b.chest_min_cm, b.chest_max_cm) for b in EN_13402_3_WOMEN.bands}
-    assert labels["L"][1] == 106.0 and labels["XL"][0] == 107.0
+    assert labels["L"] == (98.0, 107.0) and labels["XL"][0] == 107.0
 
     result = assign(chest(1065.0), chart=EN_13402_3_WOMEN, population="women")
-    assert not result.assigned
-    assert "between_bands" in result.flags
-    assert "gap" in result.reason
-
-
-def test_the_womens_chart_sizes_a_womans_body():
-    from body_measure.sizing import EN_13402_3_WOMEN
-
-    result = assign(chest(900.0), chart=EN_13402_3_WOMEN, population="women")
-    assert result.label == "M"
+    assert result.assigned and result.label == "L"
+    assert "between_bands" not in result.flags
+    assert "decision #57" in EN_13402_3_WOMEN.note
 
 
 def test_every_assignment_says_which_way_the_definition_gap_runs():
@@ -185,27 +179,32 @@ def test_the_alternative_is_a_band_the_error_window_reaches(chest_cm, label, alt
 
 
 @pytest.mark.parametrize("chest_cm, label, alternative", [
-    (105.5, "L", None),   # 5 mm from L's edge, but XL starts 15 mm away
-    (107.5, "XL", None),  # 5 mm from XL's start, but L ended 15 mm below
-    (105.0, "L", None),   # window 104-106: 106 is not in L and not in XL
-    (108.0, "XL", None),  # window 107-109: 107 is XL's own start
+    (105.5, "L", None),   # window 104.5-106.5 lies inside L; XL starts at 107
+    (107.5, "XL", "L"),   # window 106.5-108.5 reaches into L (98-107)
+    (105.0, "L", None),   # window 104-106: all L
+    (108.0, "XL", None),  # window 107-109: 107 is XL's own start, L ends there exclusive
 ])
-def test_no_alternative_reaches_across_the_womens_gap(chest_cm, label, alternative):
+def test_the_alternative_at_the_womens_l_xl_edge(chest_cm, label, alternative):
     """Before #49 both 105.5 and 107.5 named the band on the far side of
     the 106-107 gap as 'equally defensible', when no measurement within
-    the margin could land there."""
+    10 mm could be there. Decision #57 then closed the gap, so the window
+    from 107.5 does reach L; the flag follows the alternative, never
+    appears without one."""
     result = assign(chest(chest_cm * 10.0), chart=EN_13402_3_WOMEN, population="women")
     assert result.label == label
-    assert result.alternative is alternative
-    assert "near_size_boundary" not in result.flags
+    assert result.alternative == alternative
+    assert ("near_size_boundary" in result.flags) == (alternative is not None)
 
 
-def test_the_gap_itself_is_still_refused():
-    """Unchanged by #49: the bands and the refusal policy are as before."""
+def test_the_former_gap_is_l():
+    """Until decision #57 a bust of 106.0-106.9 cm was refused as between
+    bands. The L band now reaches 107, so each of them is L with no
+    between-bands flag; the refusal branch stays for a chart that has a
+    real gap."""
     for chest_cm in (106.0, 106.5, 106.9):
         result = assign(chest(chest_cm * 10.0), chart=EN_13402_3_WOMEN, population="women")
-        assert not result.assigned
-        assert "between_bands" in result.flags
+        assert result.assigned and result.label == "L", chest_cm
+        assert "between_bands" not in result.flags
 
 
 @pytest.mark.parametrize("chest_cm, label, alternative", [
