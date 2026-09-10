@@ -20,6 +20,12 @@ equipment costs and the captured size come from the shared engine. Research
 presets and calculation boundaries are described in
 [workflow and resource model](docs/workflow-resources.md).
 
+The public [SimPy factory CLI](docs/factory-phase1.md) adds deterministic
+multi-order cutting, sewing and batch transport with up to 1,000 identical
+polos. It uses `requirements-factory.txt` and works without the private QR
+submodule. Phase 1 exports research results and indexed replay files; it does
+not change the web workflow. See the [measured benchmark](docs/factory-benchmark.md).
+
 Measurement uses the repository's `body_measure` package. Size assignment and
 QR encoding use the integrated `polo-line-sim` directory and the
 `qr-configurator` submodule (`studio/paths.py`). The new cutting engine lives in

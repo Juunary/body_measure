@@ -27,6 +27,12 @@ Repository CI can run the complete Studio suite when the private
 Without that secret it runs the public polo process tests and reports the
 Studio suite as skipped.
 
+The [SimPy factory engine and CLI](studio/docs/factory-phase1.md) also run in
+this repository. They simulate repeated polo orders, resource contention and
+batch transport without QR credentials. Install `studio/requirements-factory.txt`
+and run the CLI from `studio`; the public factory CI suite runs independently
+of the private QR dependency.
+
 A measurement pipeline that extracts seven shirt measurements from a 3D
 body mesh. Built for the Maß-DPP project (ITA, RWTH Aachen) ahead of the
 3D body scanner's arrival — inputs are abstracted behind adapters, so the

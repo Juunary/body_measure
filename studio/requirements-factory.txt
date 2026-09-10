@@ -1,0 +1,3 @@
+-r ../requirements.txt
+pydantic>=2.10
+simpy==4.1.2

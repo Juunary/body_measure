@@ -2,6 +2,7 @@
 # Nothing licensed, generated or local leaves the machine.
 **/.git
 **/.venv
+**/.venv-factory
 **/venv
 **/__pycache__
 **/.pytest_cache
