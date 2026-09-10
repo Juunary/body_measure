@@ -1,33 +1,41 @@
 {
-  "duration_s": 797.5924214543156,
+  "duration_s": 1296.1924214543158,
   "result": {
-    "scope": "through_sewing",
+    "scope": "through_qc",
     "completed_garments": 4,
     "finished_garment": false,
-    "makespan_s": 797.5924214543156,
-    "completion_time_s": 797.5924214543156,
-    "throughput_per_hour": 18.05433403409639,
+    "makespan_s": 1296.1924214543158,
+    "completion_time_s": 1296.1924214543158,
+    "throughput_per_hour": 11.109461652185356,
+    "qc": {
+      "inspected": 4,
+      "passed": 4,
+      "failed": 0,
+      "verdict_model": "deterministic_pass_no_defect_model",
+      "ready_for_dpp_label": 4,
+      "dpp_label_or_qr_issued": 0
+    },
     "resources": {
-      "flow_time_s": 797.5924214543156,
-      "energy_kwh": 0.47610721100760234,
-      "co2e_g": 180.9207401828889,
-      "cost_eur": 38.96780233056178,
+      "flow_time_s": 1296.1924214543158,
+      "energy_kwh": 2.052865544340936,
+      "co2e_g": 780.0889068495557,
+      "cost_eur": 42.815464136117335,
       "energy_breakdown_kwh": {
         "zund": 0.17588046828257298,
         "pfaff": 0.09751111111111106,
         "vacuum": 0.1362495964927253,
-        "veit": 0.0,
-        "qc": 0.0,
-        "overhead": 0.06646603512119297
+        "veit": 1.5052083333333335,
+        "qc": 0.029999999999999995,
+        "overhead": 0.10801603512119298
       },
       "cost_breakdown_eur": {
         "fabric": 27.409752399999995,
         "thread": 0.61018476255889,
-        "labour": 8.956444444444442,
-        "electricity": 0.11902680275190058,
-        "equipment": 1.8723939208065512
+        "labour": 11.278666666666663,
+        "electricity": 0.513216386085234,
+        "equipment": 3.003643920806551
       },
-      "labour_time_s": 1465.5999999999995,
+      "labour_time_s": 1845.5999999999995,
       "thread_used_m": 61.01847625588899,
       "fabric_used_m2": {
         "body": 4.393950479999999,
@@ -41,8 +49,8 @@
         "stitches": 6016,
         "collected_pieces": 36,
         "seams_complete": 72,
-        "pressed": 0,
-        "inspected": 0
+        "pressed": 4,
+        "inspected": 4
       }
     },
     "orders": [
@@ -50,29 +58,29 @@
         "id": "a",
         "quantity": 4,
         "start_s": 0,
-        "end_s": 797.5924214543156,
-        "lead_time_s": 797.5924214543156,
+        "end_s": 1296.1924214543158,
+        "lead_time_s": 1296.1924214543158,
         "resources": {
-          "flow_time_s": 797.5924214543156,
-          "energy_kwh": 0.47610721100760234,
-          "co2e_g": 180.9207401828889,
-          "cost_eur": 38.96780233056178,
+          "flow_time_s": 1296.1924214543158,
+          "energy_kwh": 2.052865544340936,
+          "co2e_g": 780.0889068495557,
+          "cost_eur": 42.815464136117335,
           "energy_breakdown_kwh": {
             "zund": 0.17588046828257298,
             "pfaff": 0.09751111111111106,
             "vacuum": 0.1362495964927253,
-            "veit": 0.0,
-            "qc": 0.0,
-            "overhead": 0.06646603512119297
+            "veit": 1.5052083333333335,
+            "qc": 0.029999999999999995,
+            "overhead": 0.10801603512119298
           },
           "cost_breakdown_eur": {
             "fabric": 27.409752399999995,
             "thread": 0.61018476255889,
-            "labour": 8.956444444444442,
-            "electricity": 0.11902680275190058,
-            "equipment": 1.8723939208065512
+            "labour": 11.278666666666663,
+            "electricity": 0.513216386085234,
+            "equipment": 3.003643920806551
           },
-          "labour_time_s": 1465.5999999999995,
+          "labour_time_s": 1845.5999999999995,
           "thread_used_m": 61.01847625588899,
           "fabric_used_m2": {
             "body": 4.393950479999999,
@@ -86,8 +94,8 @@
             "stitches": 6016,
             "collected_pieces": 36,
             "seams_complete": 72,
-            "pressed": 0,
-            "inspected": 0
+            "pressed": 4,
+            "inspected": 4
           }
         }
       }
@@ -96,34 +104,39 @@
       {
         "id": "a:0001",
         "order_id": "a",
-        "lead_time_s": 516.1924214543158,
+        "lead_time_s": 906.1924214543158,
         "waits": {
           "before_cutting_s": 0,
           "cutting_worker_s": 0,
           "before_transport_s": 0.0,
-          "before_sewing_s": 0.0
+          "before_sewing_s": 0.0,
+          "before_finishing_s": 0.0,
+          "finishing_worker_s": 0,
+          "before_qc_s": 0.0,
+          "qc_worker_s": 0
         },
+        "qc_verdict": "pass",
         "resources": {
-          "flow_time_s": 516.1924214543158,
-          "energy_kwh": 0.11892263608523393,
-          "co2e_g": 45.19060171238889,
-          "cost_eur": 9.74192454097378,
+          "flow_time_s": 906.1924214543158,
+          "energy_kwh": 0.5113761083074562,
+          "co2e_g": 194.32292115683333,
+          "cost_eur": 10.695593464584892,
           "energy_breakdown_kwh": {
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
-            "veit": 0.0,
-            "qc": 0.0,
-            "overhead": 0.016512342113631576
+            "veit": 0.375,
+            "qc": 0.007500000000000001,
+            "overhead": 0.0264658143358538
           },
           "cost_breakdown_eur": {
             "fabric": 6.8524381,
             "thread": 0.1525461906397225,
-            "labour": 2.239111111111111,
-            "electricity": 0.029730659021308482,
-            "equipment": 0.468098480201638
+            "labour": 2.8196666666666665,
+            "electricity": 0.12784402707686404,
+            "equipment": 0.743098480201638
           },
-          "labour_time_s": 366.3999999999999,
+          "labour_time_s": 461.3999999999999,
           "thread_used_m": 15.254619063972248,
           "fabric_used_m2": {
             "body": 1.0984876199999998,
@@ -137,42 +150,47 @@
             "stitches": 1504,
             "collected_pieces": 9,
             "seams_complete": 18,
-            "pressed": 0,
-            "inspected": 0
+            "pressed": 1,
+            "inspected": 1
           }
         }
       },
       {
         "id": "a:0002",
         "order_id": "a",
-        "lead_time_s": 521.1924214543158,
+        "lead_time_s": 996.1924214543158,
         "waits": {
           "before_cutting_s": 0,
           "cutting_worker_s": 0,
           "before_transport_s": 5.0,
-          "before_sewing_s": 0.0
+          "before_sewing_s": 0.0,
+          "before_finishing_s": 32.5,
+          "finishing_worker_s": 37.5,
+          "before_qc_s": 15.0,
+          "qc_worker_s": 0
         },
+        "qc_verdict": "pass",
         "resources": {
-          "flow_time_s": 521.1924214543158,
-          "energy_kwh": 0.11899208052967837,
-          "co2e_g": 45.21699060127778,
-          "cost_eur": 9.741941902084891,
+          "flow_time_s": 996.1924214543158,
+          "energy_kwh": 0.5160636083074561,
+          "co2e_g": 196.10417115683333,
+          "cost_eur": 10.728015339584891,
           "energy_breakdown_kwh": {
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
-            "veit": 0.0,
-            "qc": 0.0,
-            "overhead": 0.01658178655807602
+            "veit": 0.3802083333333333,
+            "qc": 0.007500000000000001,
+            "overhead": 0.025944981002520465
           },
           "cost_breakdown_eur": {
             "fabric": 6.8524381,
             "thread": 0.1525461906397225,
-            "labour": 2.239111111111111,
-            "electricity": 0.029748020132419593,
-            "equipment": 0.468098480201638
+            "labour": 2.8196666666666665,
+            "electricity": 0.12901590207686403,
+            "equipment": 0.774348480201638
           },
-          "labour_time_s": 366.3999999999999,
+          "labour_time_s": 461.3999999999999,
           "thread_used_m": 15.254619063972248,
           "fabric_used_m2": {
             "body": 1.0984876199999998,
@@ -186,42 +204,47 @@
             "stitches": 1504,
             "collected_pieces": 9,
             "seams_complete": 18,
-            "pressed": 0,
-            "inspected": 0
+            "pressed": 1,
+            "inspected": 1
           }
         }
       },
       {
         "id": "a:0003",
         "order_id": "a",
-        "lead_time_s": 792.5924214543156,
+        "lead_time_s": 1206.1924214543158,
         "waits": {
           "before_cutting_s": 234.79242145431584,
           "cutting_worker_s": 0,
           "before_transport_s": 0.0,
-          "before_sewing_s": 41.60757854568408
+          "before_sewing_s": 41.60757854568408,
+          "before_finishing_s": 23.600000000000136,
+          "finishing_worker_s": 0,
+          "before_qc_s": 0.0,
+          "qc_worker_s": 0
         },
+        "qc_verdict": "pass",
         "resources": {
-          "flow_time_s": 557.7999999999997,
-          "energy_kwh": 0.11899208052967837,
-          "co2e_g": 45.21699060127778,
-          "cost_eur": 9.741941902084891,
+          "flow_time_s": 971.3999999999999,
+          "energy_kwh": 0.510889997196345,
+          "co2e_g": 194.1381989346111,
+          "cost_eur": 10.695471936807113,
           "energy_breakdown_kwh": {
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
-            "veit": 0.0,
-            "qc": 0.0,
-            "overhead": 0.016581786558076017
+            "veit": 0.375,
+            "qc": 0.007500000000000001,
+            "overhead": 0.02597970322474269
           },
           "cost_breakdown_eur": {
             "fabric": 6.8524381,
             "thread": 0.1525461906397225,
-            "labour": 2.239111111111111,
-            "electricity": 0.029748020132419593,
-            "equipment": 0.468098480201638
+            "labour": 2.8196666666666665,
+            "electricity": 0.12772249929908625,
+            "equipment": 0.743098480201638
           },
-          "labour_time_s": 366.3999999999999,
+          "labour_time_s": 461.3999999999999,
           "thread_used_m": 15.254619063972248,
           "fabric_used_m2": {
             "body": 1.0984876199999998,
@@ -235,42 +258,47 @@
             "stitches": 1504,
             "collected_pieces": 9,
             "seams_complete": 18,
-            "pressed": 0,
-            "inspected": 0
+            "pressed": 1,
+            "inspected": 1
           }
         }
       },
       {
         "id": "a:0004",
         "order_id": "a",
-        "lead_time_s": 797.5924214543156,
+        "lead_time_s": 1296.1924214543158,
         "waits": {
           "before_cutting_s": 234.79242145431584,
           "cutting_worker_s": 0,
           "before_transport_s": 5.0,
-          "before_sewing_s": 41.60757854568408
+          "before_sewing_s": 41.60757854568408,
+          "before_finishing_s": 93.60000000000014,
+          "finishing_worker_s": 0,
+          "before_qc_s": 15.0,
+          "qc_worker_s": 0
         },
+        "qc_verdict": "pass",
         "resources": {
-          "flow_time_s": 562.7999999999997,
-          "energy_kwh": 0.11920041386301171,
-          "co2e_g": 45.29615726794445,
-          "cost_eur": 9.741993985418224,
+          "flow_time_s": 1061.3999999999999,
+          "energy_kwh": 0.5145358305296783,
+          "co2e_g": 195.52361560127775,
+          "cost_eur": 10.696383395140447,
           "energy_breakdown_kwh": {
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
-            "veit": 0.0,
-            "qc": 0.0,
-            "overhead": 0.016790119891409352
+            "veit": 0.375,
+            "qc": 0.007500000000000001,
+            "overhead": 0.02962553655807602
           },
           "cost_breakdown_eur": {
             "fabric": 6.8524381,
             "thread": 0.1525461906397225,
-            "labour": 2.239111111111111,
-            "electricity": 0.029800103465752927,
-            "equipment": 0.468098480201638
+            "labour": 2.8196666666666665,
+            "electricity": 0.12863395763241958,
+            "equipment": 0.743098480201638
           },
-          "labour_time_s": 366.3999999999999,
+          "labour_time_s": 461.3999999999999,
           "thread_used_m": 15.254619063972248,
           "fabric_used_m2": {
             "body": 1.0984876199999998,
@@ -284,8 +312,8 @@
             "stitches": 1504,
             "collected_pieces": 9,
             "seams_complete": 18,
-            "pressed": 0,
-            "inspected": 0
+            "pressed": 1,
+            "inspected": 1
           }
         }
       }
@@ -296,86 +324,126 @@
         "working_s": 469.5848429086317,
         "held_wait_s": 0,
         "occupied_s": 469.5848429086317,
-        "idle_s": 328.00757854568394,
-        "utilization_pct": 58.875288966813294
+        "idle_s": 826.6075785456841,
+        "utilization_pct": 36.22801947736756
       },
       "zund-002": {
         "pool": "zund",
         "working_s": 469.5848429086317,
         "held_wait_s": 0,
         "occupied_s": 469.5848429086317,
-        "idle_s": 328.00757854568394,
-        "utilization_pct": 58.875288966813294
+        "idle_s": 826.6075785456841,
+        "utilization_pct": 36.22801947736756
       },
       "pfaff-001": {
         "pool": "pfaff",
         "working_s": 552.7999999999997,
         "held_wait_s": 0,
         "occupied_s": 552.7999999999997,
-        "idle_s": 244.7924214543159,
-        "utilization_pct": 69.3085823197811
+        "idle_s": 743.392421454316,
+        "utilization_pct": 42.647988898111535
       },
       "pfaff-002": {
         "pool": "pfaff",
         "working_s": 552.7999999999997,
         "held_wait_s": 0,
         "occupied_s": 552.7999999999997,
-        "idle_s": 244.7924214543159,
-        "utilization_pct": 69.3085823197811
+        "idle_s": 743.392421454316,
+        "utilization_pct": 42.647988898111535
       },
       "cutting_workers-001": {
         "pool": "cutting_workers",
         "working_s": 170.0,
         "held_wait_s": 0,
         "occupied_s": 170.0,
-        "idle_s": 627.5924214543156,
-        "utilization_pct": 21.314144345808234
+        "idle_s": 1126.1924214543158,
+        "utilization_pct": 13.115336672718824
       },
       "cutting_workers-002": {
         "pool": "cutting_workers",
         "working_s": 170.0,
         "held_wait_s": 0,
         "occupied_s": 170.0,
-        "idle_s": 627.5924214543156,
-        "utilization_pct": 21.314144345808234
+        "idle_s": 1126.1924214543158,
+        "utilization_pct": 13.115336672718824
       },
       "sewing_workers-001": {
         "pool": "sewing_workers",
         "working_s": 552.7999999999997,
         "held_wait_s": 0,
         "occupied_s": 552.7999999999997,
-        "idle_s": 244.7924214543159,
-        "utilization_pct": 69.3085823197811
+        "idle_s": 743.392421454316,
+        "utilization_pct": 42.647988898111535
       },
       "sewing_workers-002": {
         "pool": "sewing_workers",
         "working_s": 552.7999999999997,
         "held_wait_s": 0,
         "occupied_s": 552.7999999999997,
-        "idle_s": 244.7924214543159,
-        "utilization_pct": 69.3085823197811
+        "idle_s": 743.392421454316,
+        "utilization_pct": 42.647988898111535
       },
       "transport_workers-001": {
         "pool": "transport_workers",
         "working_s": 20.0,
         "held_wait_s": 0,
         "occupied_s": 20.0,
-        "idle_s": 777.5924214543156,
-        "utilization_pct": 2.5075463936244984
+        "idle_s": 1276.1924214543158,
+        "utilization_pct": 1.542980785025744
       },
       "carts-001": {
         "pool": "carts",
         "working_s": 20.0,
         "held_wait_s": 0,
         "occupied_s": 20.0,
-        "idle_s": 777.5924214543156,
-        "utilization_pct": 2.5075463936244984
+        "idle_s": 1276.1924214543158,
+        "utilization_pct": 1.542980785025744
+      },
+      "veit-001": {
+        "pool": "veit",
+        "working_s": 600.0,
+        "held_wait_s": 0,
+        "occupied_s": 600.0,
+        "idle_s": 696.1924214543158,
+        "utilization_pct": 46.28942355077232
+      },
+      "veit-002": {
+        "pool": "veit",
+        "working_s": 600.0,
+        "held_wait_s": 37.5,
+        "occupied_s": 637.5,
+        "idle_s": 658.6924214543158,
+        "utilization_pct": 46.28942355077232
+      },
+      "finishing_workers-001": {
+        "pool": "finishing_workers",
+        "working_s": 300.0,
+        "held_wait_s": 0,
+        "occupied_s": 300.0,
+        "idle_s": 996.1924214543158,
+        "utilization_pct": 23.14471177538616
+      },
+      "qc-001": {
+        "pool": "qc",
+        "working_s": 360.0,
+        "held_wait_s": 0,
+        "occupied_s": 360.0,
+        "idle_s": 936.1924214543158,
+        "utilization_pct": 27.773654130463388
+      },
+      "qc_workers-001": {
+        "pool": "qc_workers",
+        "working_s": 80.0,
+        "held_wait_s": 0,
+        "occupied_s": 80.0,
+        "idle_s": 1216.1924214543158,
+        "utilization_pct": 6.171923140102976
       }
     },
     "queues": {
       "cut_queue": {
         "peak": 2,
-        "time_average": 0.588752889668133
+        "time_average": 0.36228019477367557
       },
       "cut_worker_wait": {
         "peak": 0,
@@ -383,15 +451,31 @@
       },
       "cut_output": {
         "peak": 1,
-        "time_average": 0.012537731968122492
+        "time_average": 0.00771490392512872
       },
       "buffer": {
         "peak": 2,
-        "time_average": 0.10433293352967815
+        "time_average": 0.06419969420743991
       },
       "buffer_reserved_or_occupied": {
         "peak": 2,
-        "time_average": 0.12940839746592314
+        "time_average": 0.07962950205769735
+      },
+      "finish_queue": {
+        "peak": 2,
+        "time_average": 0.11549211175917715
+      },
+      "finishing_worker_wait": {
+        "peak": 1,
+        "time_average": 0.0289308897192327
+      },
+      "qc_queue": {
+        "peak": 1,
+        "time_average": 0.02314471177538616
+      },
+      "qc_worker_wait": {
+        "peak": 0,
+        "time_average": 0.0
       }
     }
   },
@@ -1008,6 +1092,19 @@
       "step": null
     },
     {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 516.1924214543158,
+      "end_s": 553.6924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "veit-001",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_load"
+    },
+    {
       "kind": "template",
       "station": "pfaff",
       "start_s": 521.1924214543158,
@@ -1019,6 +1116,318 @@
       "worker": "sewing_workers-002",
       "cart": null,
       "step": null
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 553.6924214543158,
+      "end_s": 591.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "veit-002",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_load"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 553.6924214543158,
+      "end_s": 778.6924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "veit-001",
+      "worker": null,
+      "cart": null,
+      "step": "press_cycle"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 591.1924214543158,
+      "end_s": 816.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "veit-002",
+      "worker": null,
+      "cart": null,
+      "step": "press_cycle"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 778.6924214543158,
+      "end_s": 816.1924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "veit-001",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_unload"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 816.1924214543158,
+      "end_s": 853.6924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "veit-001",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 816.1924214543158,
+      "end_s": 826.1924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 826.1924214543158,
+      "end_s": 896.1924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "qc-001",
+      "worker": null,
+      "cart": null,
+      "step": "qc_scan"
+    },
+    {
+      "kind": "wait",
+      "station": "veit",
+      "start_s": 816.1924214543158,
+      "end_s": 853.6924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "veit-002",
+      "worker": null,
+      "cart": null,
+      "step": null
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 853.6924214543158,
+      "end_s": 891.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "veit-002",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_unload"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 853.6924214543158,
+      "end_s": 1078.6924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "veit-001",
+      "worker": null,
+      "cart": null,
+      "step": "press_cycle"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 891.1924214543158,
+      "end_s": 928.6924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "veit-002",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 896.1924214543158,
+      "end_s": 906.1924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_release"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 906.1924214543158,
+      "end_s": 916.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 916.1924214543158,
+      "end_s": 986.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "qc-001",
+      "worker": null,
+      "cart": null,
+      "step": "qc_scan"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 928.6924214543158,
+      "end_s": 1153.6924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "veit-002",
+      "worker": null,
+      "cart": null,
+      "step": "press_cycle"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 986.1924214543158,
+      "end_s": 996.1924214543158,
+      "garments": [
+        1
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_release"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 1078.6924214543158,
+      "end_s": 1116.1924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "veit-001",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_unload"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1116.1924214543158,
+      "end_s": 1126.1924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1126.1924214543158,
+      "end_s": 1196.1924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "qc-001",
+      "worker": null,
+      "cart": null,
+      "step": "qc_scan"
+    },
+    {
+      "kind": "stage",
+      "station": "veit",
+      "start_s": 1153.6924214543158,
+      "end_s": 1191.1924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "veit-002",
+      "worker": "finishing_workers-001",
+      "cart": null,
+      "step": "press_unload"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1196.1924214543158,
+      "end_s": 1206.1924214543158,
+      "garments": [
+        2
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_release"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1206.1924214543158,
+      "end_s": 1216.1924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_load"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1216.1924214543158,
+      "end_s": 1286.1924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "qc-001",
+      "worker": null,
+      "cart": null,
+      "step": "qc_scan"
+    },
+    {
+      "kind": "stage",
+      "station": "qc",
+      "start_s": 1286.1924214543158,
+      "end_s": 1296.1924214543158,
+      "garments": [
+        3
+      ],
+      "machine": "qc-001",
+      "worker": "qc_workers-001",
+      "cart": null,
+      "step": "qc_release"
     }
   ],
   "events": [
@@ -1949,7 +2358,7 @@
       "garments": [
         [
           0,
-          "complete"
+          "finish_queue"
         ]
       ],
       "buffer_used": 2
@@ -1965,11 +2374,21 @@
       "buffer_used": 1
     },
     {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          0,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 1
+    },
+    {
       "kind": "sewing_complete",
       "garments": [
         [
           1,
-          "complete"
+          "finish_queue"
         ]
       ],
       "buffer_used": 1
@@ -1985,7 +2404,427 @@
       "buffer_used": 0
     },
     {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          0,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          1,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          0,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          1,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          1,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          0,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          0,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
       "kind": "sewing_complete",
+      "garments": [
+        [
+          2,
+          "finish_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "sewing_complete",
+      "garments": [
+        [
+          3,
+          "finish_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          1,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_complete",
+      "garments": [
+        [
+          0,
+          "qc_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          2,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          0,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          0,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          0,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          2,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          1,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          2,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_complete",
+      "garments": [
+        [
+          1,
+          "qc_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          3,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          0,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          0,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_complete",
+      "garments": [
+        [
+          0,
+          "complete"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          1,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          1,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          1,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          3,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          3,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          1,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          1,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_complete",
+      "garments": [
+        [
+          1,
+          "complete"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          2,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          2,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_complete",
+      "garments": [
+        [
+          2,
+          "qc_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          2,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          2,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          2,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_step_complete",
+      "garments": [
+        [
+          3,
+          "finishing_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_start",
+      "garments": [
+        [
+          3,
+          "finishing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "finishing_complete",
+      "garments": [
+        [
+          3,
+          "qc_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          2,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          2,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_complete",
       "garments": [
         [
           2,
@@ -1995,7 +2834,57 @@
       "buffer_used": 0
     },
     {
-      "kind": "sewing_complete",
+      "kind": "qc_start",
+      "garments": [
+        [
+          3,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          3,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          3,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_step_complete",
+      "garments": [
+        [
+          3,
+          "qc_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_start",
+      "garments": [
+        [
+          3,
+          "inspecting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "qc_complete",
       "garments": [
         [
           3,

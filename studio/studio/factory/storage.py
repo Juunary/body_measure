@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import tempfile
 
-VERSION = 'factory-simulation/1'
+VERSION = 'factory-simulation/2'
 
 
 def content_hash(run):

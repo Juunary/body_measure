@@ -11,13 +11,13 @@ The 1,000 queries select one garment plus the whole-factory summary at random ti
 
 | Measurement | Observed |
 | --- | --- |
-| Compute run | 2.933 s |
-| Save / load and verify | 1.477 / 0.829 s |
+| Compute run | 3.463 s |
+| Save / load and verify | 1.539 / 1.320 s |
 | Domain events / segments including waits | 22401 / 15200 |
 | Checkpoints | 88 |
-| Artifact | 25.65 MiB |
-| Peak process resident memory | 199.66 MiB |
-| Query p50 / p95 / max | 0.342 / 0.731 / 3.791 ms |
+| Artifact | 26.46 MiB |
+| Peak process resident memory | 210.75 MiB |
+| Query p50 / p95 / max | 0.679 / 2.623 / 35.807 ms |
 | Max replayed events after checkpoint | 255 |
 | p95 < 50 ms | PASS |
 
@@ -41,8 +41,8 @@ Common power still spans the same uninterrupted work interval for this one-garme
 
 Tolerance: relative 1e-9, absolute 1e-6. Differences are calculations, not fitted corrections.
 
-Source SHA-256: `59dfe6957847bafdd52df84bd25536c37ce14ffe9ced4d483154d09021cfe702`
-Deterministic run content hash: `e8a8f807333922b88e82e19065ac11a337efcf9246fa1d3a58cf1211d8fdedb4`
+Source SHA-256: `6395521fef6e309f25c7cfe3a0e285e626159fa8ce3d5ce090880045ea142f86`
+Deterministic run content hash: `18e8382574f7bad889db9056a5cf71fea5b75f0f2f768e9fb22ee06e89f471e3`
 
 Reproduce from `studio`:
 

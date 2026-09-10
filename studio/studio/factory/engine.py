@@ -23,7 +23,7 @@ def simulate(scenario, *, release_order=None):
         bounds[str(oi)] = {'start_s':min(g['start_s'] for g in members), 'end_s':max(g['end_s'] for g in members)}
     run = {'schema_version':VERSION,'run_id':uuid.uuid4().hex,
            'created_at':datetime.now(timezone.utc).isoformat(),'is_simulation':True,
-           'scope':'through_sewing','finished_garment':False,'resource_model':dict(MODEL),
+           'scope':normalized['scope'],'finished_garment':False,'resource_model':dict(MODEL),
            'scenario':normalized,'template':template,'template_index':template_index,
            **scheduled,'start_s':min(g['start_s'] for g in garments),'order_bounds':bounds,
            'assumptions':['One research polo template and size per run; no cross-garment nesting.',
@@ -31,8 +31,13 @@ def simulate(scenario, *, release_order=None):
                           'Unbounded cutting output queue; sewing buffer includes transit reservations.',
                           'Batch service includes loading, delivery, unloading and return; all arrive at service end.',
                           'Idle unoccupied equipment is off; occupied cutter waits use standby power and retained vacuum.',
-                          'Common electricity applies once to the union of actual working intervals.',
-                          'No shifts, failures, QC, finishing, shipping or actual manufactured-product claim.']}
+                          'Common electricity applies once to the union of actual working intervals.']
+           +(['Finishing and QC follow sewing by direct hand-off: no transport, unbounded input queues.',
+              'A held press or QC station keeps its garment between steps; workers return after attended steps.',
+              'Every inspected garment passes: no defect, rework or scrap model.',
+              'No shifts, failures, DPP label, QR, packing, shipping or actual manufactured-product claim.']
+             if normalized['scope'] == 'through_qc' else
+             ['No shifts, failures, QC, finishing, shipping or actual manufactured-product claim.'])}
     run['index'] = build_index(run)
     run['checkpoints'] = checkpoints(run['events'],len(garments))
     run['result'] = build_result(run)

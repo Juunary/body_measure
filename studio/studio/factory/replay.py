@@ -3,6 +3,7 @@ from bisect import bisect_right
 from copy import deepcopy
 import math
 from .ledger import Ledger
+from .stages import readouts
 
 CHECKPOINT_INTERVAL = 256
 
@@ -56,7 +57,7 @@ class Replay:
         for i in range(self.state['seq'],target): apply_event(self.state,self.run['events'][i])
         result = {'run_id':self.run['run_id'],'content_hash':self.run['content_hash'],'seq':target,
                   'time_s':time_s,'duration_s':self.run['duration_s'],'size':self.run['scenario']['size'],
-                  'is_simulation':True,'finished_garment':False,
+                  'scope':self.run['scope'],'is_simulation':True,'finished_garment':False,
                   'counts':{k:v for k,v in self.state['counts'].items() if v},
                   'buffer_used':self.state['buffer_used'],
                   'active_resources':deepcopy(self.state['resources']),
@@ -65,11 +66,24 @@ class Replay:
             gi = self.by_id[garment_id]
             timeline = self.run['index']['garments'][str(gi)]['timeline']
             i = bisect_right(timeline['starts'],time_s)-1
-            local = 0.
+            local, stage = 0., None
             if i >= 0:
                 row = self.run['rows'][timeline['ids'][i]]
                 local = self.ledger.template.local_at(row,time_s)
+                if row['kind'] == 'stage' and time_s < row['end_s']:
+                    f = (time_s-row['start_s'])/(row['end_s']-row['start_s'])
+                    stage = {'stage':row['stage'],'step':row['step'],'attended':row['attended'],
+                             'step_progress':f,'machine':row['machine'],
+                             'readouts':readouts(row['station'],row['step'],f)}
+                elif row['kind'] == 'wait' and row['station'] != 'zund' and time_s < row['end_s']:
+                    stage = {'stage':'finishing' if row['station'] == 'veit' else 'qc','step':'worker_wait',
+                             'attended':False,'step_progress':0.,'machine':row['machine'],'readouts':{}}
+            detail = self.ledger.template.detail(local)
+            if stage:
+                # Sewing detail is complete here; the stage step is the live operation.
+                detail.update(operation=stage['step'],operation_progress=stage['step_progress'],
+                              window=None,tool=None,head_mm=None,path_id=None,path_progress=0.)
             result['selected_garment'] = {'id':garment_id,'status':self.state['garments'][gi],
-                                           **self.ledger.template.detail(local),
+                                           **detail,'stage':stage,
                                            'resources':self.ledger.at(time_s,garment=gi)}
         return result

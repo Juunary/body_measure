@@ -1,7 +1,9 @@
 """Run: python -m studio.factory --scenario scenario.json --out run.json.
 
 Replay: python -m studio.factory --replay run.json --at 120 --garment order-1:0001.
-All numeric results are research simulation estimates, through sewing only.
+All numeric results are research simulation estimates. The default scope ends
+at the sewn assembly; scope through_qc adds steam finishing and vision QC and
+stops before the DPP label / QR.
 """
 import argparse
 from pathlib import Path
@@ -47,15 +49,23 @@ def main(argv=None):
             run = simulate(scenario_file(args.scenario)); save(args.out,run)
             if args.jsonl: save_events(args.jsonl,run)
             result = run['result']
-            print(f"RESEARCH SIMULATION | {run['run_id']} | size {run['scenario']['size']['label']}")
+            print(f"RESEARCH SIMULATION | {run['run_id']} | size {run['scenario']['size']['label']} | scope {run['scope']}")
             print(f"Collected research assemblies: {result['completed_garments']} | Throughput {result['throughput_per_hour']:.3f}/h")
+            if 'qc' in result:
+                qc = result['qc']
+                print(f"Pressed {result['resources']['metrics']['pressed']} | Inspected {qc['inspected']} | "
+                      f"QC pass {qc['passed']} / fail {qc['failed']} ({qc['verdict_model']}) | "
+                      f"Ready for DPP label: {qc['ready_for_dpp_label']}")
             print(resource_line(result['resources']))
             print('Cost: '+' | '.join(f'{k} {v:.6f} EUR' for k,v in result['resources']['cost_breakdown_eur'].items()))
             print('Order | Quantity | Lead time (s) | Energy (kWh) | Cost (EUR)')
             for order in result['orders']:
                 print(f"{order['id']} | {order['quantity']} | {order['lead_time_s']:.3f} | "
                       f"{order['resources']['energy_kwh']:.6f} | {order['resources']['cost_eur']:.6f}")
-            print('Finishing / QC / shipping: not executed. No finished manufactured product.')
+            if 'qc' in result:
+                print('DPP label / QR / packing / shipping: not executed. No finished manufactured product.')
+            else:
+                print('Finishing / QC / shipping: not executed. No finished manufactured product.')
         else:
             if args.out or args.jsonl: parser.error('--out/--jsonl require --scenario')
             run = load(args.replay)
@@ -70,7 +80,12 @@ def main(argv=None):
                 g = state['selected_garment']
                 print(f"{g['id']} | {g['status']} | {g['operation']} | {g['operation_progress']:.3f}")
                 print(resource_line(g['resources']))
-                print(f"Head {g['head_mm']} mm | tool {g['tool']} | vacuum {g['vacuum']}")
+                if g['stage']:
+                    s = g['stage']
+                    values = ' | '.join(f'{k} {v:.1f}' if isinstance(v,float) else f'{k} {v}' for k,v in s['readouts'].items())
+                    print(f"{s['stage']} | {s['step']} | {s['machine']} | attended {s['attended']} | {values}")
+                else:
+                    print(f"Head {g['head_mm']} mm | tool {g['tool']} | vacuum {g['vacuum']}")
                 print(' | '.join(f'{k}: {v}' for k,v in g['pieces'].items()))
         return 0
     except (ValueError,OSError,KeyError,TypeError) as exc:

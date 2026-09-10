@@ -22,9 +22,11 @@ presets and calculation boundaries are described in
 
 The public [SimPy factory CLI](docs/factory-phase1.md) adds deterministic
 multi-order cutting, sewing and batch transport with up to 1,000 identical
-polos. It uses `requirements-factory.txt` and works without the private QR
-submodule. Phase 1 exports research results and indexed replay files; it does
-not change the web workflow. See the [measured benchmark](docs/factory-benchmark.md).
+polos, and with scope `through_qc` continues through steam finishing and
+vision QC, stopping before the DPP label / QR. It uses
+`requirements-factory.txt` and works without the private QR submodule. It
+exports research results and indexed replay files; it does not change the web
+workflow. See the [measured benchmark](docs/factory-benchmark.md).
 
 Measurement uses the repository's `body_measure` package. Size assignment and
 QR encoding use the integrated `polo-line-sim` directory and the
@@ -151,7 +153,8 @@ the internal artifact, never in the QR payload.
 Passport manufacturing data explicitly states `is_simulation: true`, the
 selected scope, `pattern_status: research_draft_unverified`, cutting/sewing
 completion and `finished_garment: false`. It contains no body dimensions or
-pattern geometry. Finishing and QC remain unexecuted.
+pattern geometry. Finishing and QC remain unexecuted in the web workflow; the
+factory CLI's `through_qc` scope simulates them without touching the passport.
 
 ## Run
 

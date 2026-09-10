@@ -3,12 +3,17 @@ from bisect import bisect_right
 from collections import Counter, defaultdict
 from itertools import groupby
 import numpy as np
-from .template import COL, COLUMNS, TemplateIndex
+from .template import COL, COLUMNS, COUNTS, METRICS, TemplateIndex
+from .stages import stage_rates, QC_VERDICT_MODEL
 
-MODEL = {'version':'factory-resources/1', 'is_estimate':True,
+STEPS_PER_STAGE = 3
+
+MODEL = {'version':'factory-resources/2', 'is_estimate':True,
          'common_load':'union_of_working_intervals', 'overhead_allocation':'active_garment_count',
          'transport':'fixed_batch_service_including_return', 'cart_power_kw':0, 'cart_eur_h':0,
          'labour':'direct_work_only', 'co2_scope':'process_electricity_only',
+         'finishing':'held_press_working_power_all_steps_standby_while_waiting',
+         'qc':'held_station_working_power_all_steps_standby_while_waiting_deterministic_pass',
          'units':{'time':'s','energy':'kWh','emissions':'gCO2e','cost':'EUR','geometry':'mm'}}
 
 
@@ -19,12 +24,21 @@ def row_value(row, template, rates, t):
         local = template.local_at(row,t)
         return template.at(local)-template.at(row['template_start_s'])
     result = np.zeros(len(COLUMNS)); elapsed = duration*f
+    station = row['station']
     if row['kind'] == 'transport':
         result[COL['labour_s']] = elapsed
+    elif row['kind'] == 'stage':
+        # The stage machine draws its working power for every step it holds a
+        # garment; only attended steps are direct labour. Counts land at the end.
+        result[COL[station+'_kwh']] = rates[station+'_active_kw']*elapsed/3600
+        result[COL['equipment_eur']] = rates[station+'_eur_h']*elapsed/3600
+        if row['attended']: result[COL['labour_s']] = elapsed
+        if t >= row['end_s'] and row['step_index']+1 == STEPS_PER_STAGE:
+            result[COL['pressed' if station == 'veit' else 'inspected']] = 1
     else:
-        result[COL['zund_kwh']] = rates['zund_idle_kw']*elapsed/3600
-        result[COL['equipment_eur']] = rates['zund_eur_h']*elapsed/3600
-        if template.vacuum_at_boundary(row['template_start_s']):
+        result[COL[station+'_kwh']] = rates[station+'_idle_kw']*elapsed/3600
+        result[COL['equipment_eur']] = rates[station+'_eur_h']*elapsed/3600
+        if station == 'zund' and template.vacuum_at_boundary(row['template_start_s']):
             result[COL['vacuum_kwh']] = rates['vacuum_kw']*elapsed/3600
     return result
 
@@ -83,7 +97,7 @@ def overhead(rows, garments, kw):
 def build_index(run):
     rows, garments = run['rows'], run['garments']
     template = TemplateIndex(run['template'],run['template_index'])
-    rates = run['scenario']['config']['resources']
+    rates = stage_rates(run['scenario'])
     values = [row_value(row,template,rates,row['end_s']) for row in rows]
     lanes, instance_rows, garment_rows, order_rows = defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
     for row in rows:
@@ -110,7 +124,8 @@ def build_index(run):
 
 def quantities(vector, overhead_kwh, rates, flow_s):
     v = dict(zip(COLUMNS,vector))
-    energy = {'zund':v['zund_kwh'],'pfaff':v['pfaff_kwh'],'vacuum':v['vacuum_kwh'],'overhead':overhead_kwh}
+    energy = {'zund':v['zund_kwh'],'pfaff':v['pfaff_kwh'],'vacuum':v['vacuum_kwh'],
+              'veit':v['veit_kwh'],'qc':v['qc_kwh'],'overhead':overhead_kwh}
     kwh = sum(energy.values())
     cost = {'fabric':v['fabric_eur'], 'thread':v['thread_m']*rates['thread_eur_m'],
             'labour':v['labour_s']/3600*rates['labour_eur_h'],
@@ -119,14 +134,13 @@ def quantities(vector, overhead_kwh, rates, flow_s):
             'cost_eur':float(sum(cost.values())), 'energy_breakdown_kwh':{k:float(x) for k,x in energy.items()},
             'cost_breakdown_eur':{k:float(x) for k,x in cost.items()}, 'labour_time_s':float(v['labour_s']),
             'thread_used_m':float(v['thread_m']), 'fabric_used_m2':{'body':float(v['body_m2']),'rib':float(v['rib_m2'])},
-            'metrics':{k:int(round(v[k])) if k in ('stitches','collected_pieces','seams_complete') else float(v[k])
-                       for k in COLUMNS[9:]}}
+            'metrics':{k:int(round(v[k])) if k in COUNTS else float(v[k]) for k in METRICS}}
 
 
 class Ledger:
     def __init__(self, run):
         self.run, self.index = run, run['index']
-        self.rows, self.rates = run['rows'], run['scenario']['config']['resources']
+        self.rows, self.rates = run['rows'], stage_rates(run['scenario'])
         self.template = TemplateIndex(run['template'],run['template_index'])
         self.prefixes = {'global':np.asarray(self.index['global']['prefix'])}
         for group in ('garments','orders'):
@@ -178,15 +192,25 @@ def build_result(run):
             instances[rid] = {'pool':pool,'working_s':work,'held_wait_s':wait,'occupied_s':work+wait,
                               'idle_s':max(0.,horizon-work-wait),'utilization_pct':100*work/horizon}
     garment_results = []
+    stages = run.get('stages') or []
     for gi,g in enumerate(run['garments']):
         ids = run['index']['garments'][str(gi)]['ids']
-        waits = {'before_cutting_s':g['start_s']-g['release_s'],
-                 'cutting_worker_s':sum(run['rows'][i]['end_s']-run['rows'][i]['start_s'] for i in ids if run['rows'][i]['kind']=='wait'),
+        def held(station):
+            return sum(run['rows'][i]['end_s']-run['rows'][i]['start_s'] for i in ids
+                       if run['rows'][i]['kind']=='wait' and run['rows'][i]['station']==station)
+        waits = {'before_cutting_s':g['start_s']-g['release_s'], 'cutting_worker_s':held('zund'),
                  'before_transport_s':g['transport_start_s']-g['cut_end_s'],
                  'before_sewing_s':g['sewing_start_s']-g['transport_end_s']}
-        garment_results.append({'id':g['id'],'order_id':run['scenario']['orders'][g['order_index']]['id'],
-                                'lead_time_s':g['end_s']-g['release_s'], 'waits':waits,
-                                'resources':ledger.at(duration,garment=gi)})
+        previous_end = 'sewing_end_s'
+        for stage in stages:
+            waits['before_'+stage['name']+'_s'] = g[stage['name']+'_start_s']-g[previous_end]
+            waits[stage['name']+'_worker_s'] = held(stage['machine_pool'])
+            previous_end = stage['name']+'_end_s'
+        entry = {'id':g['id'],'order_id':run['scenario']['orders'][g['order_index']]['id'],
+                 'lead_time_s':g['end_s']-g['release_s'], 'waits':waits}
+        if stages: entry['qc_verdict'] = g['qc_verdict']
+        entry['resources'] = ledger.at(duration,garment=gi)
+        garment_results.append(entry)
     orders = []
     for oi,order in enumerate(run['scenario']['orders']):
         bounds = run['order_bounds'][str(oi)]
@@ -208,10 +232,17 @@ def build_result(run):
         last = timestamp
         for name,count in counts.items(): peak[name] = max(peak[name],count)
         peak['buffer_reserved_or_occupied'] = max(peak['buffer_reserved_or_occupied'],slots)
-    queues = {name:{'peak':peak[name],'time_average':area[name]/horizon}
-              for name in ('cut_queue','cut_worker_wait','cut_output','buffer','buffer_reserved_or_occupied')}
-    return {'completed_garments':len(run['garments']), 'finished_garment':False,
-            'makespan_s':horizon, 'completion_time_s':duration,
-            'throughput_per_hour':len(run['garments'])*3600/horizon,
-            'resources':ledger.at(duration), 'orders':orders, 'garments':garment_results,
-            'instances':instances,'queues':queues}
+    names = ['cut_queue','cut_worker_wait','cut_output','buffer','buffer_reserved_or_occupied']
+    for stage in stages: names += [stage['queue'], stage['worker_wait']]
+    queues = {name:{'peak':peak[name],'time_average':area[name]/horizon} for name in names}
+    result = {'scope':run['scope'], 'completed_garments':len(run['garments']), 'finished_garment':False,
+              'makespan_s':horizon, 'completion_time_s':duration,
+              'throughput_per_hour':len(run['garments'])*3600/horizon}
+    if stages:
+        verdicts = Counter(g['qc_verdict'] for g in run['garments'])
+        result['qc'] = {'inspected':sum(verdicts.values()), 'passed':verdicts['pass'],
+                        'failed':sum(verdicts.values())-verdicts['pass'], 'verdict_model':QC_VERDICT_MODEL,
+                        'ready_for_dpp_label':verdicts['pass'], 'dpp_label_or_qr_issued':0}
+    result.update({'resources':ledger.at(duration), 'orders':orders, 'garments':garment_results,
+                   'instances':instances,'queues':queues})
+    return result

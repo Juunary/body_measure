@@ -29,9 +29,10 @@ Studio suite as skipped.
 
 The [SimPy factory engine and CLI](studio/docs/factory-phase1.md) also run in
 this repository. They simulate repeated polo orders, resource contention and
-batch transport without QR credentials. Install `studio/requirements-factory.txt`
-and run the CLI from `studio`; the public factory CI suite runs independently
-of the private QR dependency.
+batch transport without QR credentials, and with scope `through_qc` continue
+through steam finishing and vision QC, stopping before the DPP label / QR.
+Install `studio/requirements-factory.txt` and run the CLI from `studio`; the
+public factory CI suite runs independently of the private QR dependency.
 
 A measurement pipeline that extracts seven shirt measurements from a 3D
 body mesh. Built for the Maß-DPP project (ITA, RWTH Aachen) ahead of the

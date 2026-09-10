@@ -1,6 +1,6 @@
 {
   "schema_version": "factory-benchmark/1",
-  "source_sha256": "59dfe6957847bafdd52df84bd25536c37ce14ffe9ced4d483154d09021cfe702",
+  "source_sha256": "6395521fef6e309f25c7cfe3a0e285e626159fa8ce3d5ce090880045ea142f86",
   "environment": {
     "platform": "Windows-11-10.0.26200-SP0",
     "processor": "Intel64 Family 6 Model 189 Stepping 1, GenuineIntel",
@@ -28,24 +28,24 @@
     "warmup": 50,
     "queries": 1000
   },
-  "build_s": 2.933010500011733,
-  "save_s": 1.4768933999876026,
-  "load_verify_s": 0.8288858000014443,
-  "artifact_bytes": 26900391,
-  "peak_process_rss_bytes": 209358848,
+  "build_s": 3.462633899995126,
+  "save_s": 1.5390830999822356,
+  "load_verify_s": 1.3199709999898914,
+  "artifact_bytes": 27747630,
+  "peak_process_rss_bytes": 220991488,
   "memory_scope": "OS whole-process high-water resident set, including imports, build, JSON IO and replay",
   "domain_events": 22401,
   "segments_including_waits": 15200,
   "checkpoints": 88,
   "query_ms": {
-    "p50": 0.3424500027904287,
-    "p95": 0.7312800080399028,
-    "max": 3.791099996306002
+    "p50": 0.678699987474829,
+    "p95": 2.62300000176765,
+    "max": 35.806699976092204
   },
   "max_events_replayed": 255,
   "p95_target_ms": 50,
   "passed": true,
-  "content_hash": "e8a8f807333922b88e82e19065ac11a337efcf9246fa1d3a58cf1211d8fdedb4",
+  "content_hash": "18e8382574f7bad889db9056a5cf71fea5b75f0f2f768e9fb22ee06e89f471e3",
   "single_garment_equivalence": {
     "duration_s": {
       "legacy": 516.1924214543158,
@@ -97,6 +97,8 @@
         "zund": 45.81615525398131,
         "pfaff": 24.377777777778235,
         "vacuum": 38.169065789848545,
+        "veit": 0.0,
+        "qc": 0.0,
         "overhead": 12.599849835596444
       },
       "cost_breakdown_eur": {
@@ -119,7 +121,9 @@
         "sewn_length_mm": 4484873.021324143,
         "stitches": 1504000,
         "collected_pieces": 9000,
-        "seams_complete": 18000
+        "seams_complete": 18000,
+        "pressed": 0,
+        "inspected": 0
       }
     }
   }

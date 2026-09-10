@@ -1,6 +1,7 @@
 {
   "duration_s": 1345.3924214543154,
   "result": {
+    "scope": "through_sewing",
     "completed_garments": 4,
     "finished_garment": false,
     "makespan_s": 1345.3924214543154,
@@ -15,6 +16,8 @@
         "zund": 0.17588046828257298,
         "pfaff": 0.09751111111111106,
         "vacuum": 0.13624959649272528,
+        "veit": 0.0,
+        "qc": 0.0,
         "overhead": 0.11211603512119295
       },
       "cost_breakdown_eur": {
@@ -37,7 +40,9 @@
         "sewn_length_mm": 17939.492085296333,
         "stitches": 6016,
         "collected_pieces": 36,
-        "seams_complete": 72
+        "seams_complete": 72,
+        "pressed": 0,
+        "inspected": 0
       }
     },
     "orders": [
@@ -56,6 +61,8 @@
             "zund": 0.08794023414128649,
             "pfaff": 0.04875555555555553,
             "vacuum": 0.06812479824636265,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.05259071934845613
           },
           "cost_breakdown_eur": {
@@ -78,7 +85,9 @@
             "sewn_length_mm": 8969.746042648167,
             "stitches": 3008,
             "collected_pieces": 18,
-            "seams_complete": 36
+            "seams_complete": 36,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       },
@@ -97,6 +106,8 @@
             "zund": 0.08794023414128649,
             "pfaff": 0.04875555555555553,
             "vacuum": 0.06812479824636265,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.05952531577273681
           },
           "cost_breakdown_eur": {
@@ -119,7 +130,9 @@
             "sewn_length_mm": 8969.746042648167,
             "stitches": 3008,
             "collected_pieces": 18,
-            "seams_complete": 36
+            "seams_complete": 36,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       }
@@ -144,6 +157,8 @@
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.03122159067674854
           },
           "cost_breakdown_eur": {
@@ -166,7 +181,9 @@
             "sewn_length_mm": 4484.873021324083,
             "stitches": 1504,
             "collected_pieces": 9,
-            "seams_complete": 18
+            "seams_complete": 18,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       },
@@ -189,6 +206,8 @@
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.021369128671707597
           },
           "cost_breakdown_eur": {
@@ -211,7 +230,9 @@
             "sewn_length_mm": 4484.873021324083,
             "stitches": 1504,
             "collected_pieces": 9,
-            "seams_complete": 18
+            "seams_complete": 18,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       },
@@ -234,6 +255,8 @@
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.026570075989918094
           },
           "cost_breakdown_eur": {
@@ -256,7 +279,9 @@
             "sewn_length_mm": 4484.873021324083,
             "stitches": 1504,
             "collected_pieces": 9,
-            "seams_complete": 18
+            "seams_complete": 18,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       },
@@ -279,6 +304,8 @@
             "zund": 0.04397011707064326,
             "pfaff": 0.024377777777777766,
             "vacuum": 0.03406239912318133,
+            "veit": 0.0,
+            "qc": 0.0,
             "overhead": 0.03295523978281871
           },
           "cost_breakdown_eur": {
@@ -301,7 +328,9 @@
             "sewn_length_mm": 4484.873021324083,
             "stitches": 1504,
             "collected_pieces": 9,
-            "seams_complete": 18
+            "seams_complete": 18,
+            "pressed": 0,
+            "inspected": 0
           }
         }
       }
@@ -390,7 +419,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -402,7 +432,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -414,7 +445,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -426,7 +458,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -438,7 +471,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -450,7 +484,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -462,7 +497,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -474,7 +510,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -486,7 +523,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -498,7 +536,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -510,7 +549,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "transport",
@@ -522,7 +562,8 @@
       ],
       "machine": null,
       "worker": "transport_workers-001",
-      "cart": "carts-001"
+      "cart": "carts-001",
+      "step": null
     },
     {
       "kind": "template",
@@ -534,7 +575,8 @@
       ],
       "machine": "pfaff-001",
       "worker": "sewing_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -546,7 +588,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -558,7 +601,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -570,7 +614,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -582,7 +627,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -594,7 +640,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -606,7 +653,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -618,7 +666,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -630,7 +679,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -642,7 +692,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -654,7 +705,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "transport",
@@ -666,7 +718,8 @@
       ],
       "machine": null,
       "worker": "transport_workers-001",
-      "cart": "carts-001"
+      "cart": "carts-001",
+      "step": null
     },
     {
       "kind": "template",
@@ -678,7 +731,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -690,7 +744,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -702,7 +757,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -714,7 +770,8 @@
       ],
       "machine": "pfaff-001",
       "worker": "sewing_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -726,7 +783,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -738,7 +796,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -750,7 +809,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -762,7 +822,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -774,7 +835,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -786,7 +848,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -798,7 +861,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "transport",
@@ -810,7 +874,8 @@
       ],
       "machine": null,
       "worker": "transport_workers-001",
-      "cart": "carts-001"
+      "cart": "carts-001",
+      "step": null
     },
     {
       "kind": "template",
@@ -822,7 +887,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -834,7 +900,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -846,7 +913,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -858,7 +926,8 @@
       ],
       "machine": "pfaff-001",
       "worker": "sewing_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -870,7 +939,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -882,7 +952,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -894,7 +965,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -906,7 +978,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -918,7 +991,8 @@
       ],
       "machine": "zund-001",
       "worker": null,
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "template",
@@ -930,7 +1004,8 @@
       ],
       "machine": "zund-001",
       "worker": "cutting_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     },
     {
       "kind": "transport",
@@ -942,7 +1017,8 @@
       ],
       "machine": null,
       "worker": "transport_workers-001",
-      "cart": "carts-001"
+      "cart": "carts-001",
+      "step": null
     },
     {
       "kind": "template",
@@ -954,7 +1030,8 @@
       ],
       "machine": "pfaff-001",
       "worker": "sewing_workers-001",
-      "cart": null
+      "cart": null,
+      "step": null
     }
   ],
   "events": [

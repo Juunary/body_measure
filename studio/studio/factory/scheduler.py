@@ -6,6 +6,7 @@ idle machine merely by being constructed first.
 """
 import bisect
 import simpy
+from .stages import stage_plan
 
 
 class SchedulingError(ValueError):
@@ -14,27 +15,35 @@ class SchedulingError(ValueError):
 
 def schedule(scenario, template, index, release_order=None):
     factory = scenario['factory']
+    stages = stage_plan(scenario)
     env, agenda, pending = simpy.Environment(), [], []
     rows, events, garments, output = [], [], [], [[] for _ in scenario['orders']]
     order_garments, cut_counts = [], [0]*len(scenario['orders'])
-    inventory = {name: [f'{name}-{i+1:03d}' for i in range(factory[name])]
-                 for name in ('zund','pfaff','cutting_workers','sewing_workers','transport_workers','carts')}
+    pools = ['zund','pfaff','cutting_workers','sewing_workers','transport_workers','carts']
+    for stage in stages: pools += [stage['machine_pool'], stage['worker_pool']]
+    inventory = {name: [f'{name}-{i+1:03d}' for i in range(factory[name])] for name in pools}
     free = {k: set(v) for k,v in inventory.items()}
     buffer_used = 0
     segments = index['segments']
     cutting = [s for s in segments if s['station'] == 'zund']
     transport = next(s for s in segments if s['station'] == 'transport')
     sewing = [s for s in segments if s['station'] == 'pfaff']
+    template_end = segments[-1]['end_s']
     if len(sewing) != 1:
         raise SchedulingError('phase 1 expects one continuously attended sewing stage')
     for oi, order in enumerate(scenario['orders']):
         members = []
         for number in range(1, order['quantity']+1):
             gi = len(garments); members.append(gi)
-            garments.append({'id': f"{order['id']}:{number:04d}", 'order_index': oi, 'number': number,
-                             'release_s': order['release_s'], 'start_s': None, 'cut_end_s': None,
-                             'transport_start_s': None, 'transport_end_s': None,
-                             'sewing_start_s': None, 'end_s': None, 'cut_machine': None})
+            garment = {'id': f"{order['id']}:{number:04d}", 'order_index': oi, 'number': number,
+                       'release_s': order['release_s'], 'start_s': None, 'cut_end_s': None,
+                       'transport_start_s': None, 'transport_end_s': None,
+                       'sewing_start_s': None, 'sewing_end_s': None, 'end_s': None, 'cut_machine': None}
+            for stage in stages:
+                garment.update({stage['name']+'_start_s': None, stage['name']+'_end_s': None,
+                                stage['name']+'_machine': None})
+            if stages: garment['qc_verdict'] = None
+            garments.append(garment)
         order_garments.append(members)
 
     def later(delay, kind, payload):
@@ -82,10 +91,35 @@ def schedule(scenario, template, index, release_order=None):
                 changes[row['machine']] = {'mode':'waiting', 'garments':[gi], 'row_id':None}
                 enqueue('cut', [gi], next_index)
                 emit('cut_segment_complete', [(gi,'cut_worker_wait')], changes)
+        elif row['kind'] == 'stage':
+            si, step_index = row['stage_index'], row['step_index']
+            stage = stages[si]
+            if row['worker']:
+                give(stage['worker_pool'], row['worker']); changes[row['worker']] = None
+            if step_index+1 < len(stage['steps']):
+                changes[row['machine']] = {'mode':'waiting', 'garments':[gi], 'row_id':None}
+                enqueue('stage', [gi], (si, step_index+1))
+                emit(stage['name']+'_step_complete', [(gi, stage['worker_wait'])], changes)
+            else:
+                g[stage['name']+'_end_s'] = env.now
+                give(stage['machine_pool'], row['machine']); changes[row['machine']] = None
+                if stage['name'] == 'qc': g['qc_verdict'] = 'pass'
+                if si+1 < len(stages):
+                    enqueue('stage', [gi], (si+1, 0))
+                    emit(stage['complete_event'], [(gi, stages[si+1]['queue'])], changes)
+                else:
+                    g['end_s'] = env.now
+                    emit(stage['complete_event'], [(gi, 'complete')], changes)
         else:
-            g['end_s'] = env.now
+            g['sewing_end_s'] = env.now
             give('pfaff', row['machine']); give('sewing_workers', row['worker'])
-            emit('sewing_complete', [(gi,'complete')], {row['machine']:None, row['worker']:None})
+            changes.update({row['machine']:None, row['worker']:None})
+            if stages:
+                enqueue('stage', [gi], (0, 0))
+                emit('sewing_complete', [(gi, stages[0]['queue'])], changes)
+            else:
+                g['end_s'] = env.now
+                emit('sewing_complete', [(gi,'complete')], changes)
 
     def make_batches():
         for oi, queue in enumerate(output):
@@ -95,6 +129,13 @@ def schedule(scenario, template, index, release_order=None):
                 members = queue[:batch]; del queue[:batch]
                 enqueue('transfer', members)
 
+    def held_wait(request, station, machine, gi, template_time):
+        if env.now > request['ready_s']:
+            rows.append({'id':len(rows), 'kind':'wait', 'station':station,
+                         'start_s':request['ready_s'], 'end_s':env.now, 'garments':[gi],
+                         'machine':machine, 'worker':None, 'cart':None,
+                         'template_start_s':template_time, 'template_end_s':template_time})
+
     def dispatch():
         nonlocal buffer_used
         remaining = []
@@ -102,6 +143,7 @@ def schedule(scenario, template, index, release_order=None):
             kind, members = request['kind'], request['members']
             gi = members[0]; g = garments[gi]
             worker = machine = cart = None
+            extra = {'segment_id': None, 'cut_index': None}
             if kind == 'cut':
                 seg = cutting[request['segment']]
                 if (g['cut_machine'] is None and not free['zund']) or (seg['attended'] and not free['cutting_workers']):
@@ -110,21 +152,38 @@ def schedule(scenario, template, index, release_order=None):
                     g['cut_machine'] = take('zund'); g['start_s'] = env.now
                 machine = g['cut_machine']
                 if seg['attended']: worker = take('cutting_workers')
-                if request['segment'] and env.now > request['ready_s']:
-                    rows.append({'id':len(rows), 'kind':'wait', 'station':'zund',
-                                 'start_s':request['ready_s'], 'end_s':env.now, 'garments':[gi],
-                                 'machine':machine, 'worker':None, 'cart':None,
-                                 'template_start_s':seg['start_s'], 'template_end_s':seg['start_s']})
-                status = 'cutting'
+                if request['segment']: held_wait(request, 'zund', machine, gi, seg['start_s'])
+                status, row_kind, station = 'cutting', 'template', 'zund'
                 duration = seg['end_s']-seg['start_s']
+                template_span = (seg['start_s'], seg['end_s'])
+                extra = {'segment_id': seg['id'], 'cut_index': request['segment']}
             elif kind == 'sew':
                 if not free['pfaff'] or not free['sewing_workers']:
                     remaining.append((key,request)); continue
                 machine, worker = take('pfaff'), take('sewing_workers')
                 buffer_used -= 1
                 g['sewing_start_s'] = env.now
-                seg, status = sewing[0], 'sewing'
+                seg, status, row_kind, station = sewing[0], 'sewing', 'template', 'pfaff'
                 duration = seg['end_s']-seg['start_s']
+                template_span = (seg['start_s'], seg['end_s'])
+                extra = {'segment_id': seg['id'], 'cut_index': None}
+            elif kind == 'stage':
+                si, step_index = request['segment']
+                stage = stages[si]; step = stage['steps'][step_index]
+                held = g[stage['name']+'_machine']
+                if (held is None and not free[stage['machine_pool']]) or (step['attended'] and not free[stage['worker_pool']]):
+                    remaining.append((key,request)); continue
+                if held is None:
+                    held = g[stage['name']+'_machine'] = take(stage['machine_pool'])
+                    g[stage['name']+'_start_s'] = env.now
+                machine = held
+                if step['attended']: worker = take(stage['worker_pool'])
+                if step_index: held_wait(request, stage['machine_pool'], machine, gi, template_end)
+                status, row_kind, station = stage['status'], 'stage', stage['machine_pool']
+                duration = step['duration_s']
+                template_span = (template_end, template_end)
+                extra = {'segment_id': None, 'cut_index': None, 'stage_index': si, 'step_index': step_index,
+                         'stage': stage['name'], 'step': step['name'], 'attended': step['attended']}
             else:
                 if (buffer_used+len(members) > factory['buffer_capacity'] or
                         not free['transport_workers'] or not free['carts']):
@@ -132,17 +191,18 @@ def schedule(scenario, template, index, release_order=None):
                 worker, cart = take('transport_workers'), take('carts')
                 buffer_used += len(members)
                 for member in members: garments[member]['transport_start_s'] = env.now
-                seg, status = transport, 'transporting'
+                status, row_kind, station = 'transporting', 'transport', 'transport'
                 duration = factory['transport_s']
-            row = {'id':len(rows), 'kind':'transport' if kind == 'transfer' else 'template',
-                   'station':seg['station'], 'start_s':env.now, 'end_s':env.now+duration,
+                template_span = (transport['start_s'], transport['end_s'])
+                extra = {'segment_id': transport['id'], 'cut_index': None}
+            row = {'id':len(rows), 'kind':row_kind, 'station':station, 'start_s':env.now, 'end_s':env.now+duration,
                    'garments':members, 'machine':machine, 'worker':worker, 'cart':cart,
-                   'template_start_s':seg['start_s'], 'template_end_s':seg['end_s'],
-                   'segment_id':seg['id'], 'cut_index':request['segment']}
+                   'template_start_s':template_span[0], 'template_end_s':template_span[1], **extra}
             rows.append(row)
             assigned = {rid:{'mode':'working', 'garments':members, 'row_id':row['id']}
                         for rid in (machine,worker,cart) if rid}
-            emit(kind+'_start', [(member,status) for member in members], assigned)
+            event_kind = (stages[request['segment'][0]]['name'] if kind == 'stage' else kind)+'_start'
+            emit(event_kind, [(member,status) for member in members], assigned)
             later(duration, 'finish', row['id'])
         pending[:] = remaining
 
@@ -171,4 +231,5 @@ def schedule(scenario, template, index, release_order=None):
                               f'buffer={buffer_used}/{factory["buffer_capacity"]}')
     if buffer_used or any(free[k] != set(v) for k,v in inventory.items()):
         raise SchedulingError('run ended with retained resources or buffer reservations')
-    return {'garments':garments, 'rows':rows, 'events':events, 'inventory':inventory, 'duration_s':env.now}
+    return {'garments':garments, 'rows':rows, 'events':events, 'inventory':inventory,
+            'stages':stages, 'duration_s':env.now}

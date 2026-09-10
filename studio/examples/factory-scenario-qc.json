@@ -1,0 +1,29 @@
+{
+  "schema_version": "factory-scenario/1",
+  "measurements": "cutting-measurements.json",
+  "config": "cutting-config.json",
+  "size": {"label": "M", "source": "manual_research"},
+  "scope": "through_qc",
+  "orders": [
+    {"id": "order-1", "quantity": 4, "release_s": 0},
+    {"id": "order-2", "quantity": 3, "release_s": 60}
+  ],
+  "factory": {
+    "zund": 2,
+    "pfaff": 2,
+    "cutting_workers": 1,
+    "sewing_workers": 2,
+    "transport_workers": 1,
+    "carts": 1,
+    "batch_size": 2,
+    "buffer_capacity": 2,
+    "veit": 2,
+    "qc": 1,
+    "finishing_workers": 1,
+    "qc_workers": 1
+  },
+  "stages": {
+    "finishing": {"load_s": 37.5, "cycle_s": 225, "unload_s": 37.5, "active_kw": 4.5, "idle_kw": 0.5, "equipment_eur_h": 3},
+    "qc": {"load_s": 10, "scan_s": 70, "release_s": 10, "active_kw": 0.3, "idle_kw": 0.05, "equipment_eur_h": 1}
+  }
+}

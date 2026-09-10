@@ -6,11 +6,13 @@ import numpy as np
 from ..simulation.resources import ATTENDED
 from ..simulation.engine import path_position
 
-COLUMNS = ('zund_kwh', 'pfaff_kwh', 'vacuum_kwh', 'labour_s', 'equipment_eur',
+COLUMNS = ('zund_kwh', 'pfaff_kwh', 'vacuum_kwh', 'veit_kwh', 'qc_kwh', 'labour_s', 'equipment_eur',
            'thread_m', 'body_m2', 'rib_m2', 'fabric_eur', 'cut_length_mm',
            'travel_mm', 'mark_length_mm', 'sewn_length_mm', 'stitches',
-           'collected_pieces', 'seams_complete')
+           'collected_pieces', 'seams_complete', 'pressed', 'inspected')
 COL = {name: i for i, name in enumerate(COLUMNS)}
+METRICS = COLUMNS[COL['cut_length_mm']:]
+COUNTS = ('stitches', 'collected_pieces', 'seams_complete', 'pressed', 'inspected')
 
 
 def local_time(row, t):

@@ -1,10 +1,13 @@
 # SimPy factory — phase 1
 
 The public Python factory model repeats the existing research polo template
-across orders, machines, workers and transport batches. It ends after collection
-of the sewn research assembly. There is no factory web route, SSE stream, GUI,
-QC, finishing, shipping, or QR update in this phase. The existing three-page
-Studio and its `garment-simulation/3` artifacts continue to work as before.
+across orders, machines, workers and transport batches. By default it ends after
+collection of the sewn research assembly. Scope `through_qc` continues with
+steam finishing and vision QC and stops immediately before the DPP label / QR
+(see [Finishing and QC](#finishing-and-qc-scope-through_qc)). There is no
+factory web route, SSE stream, GUI, DPP label, QR, packing or shipping in this
+phase. The existing three-page Studio and its `garment-simulation/3` artifacts
+continue to work as before.
 
 ## Run without the private QR repository
 
@@ -42,7 +45,14 @@ Paths below are relative to the scenario file, not the current directory.
 | `orders` | Ordered list of unique `id`, positive integer `quantity`, optional `release_s` (default 0) |
 | `factory` | Counts and transport settings listed below |
 
-The total quantity must be at most 1,000 and the scope must be `through_sewing`.
+| `scope` | `through_sewing` (default) or `through_qc` |
+| `stages` | `finishing` and `qc` step times and rates; only with `through_qc` |
+
+The total quantity must be at most 1,000 and the config's own scope must be
+`through_sewing` (the factory scope extends beyond the template, not the other
+way round). Under `through_sewing`, an explicit `stages` block or an explicit
+`veit`, `qc`, `finishing_workers` or `qc_workers` count is rejected rather than
+silently ignored.
 All orders share the same dimensions, design and size. A supplied size that
 conflicts with the document's assignment is rejected. Size is captured, not
 classified again. Existing quality gates and explicitly documented size-based
@@ -56,6 +66,8 @@ research supplements still apply; original measurements and flags are preserved.
 | `batch_size` | 1; no greater than buffer capacity |
 | `buffer_capacity` | 10; 1–1,000 |
 | `transport_s` | Existing `config.machine.transfer_s`; positive, at most 86,400 s |
+| `veit`, `qc` | 1 each; 1–64; `through_qc` only |
+| `finishing_workers`, `qc_workers` | 1 each; 1–64; `through_qc` only |
 
 Transport time is per batch and includes loading, travel, unloading and return.
 The whole batch arrives at service completion. It replaces the template's
@@ -126,6 +138,54 @@ an explicit model difference, not an empirical correction. Common power is equal
 in this uninterrupted one-garment case. See the measured difference table in
 [factory-benchmark.md](factory-benchmark.md).
 
+## Finishing and QC (scope `through_qc`)
+
+```powershell
+.venv-factory\Scripts\python -m studio.factory --scenario examples/factory-scenario-qc.json --out runs/factory-qc.json --jsonl runs/factory-qc-events.jsonl --no-color
+.venv-factory\Scripts\python -m studio.factory --replay runs/factory-qc.json --at 700 --garment order-1:0001 --no-color
+```
+
+After `sewing_complete` each garment enters `finish_queue`, then `qc_queue`,
+by direct hand-off: no transport, cart or bounded buffer. Each stage holds one
+machine for three steps and takes a worker from its own pool for the attended
+steps only, exactly as a cutter is held between attended segments:
+
+| Stage | Machine pool | Worker pool | Steps (attended / automatic / attended) | Defaults |
+| --- | --- | --- | --- | --- |
+| `finishing` | `veit` | `finishing_workers` | `press_load` / `press_cycle` / `press_unload` | 37.5 / 225 / 37.5 s; 4.5 kW working, 0.5 kW standby, 3 EUR/h |
+| `qc` | `qc` | `qc_workers` | `qc_load` / `qc_scan` / `qc_release` | 10 / 70 / 10 s; 0.3 kW working, 0.05 kW standby, 1 EUR/h |
+
+The defaults are research assumptions taken from the earlier analytical line
+model (`polo-line-sim/polo_line/spec.py`: Veit SF 27 at 5 minutes and 25 %
+attended, Vision QC + CNN at 1.5 minutes and 20 % attended). The Maß-DPP plan's
+Table 4 gives finishing 6 minutes and assigns QC no time of its own, so none of
+these figures is a measured value. Steam, water and consumables are not modelled.
+
+Accounting follows `factory-resources/2`: a held press or QC station draws its
+working power and equipment fee for every step it holds a garment, and standby
+power plus the equipment fee while it waits for a worker; only attended steps
+are direct labour; common power covers the stage intervals as it does the rest.
+`pressed` and `inspected` counts land at the end of the last step. QC is
+deterministic: every inspected garment passes (`verdict_model:
+deterministic_pass_no_defect_model`). There is no defect, rework or scrap model,
+so `result.qc.ready_for_dpp_label` equals the number inspected and
+`dpp_label_or_qr_issued` is always 0. `finished_garment` stays false.
+
+The domain events add `finishing_start`, `finishing_step_complete`,
+`finishing_complete`, `qc_start`, `qc_step_complete` and `qc_complete`, with
+statuses `finish_queue`, `finishing`, `finishing_worker_wait`, `qc_queue`,
+`inspecting` and `qc_worker_wait` before the final `complete`. Garment waits
+add `before_finishing_s`, `finishing_worker_s`, `before_qc_s` and
+`qc_worker_s`; queues add `finish_queue`, `finishing_worker_wait`, `qc_queue`
+and `qc_worker_wait`. Replay of a garment inside a stage reports the step, its
+progress and display readouts (press temperature/steam/humidity curve, QC frame
+count and verdict) that never enter the accounting.
+
+The through-sewing part of a `through_qc` run is identical to the same scenario
+under `through_sewing`: same rows, same events up to `sewing_complete`, same
+ledger at that time. A `through_sewing` run's content hash does not depend on
+stage inputs at all.
+
 ## Saved files and Python API
 
 ```python
@@ -137,7 +197,7 @@ player = Replay(load("run.json"))
 state = player.snapshot(120.0, garment_id="order-1:0001")
 ```
 
-`factory-simulation/1` contains the normalized scenario, one legacy template,
+`factory-simulation/2` contains the normalized scenario, one legacy template,
 template indexes, garment IDs/timestamps, coarse working/waiting intervals,
 instance assignments, domain events, accounting indexes, replay checkpoints and
 final factory/order/garment results. Inputs contain internal measurement
@@ -176,7 +236,8 @@ python -m pytest tests -q
 Factory tests run without the private QR repository, including an isolated
 subprocess that denies imports of QR, polo, web and legacy path bootstrap modules.
 Golden files cover one garment, two orders, limited workers, multiple machines,
-batch transport and the final partial batch. Additional tests compare indexed
+batch transport, the final partial batch, one garment through QC and a QC line
+whose two presses share one finishing worker. Additional tests compare indexed
 results with a slow operation-by-operation reference, validate all one-garment
 operation boundaries and midpoints, check conservation and parameter isolation,
 and exercise checkpoint replay, corruption, rejected measurements and CLI errors.
