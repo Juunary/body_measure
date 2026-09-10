@@ -1,0 +1,604 @@
+{
+  "duration_s": 516.1924214543158,
+  "result": {
+    "completed_garments": 1,
+    "finished_garment": false,
+    "makespan_s": 516.1924214543158,
+    "completion_time_s": 516.1924214543158,
+    "throughput_per_hour": 6.974143459637383,
+    "resources": {
+      "flow_time_s": 516.1924214543158,
+      "energy_kwh": 0.14542632909279535,
+      "co2e_g": 55.26200505526223,
+      "cost_eur": 9.74855046422567,
+      "energy_breakdown_kwh": {
+        "zund": 0.04397011707064326,
+        "pfaff": 0.024377777777777766,
+        "vacuum": 0.03406239912318133,
+        "overhead": 0.04301603512119298
+      },
+      "cost_breakdown_eur": {
+        "fabric": 6.8524381,
+        "thread": 0.1525461906397225,
+        "labour": 2.239111111111111,
+        "electricity": 0.03635658227319884,
+        "equipment": 0.468098480201638
+      },
+      "labour_time_s": 366.3999999999999,
+      "thread_used_m": 15.254619063972248,
+      "fabric_used_m2": {
+        "body": 1.0984876199999998,
+        "rib": 0.17
+      },
+      "metrics": {
+        "cut_length_mm": 10155.64666353495,
+        "travel_mm": 6537.07610568987,
+        "mark_length_mm": 1010.11136,
+        "sewn_length_mm": 4484.873021324083,
+        "stitches": 1504,
+        "collected_pieces": 9,
+        "seams_complete": 18
+      }
+    },
+    "orders": [
+      {
+        "id": "one",
+        "quantity": 1,
+        "start_s": 0,
+        "end_s": 516.1924214543158,
+        "lead_time_s": 516.1924214543158,
+        "resources": {
+          "flow_time_s": 516.1924214543158,
+          "energy_kwh": 0.14542632909279535,
+          "co2e_g": 55.26200505526223,
+          "cost_eur": 9.74855046422567,
+          "energy_breakdown_kwh": {
+            "zund": 0.04397011707064326,
+            "pfaff": 0.024377777777777766,
+            "vacuum": 0.03406239912318133,
+            "overhead": 0.04301603512119298
+          },
+          "cost_breakdown_eur": {
+            "fabric": 6.8524381,
+            "thread": 0.1525461906397225,
+            "labour": 2.239111111111111,
+            "electricity": 0.03635658227319884,
+            "equipment": 0.468098480201638
+          },
+          "labour_time_s": 366.3999999999999,
+          "thread_used_m": 15.254619063972248,
+          "fabric_used_m2": {
+            "body": 1.0984876199999998,
+            "rib": 0.17
+          },
+          "metrics": {
+            "cut_length_mm": 10155.64666353495,
+            "travel_mm": 6537.07610568987,
+            "mark_length_mm": 1010.11136,
+            "sewn_length_mm": 4484.873021324083,
+            "stitches": 1504,
+            "collected_pieces": 9,
+            "seams_complete": 18
+          }
+        }
+      }
+    ],
+    "garments": [
+      {
+        "id": "one:0001",
+        "order_id": "one",
+        "lead_time_s": 516.1924214543158,
+        "waits": {
+          "before_cutting_s": 0,
+          "cutting_worker_s": 0,
+          "before_transport_s": 0.0,
+          "before_sewing_s": 0.0
+        },
+        "resources": {
+          "flow_time_s": 516.1924214543158,
+          "energy_kwh": 0.14542632909279535,
+          "co2e_g": 55.26200505526223,
+          "cost_eur": 9.74855046422567,
+          "energy_breakdown_kwh": {
+            "zund": 0.04397011707064326,
+            "pfaff": 0.024377777777777766,
+            "vacuum": 0.03406239912318133,
+            "overhead": 0.04301603512119298
+          },
+          "cost_breakdown_eur": {
+            "fabric": 6.8524381,
+            "thread": 0.1525461906397225,
+            "labour": 2.239111111111111,
+            "electricity": 0.03635658227319884,
+            "equipment": 0.468098480201638
+          },
+          "labour_time_s": 366.3999999999999,
+          "thread_used_m": 15.254619063972248,
+          "fabric_used_m2": {
+            "body": 1.0984876199999998,
+            "rib": 0.17
+          },
+          "metrics": {
+            "cut_length_mm": 10155.64666353495,
+            "travel_mm": 6537.07610568987,
+            "mark_length_mm": 1010.11136,
+            "sewn_length_mm": 4484.873021324083,
+            "stitches": 1504,
+            "collected_pieces": 9,
+            "seams_complete": 18
+          }
+        }
+      }
+    ],
+    "instances": {
+      "zund-001": {
+        "pool": "zund",
+        "working_s": 234.79242145431584,
+        "held_wait_s": 0,
+        "occupied_s": 234.79242145431584,
+        "idle_s": 281.3999999999999,
+        "utilization_pct": 45.48544529050113
+      },
+      "pfaff-001": {
+        "pool": "pfaff",
+        "working_s": 276.3999999999999,
+        "held_wait_s": 0,
+        "occupied_s": 276.3999999999999,
+        "idle_s": 239.79242145431584,
+        "utilization_pct": 53.54592367343812
+      },
+      "cutting_workers-001": {
+        "pool": "cutting_workers",
+        "working_s": 85.0,
+        "held_wait_s": 0,
+        "occupied_s": 85.0,
+        "idle_s": 431.19242145431576,
+        "utilization_pct": 16.46672761303271
+      },
+      "sewing_workers-001": {
+        "pool": "sewing_workers",
+        "working_s": 276.3999999999999,
+        "held_wait_s": 0,
+        "occupied_s": 276.3999999999999,
+        "idle_s": 239.79242145431584,
+        "utilization_pct": 53.54592367343812
+      },
+      "transport_workers-001": {
+        "pool": "transport_workers",
+        "working_s": 5.0,
+        "held_wait_s": 0,
+        "occupied_s": 5.0,
+        "idle_s": 511.19242145431576,
+        "utilization_pct": 0.9686310360607477
+      },
+      "carts-001": {
+        "pool": "carts",
+        "working_s": 5.0,
+        "held_wait_s": 0,
+        "occupied_s": 5.0,
+        "idle_s": 511.19242145431576,
+        "utilization_pct": 0.9686310360607477
+      }
+    },
+    "queues": {
+      "cut_queue": {
+        "peak": 0,
+        "time_average": 0.0
+      },
+      "cut_worker_wait": {
+        "peak": 0,
+        "time_average": 0.0
+      },
+      "cut_output": {
+        "peak": 0,
+        "time_average": 0.0
+      },
+      "buffer": {
+        "peak": 0,
+        "time_average": 0.0
+      },
+      "buffer_reserved_or_occupied": {
+        "peak": 1,
+        "time_average": 0.009686310360607476
+      }
+    }
+  },
+  "segments": [
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 0,
+      "end_s": 20.0,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 20.0,
+      "end_s": 23.6616254,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": null,
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 23.6616254,
+      "end_s": 30.6616254,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 30.6616254,
+      "end_s": 144.20149962435585,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": null,
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 144.20149962435585,
+      "end_s": 164.20149962435585,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 164.20149962435585,
+      "end_s": 184.20149962435585,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 184.20149962435585,
+      "end_s": 185.05149962435584,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": null,
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 185.05149962435584,
+      "end_s": 192.05149962435584,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 192.05149962435584,
+      "end_s": 223.79242145431584,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": null,
+      "cart": null
+    },
+    {
+      "kind": "template",
+      "station": "zund",
+      "start_s": 223.79242145431584,
+      "end_s": 234.79242145431584,
+      "garments": [
+        0
+      ],
+      "machine": "zund-001",
+      "worker": "cutting_workers-001",
+      "cart": null
+    },
+    {
+      "kind": "transport",
+      "station": "transport",
+      "start_s": 234.79242145431584,
+      "end_s": 239.79242145431584,
+      "garments": [
+        0
+      ],
+      "machine": null,
+      "worker": "transport_workers-001",
+      "cart": "carts-001"
+    },
+    {
+      "kind": "template",
+      "station": "pfaff",
+      "start_s": 239.79242145431584,
+      "end_s": 516.1924214543158,
+      "garments": [
+        0
+      ],
+      "machine": "pfaff-001",
+      "worker": "sewing_workers-001",
+      "cart": null
+    }
+  ],
+  "events": [
+    {
+      "kind": "order_released",
+      "garments": [
+        [
+          0,
+          "cut_queue"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_segment_complete",
+      "garments": [
+        [
+          0,
+          "cut_worker_wait"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cut_start",
+      "garments": [
+        [
+          0,
+          "cutting"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "cutting_complete",
+      "garments": [
+        [
+          0,
+          "cut_output"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "transfer_start",
+      "garments": [
+        [
+          0,
+          "transporting"
+        ]
+      ],
+      "buffer_used": 1
+    },
+    {
+      "kind": "transport_complete",
+      "garments": [
+        [
+          0,
+          "buffer"
+        ]
+      ],
+      "buffer_used": 1
+    },
+    {
+      "kind": "sew_start",
+      "garments": [
+        [
+          0,
+          "sewing"
+        ]
+      ],
+      "buffer_used": 0
+    },
+    {
+      "kind": "sewing_complete",
+      "garments": [
+        [
+          0,
+          "complete"
+        ]
+      ],
+      "buffer_used": 0
+    }
+  ]
+}

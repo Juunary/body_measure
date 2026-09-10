@@ -11,7 +11,7 @@ class InputError(ValueError):
 
 def size_defaults(document):
     """Only chest is chart-defined; other values are explicit research defaults."""
-    from .. import paths  # bootstrap body_measure
+    from .. import measurement_paths  # public measurement dependency only
     from body_measure.sizing import CHARTS
     size = document.get('sizing') or document.get('meta',{}).get('size') or {}
     if not isinstance(size, dict): return {}
@@ -52,7 +52,7 @@ def inspect_inputs(document: dict, config: SimulationConfig) -> list[dict]:
         flags = original.get("quality", original.get("flags", []))
         reason = ""
         if source == "measurement":
-            from .. import paths  # bootstrap the existing source of quality decisions
+            from .. import measurement_paths  # public source of quality decisions
             from body_measure.result import MeasurementValue
             from body_measure.validate.stats import quality_bucket
             fields = MeasurementValue.__dataclass_fields__

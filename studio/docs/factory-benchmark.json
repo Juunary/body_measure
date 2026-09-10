@@ -1,0 +1,126 @@
+{
+  "schema_version": "factory-benchmark/1",
+  "source_sha256": "59dfe6957847bafdd52df84bd25536c37ce14ffe9ced4d483154d09021cfe702",
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 189 Stepping 1, GenuineIntel",
+    "python": "3.12.10",
+    "dependencies": {
+      "simpy": "4.1.2",
+      "numpy": "2.5.3",
+      "shapely": "2.1.2",
+      "pydantic": "2.13.5"
+    }
+  },
+  "scenario": {
+    "quantity": 1000,
+    "factory": {
+      "zund": 2,
+      "pfaff": 4,
+      "cutting_workers": 1,
+      "sewing_workers": 4,
+      "transport_workers": 1,
+      "carts": 1,
+      "batch_size": 5,
+      "buffer_capacity": 10
+    },
+    "seed": 20260910,
+    "warmup": 50,
+    "queries": 1000
+  },
+  "build_s": 2.933010500011733,
+  "save_s": 1.4768933999876026,
+  "load_verify_s": 0.8288858000014443,
+  "artifact_bytes": 26900391,
+  "peak_process_rss_bytes": 209358848,
+  "memory_scope": "OS whole-process high-water resident set, including imports, build, JSON IO and replay",
+  "domain_events": 22401,
+  "segments_including_waits": 15200,
+  "checkpoints": 88,
+  "query_ms": {
+    "p50": 0.3424500027904287,
+    "p95": 0.7312800080399028,
+    "max": 3.791099996306002
+  },
+  "max_events_replayed": 255,
+  "p95_target_ms": 50,
+  "passed": true,
+  "content_hash": "e8a8f807333922b88e82e19065ac11a337efcf9246fa1d3a58cf1211d8fdedb4",
+  "single_garment_equivalence": {
+    "duration_s": {
+      "legacy": 516.1924214543158,
+      "factory": 516.1924214543158,
+      "actual_delta": 0.0,
+      "expected_delta": 0.0
+    },
+    "energy_kwh": {
+      "legacy": 0.1454818846483509,
+      "factory": 0.14542632909279535,
+      "actual_delta": -5.555555555555869e-05,
+      "expected_delta": -5.555555555555556e-05
+    },
+    "co2e_g": {
+      "legacy": 55.28311616637335,
+      "factory": 55.26200505526223,
+      "actual_delta": -0.021111111111117964,
+      "expected_delta": -0.021111111111111112
+    },
+    "cost_eur": {
+      "legacy": 9.749953242003448,
+      "factory": 9.74855046422567,
+      "actual_delta": -0.001402777777778752,
+      "expected_delta": -0.0014027777777777777
+    },
+    "labour_time_s": {
+      "legacy": 366.3999999999999,
+      "factory": 366.3999999999999,
+      "actual_delta": 0.0,
+      "expected_delta": 0.0
+    },
+    "thread_used_m": {
+      "legacy": 15.254619063972248,
+      "factory": 15.254619063972248,
+      "actual_delta": 0.0,
+      "expected_delta": 0.0
+    }
+  },
+  "research_result": {
+    "completed_garments": 1000,
+    "makespan_s": 151198.19802715734,
+    "throughput_per_hour": 23.809807570281947,
+    "resources": {
+      "flow_time_s": 151198.19802715734,
+      "energy_kwh": 120.96284865720453,
+      "co2e_g": 45965.88248973772,
+      "cost_eur": 9828.752440672302,
+      "energy_breakdown_kwh": {
+        "zund": 45.81615525398131,
+        "pfaff": 24.377777777778235,
+        "vacuum": 38.169065789848545,
+        "overhead": 12.599849835596444
+      },
+      "cost_breakdown_eur": {
+        "fabric": 6852.438099999951,
+        "thread": 152.54619063971887,
+        "labour": 2214.666666666688,
+        "electricity": 30.240712164301133,
+        "equipment": 578.8607712016429
+      },
+      "labour_time_s": 362400.0000000035,
+      "thread_used_m": 15254.619063971886,
+      "fabric_used_m2": {
+        "body": 1098.4876200000094,
+        "rib": 169.999999999998
+      },
+      "metrics": {
+        "cut_length_mm": 10155646.663535196,
+        "travel_mm": 6537076.10569004,
+        "mark_length_mm": 1010111.3599999868,
+        "sewn_length_mm": 4484873.021324143,
+        "stitches": 1504000,
+        "collected_pieces": 9000,
+        "seams_complete": 18000
+      }
+    }
+  }
+}

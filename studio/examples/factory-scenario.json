@@ -1,0 +1,20 @@
+{
+  "schema_version": "factory-scenario/1",
+  "measurements": "cutting-measurements.json",
+  "config": "cutting-config.json",
+  "size": {"label": "M", "source": "manual_research"},
+  "orders": [
+    {"id": "order-1", "quantity": 4, "release_s": 0},
+    {"id": "order-2", "quantity": 3, "release_s": 60}
+  ],
+  "factory": {
+    "zund": 2,
+    "pfaff": 2,
+    "cutting_workers": 1,
+    "sewing_workers": 2,
+    "transport_workers": 1,
+    "carts": 1,
+    "batch_size": 2,
+    "buffer_capacity": 2
+  }
+}
