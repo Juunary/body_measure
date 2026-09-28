@@ -24,6 +24,7 @@ when someone is asked where the number came from.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 #: A chest measurement this close to a band edge would land in the
@@ -31,6 +32,32 @@ from dataclasses import dataclass, field
 #: On a clothed scan the girth error is tens of millimetres, so a
 #: boundary case is reported rather than silently resolved.
 BOUNDARY_MARGIN_MM = 10.0
+
+
+@dataclass(frozen=True)
+class ChestErrorModel:
+    """The chest's measured error against a reference, as a normal
+    distribution of (pipeline - reference). It turns one chest value into
+    a probability per band (decision #58). It is what one validation set
+    showed, not a property of every scan, and it says where it came from."""
+    key: str
+    source: str
+    bias_mm: float
+    sd_mm: float
+    n: int
+
+
+#: The same Texel set the `chest_reads_high_..._texel_n10` flag cites. The
+#: NOMO pilot (+20.8 mm, SD 38.1, n=10 male) is wider; Texel is used
+#: because it is the set every other chest decision is measured on.
+TEXEL_CHEST_ERROR = ChestErrorModel(
+    key="texel-n10",
+    source="docs/report-formal.en.md, Texel table: chest_circumference "
+           "bias +26.9 mm, SD 23.6 mm (signed deltas, ddof=1), n=10 accepted",
+    bias_mm=26.9,
+    sd_mm=23.6,
+    n=10,
+)
 
 
 @dataclass(frozen=True)
@@ -177,6 +204,14 @@ class SizeAssignment:
     flags: list[str] = field(default_factory=list)
     #: the neighbouring label a boundary case could equally have taken
     alternative: str | None = None
+    #: P(band) with the measurement taken at face value, spread by the
+    #: error model's SD. None when no size is assigned.
+    probabilities: dict[str, float] | None = None
+    #: the same, centred on chest - bias: what the bands look like if the
+    #: validation set's bias holds for this body. Reported, never applied
+    #: to the label (decision #36).
+    probabilities_if_bias_holds: dict[str, float] | None = None
+    error_model: ChestErrorModel | None = None
 
     @property
     def assigned(self) -> bool:
@@ -197,7 +232,40 @@ class SizeAssignment:
             "reason": self.reason,
             "flags": self.flags,
             "alternative": self.alternative,
+            "probabilities": self.probabilities,
+            "probabilities_if_bias_holds": self.probabilities_if_bias_holds,
+            "error_model": None if self.error_model is None else {
+                "key": self.error_model.key,
+                "source": self.error_model.source,
+                "bias_mm": self.error_model.bias_mm,
+                "sd_mm": self.error_model.sd_mm,
+                "n": self.error_model.n,
+            },
         }
+
+
+#: keys for probability mass that no band of the chart holds
+BELOW_CHART, ABOVE_CHART, BETWEEN_BANDS = "below_chart", "above_chart", "between_bands"
+
+
+def _normal_cdf(x: float, mean: float, sd: float) -> float:
+    return 0.5 * (1.0 + math.erf((x - mean) / (sd * math.sqrt(2.0))))
+
+
+def band_probabilities(chart: SizeChart, centre_mm: float, sd_mm: float) -> dict[str, float]:
+    """P(true chest in each band) for a normal around `centre_mm`, plus the
+    mass below, above and between the bands, so the values sum to 1 and
+    the part the chart does not cover is visible rather than renormalised
+    away. Band edges are points, so the exclusive/inclusive edge rule
+    carries no probability and does not enter here."""
+    cdf = lambda cm: _normal_cdf(cm * 10.0, centre_mm, sd_mm)  # noqa: E731
+    out = {band.label: cdf(band.chest_max_cm) - cdf(band.chest_min_cm)
+           for band in chart.bands}
+    low, high = chart.range_cm
+    out[BELOW_CHART] = cdf(low)
+    out[ABOVE_CHART] = 1.0 - cdf(high)
+    out[BETWEEN_BANDS] = max(0.0, 1.0 - sum(out.values()))
+    return {key: round(value, 4) for key, value in out.items()}
 
 
 def _band_overlaps(chart: SizeChart, band: SizeBand, lo_cm: float, hi_cm: float) -> bool:
@@ -211,7 +279,8 @@ def _band_overlaps(chart: SizeChart, band: SizeBand, lo_cm: float, hi_cm: float)
 
 
 def assign(measurements, *, chart: SizeChart = EN_13402_3,
-           pathway: str = "estimated", population: str | None = None) -> SizeAssignment:
+           pathway: str = "estimated", population: str | None = None,
+           error_model: ChestErrorModel = TEXEL_CHEST_ERROR) -> SizeAssignment:
     """Assign a size from measured body dimensions, or refuse and say why.
 
     `measurements` is what run_estimated_measurements returned. `pathway`
@@ -324,5 +393,12 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
     if alternative:
         reason += (f"; within {BOUNDARY_MARGIN_MM:.0f} mm of the edge, so {alternative} "
                    "is equally defensible under this pipeline's own error")
-    return SizeAssignment(chart, band.label, chest_mm, reason=reason,
-                          flags=flags, alternative=alternative)
+    # Probabilities sit beside the label and the ±10 mm rule; they do not
+    # choose either. Changing the rule or correcting the bias is the policy
+    # question #49 sent to the methodology meeting (decision #58).
+    return SizeAssignment(
+        chart, band.label, chest_mm, reason=reason, flags=flags, alternative=alternative,
+        probabilities=band_probabilities(chart, chest_mm, error_model.sd_mm),
+        probabilities_if_bias_holds=band_probabilities(
+            chart, chest_mm - error_model.bias_mm, error_model.sd_mm),
+        error_model=error_model)

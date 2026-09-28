@@ -2989,3 +2989,50 @@ one summary page.
 
 **Revisit if:** the EN 13402-3 edition is read (RWTH Beuth) and its
 women's letter table does print a gap.
+
+
+## 58. The size carries a probability per band, beside the label
+
+**Date:** 2026-09-28 · **Status:** accepted · **Label and alternative unchanged**
+
+The ±10 mm alternative rule (#49) says *whether* a neighbouring band is
+reachable, not *how likely* it is, and its margin is less than half the
+chest's own spread. An assigned size now also carries the probability
+of each band, from the chest's measured error treated as a normal
+distribution: `band_probabilities(chart, centre, sd)`.
+
+**The error model is cited, not tuned.** `TEXEL_CHEST_ERROR` is the
+Texel table of `docs/report-formal.en.md` — chest bias +26.9 mm, SD
+23.6 mm (signed deltas, ddof=1), n=10 — the set the existing
+`chest_reads_high_..._texel_n10` flag already names. NOMO's pilot is
+wider (+20.8 mm, SD 38.1) and is not used; a model fitted to either is
+ten bodies of one dataset, and the block says so by carrying its source.
+
+**Two distributions, no correction.**
+
+* `probabilities` — centred on the measured chest. What the bands look
+  like if the pipeline is unbiased.
+* `probabilities_if_bias_holds` — centred on chest − 26.9 mm. What they
+  look like if Texel's bias holds for this body.
+
+#36 stands: the bias is not subtracted from the measurement or the
+label. The second distribution is the signed flag made quantitative —
+at 100 cm, M 80 % / L 20 % at face value becomes S 8 % / M 90 % / L 2 %.
+
+Mass outside the chart (`below_chart`, `above_chart`) and in a gap
+(`between_bands`) is kept, so the values sum to 1 and a body near the
+chart's end shows that part of its distribution has no size.
+
+**What does not change.** The label is still the face-value band, and
+the alternative is still the ±10 mm window. At 95.0 cm the size is M with
+no alternative while S carries 34 %; that disagreement is the evidence
+for the methodology meeting, which #49 gave the choice of margin and
+bias correction. A refused size carries no probabilities.
+
+**Rules out:** choosing the label or the alternative from these
+probabilities without that meeting; an error model without a source;
+renormalising away the mass the chart does not cover.
+
+**Revisit if:** a larger validation set, or a scanned subject with a tape
+reference, gives a chest SD per quality bucket — then the model is
+chosen by bucket rather than one constant.

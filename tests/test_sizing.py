@@ -317,3 +317,67 @@ def test_the_cli_refuses_a_size_without_estimate(body_like_ply):
         capture_output=True, text=True, encoding="utf-8", cwd=PROJECT_ROOT)
     assert proc.returncode == 1
     assert "--estimate" in proc.stderr
+
+
+# ------------------------------------------------------- the probabilities ---
+from body_measure.sizing import (  # noqa: E402
+    ABOVE_CHART, BELOW_CHART, BETWEEN_BANDS, TEXEL_CHEST_ERROR, band_probabilities,
+)
+
+
+def test_probabilities_cover_the_whole_distribution():
+    """Mass the chart does not hold is shown, not renormalised away."""
+    for chart in CHARTS.values():
+        for centre in (800.0, 980.0, 1290.0, 1600.0):
+            probs = band_probabilities(chart, centre, TEXEL_CHEST_ERROR.sd_mm)
+            assert abs(sum(probs.values()) - 1.0) < 1e-3
+            assert {BELOW_CHART, ABOVE_CHART, BETWEEN_BANDS} <= probs.keys()
+
+
+def test_a_chest_mid_band_is_most_likely_that_band_but_not_certain():
+    """98 cm is the middle of M (94-102): the label is the likeliest band,
+    and with an SD of 23.6 mm (40 mm to either edge is 1.7 SD) about a
+    tenth of the mass still sits in S or L."""
+    result = assign(chest(980.0), population="men")
+    probs = result.probabilities
+    assert max(probs, key=probs.get) == "M"
+    assert 0.85 < probs["M"] < 0.95
+    assert abs(probs["S"] - probs["L"]) < 1e-3
+
+
+def test_a_chest_on_an_edge_splits_evenly():
+    probs = assign(chest(940.0), population="men").probabilities
+    assert abs(probs["S"] - probs["M"]) < 0.01
+
+
+def test_the_bias_scenario_leans_one_size_down_and_leaves_the_label():
+    """Decision #36: the bias is reported, not applied. The label is the
+    face-value band; the shifted distribution only says which way it leans."""
+    result = assign(chest(1000.0), population="men")
+    assert result.label == "M"
+    shifted = result.probabilities_if_bias_holds
+    assert shifted["S"] > result.probabilities["S"]
+    assert shifted["L"] < result.probabilities["L"]
+
+
+def test_the_probabilities_do_not_move_the_label_or_the_alternative():
+    """The ±10 mm rule of decision #49 is unchanged: 95.0 cm is M with no
+    alternative even though S still carries real probability there."""
+    result = assign(chest(950.0), population="men")
+    assert result.label == "M" and result.alternative is None
+    assert result.probabilities["S"] > 0.3
+
+
+def test_a_refused_size_carries_no_probabilities():
+    for result in (assign(chest(1000.0), pathway="measured_clothed", population="men"),
+                   assign(chest(1600.0), population="men"),
+                   assign(chest(900.0), population="women")):
+        assert result.probabilities is None and result.probabilities_if_bias_holds is None
+
+
+def test_the_error_model_travels_with_its_source():
+    block = assign(chest(1000.0), population="men").to_dict()
+    model = block["error_model"]
+    assert model["key"] == "texel-n10" and "report-formal" in model["source"]
+    assert model["bias_mm"] == 26.9 and model["sd_mm"] == 23.6 and model["n"] == 10
+    json.dumps(block)

@@ -159,6 +159,15 @@ def _print_size(sizing) -> None:
     print(f"    basis      {chart.primary_measurement}, {chart.dimension_kind} measurement, "
           f"{chart.population}")
     print(f"    reason     {sizing.reason}")
+    for title, probs in (("P(size)", sizing.probabilities),
+                         ("P if bias", sizing.probabilities_if_bias_holds)):
+        if probs:
+            shown = [f"{key} {value:.0%}" for key, value in probs.items() if value >= 0.01]
+            print(f"    {title:<10} {'  '.join(shown)}")
+    if sizing.error_model is not None and sizing.probabilities:
+        model = sizing.error_model
+        print(f"    error      {model.key}: bias {model.bias_mm:+.1f} mm, SD {model.sd_mm:.1f} mm, "
+              f"n={model.n}")
     if sizing.flags:
         print(f"    flags      {','.join(sizing.flags)}")
     print(f"    source     {chart.source}")
