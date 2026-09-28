@@ -9,8 +9,8 @@ export class SewingViewer {
     this.feed=new THREE.Group();this.group.add(this.feed);
     this.assembly=new THREE.Group();this.group.add(this.assembly);
     this.pieces=new Map(plan.pieces.map(p=>[p.id,p]));this.active=null;
-    viewer.box(this.group,[1.5,.07,1.05],[1.25,.75,1.3],0xe7ecec);
-    viewer.label(this.group,'ASSEMBLY · SCHEMATIC',[1.25,.97,1.75],.8);
+    this.assemblyTable=viewer.box(this.group,[1.5,.07,1.05],[1.25,.75,1.3],0xe7ecec);
+    this.assemblyLabel=viewer.label(this.group,'ASSEMBLY · SCHEMATIC',[1.25,.97,1.75],.8);
     this.assembled=new Map();
     this.pending=new Map();
     const positions={front:[1.25,.1],back:[1.25,.1],sleeve_left:[.84,-.08],sleeve_right:[1.66,-.08],
@@ -41,10 +41,15 @@ export class SewingViewer {
   apply(s){
     this.state=s;this.receivedAt=performance.now();
     const sewing=s.sewing;if(!sewing)return;
-    const inSewing=s.machine_id==='pfaff';this.group.visible=inSewing||s.sewing_complete;
     const seam=this.plan.sewing_seams.find(x=>x.id===sewing.seam_id);
+    const machine=seam?.machine_id||s.machine_id;
+    const inSewing=['pfaff','overlock','coverstitch'].includes(machine);
+    const target=this.viewer.equipment.get(machine);
+    if(target&&this.station===this.viewer.factory)this.group.position.copy(target.position);
+    this.group.visible=inSewing||s.sewing_complete;
     if(this.active!==seam?.id){
       this.viewer.disposeGroup(this.feed);this.layers=[];this.active=seam?.id;
+      this.lastFeedProgress=null;
       if(seam)seam.sides.forEach(side=>{
         const layer=new THREE.Group();this.feed.add(layer);
         layer.add(this.piece(this.pieces.get(side.piece_id)));
@@ -54,29 +59,43 @@ export class SewingViewer {
       });
     }
     this.feed.visible=!!seam&&inSewing;
+    this.updateFeed(sewing.seam_progress);
+    for(const [id,mesh] of this.assembled)mesh.visible=s.pieces[id]==='sewn'&&!(seam?.piece_ids.includes(id)&&inSewing);
+    for(const [id,mesh] of this.pending)mesh.visible=s.pieces[id]!=='sewn'&&!(seam?.piece_ids.includes(id))&&s.operation!=='transfer_to_sewing';
+    this.animate();
+  }
+  updateFeed(progress){
+    if(this.lastFeedProgress===progress)return;
+    this.lastFeedProgress=progress;
     (this.layers||[]).forEach(({layer,side,stitched},i)=>{
-      const p=this.sample(side.points,sewing.seam_progress);const angle=-p.angle;
+      const p=this.sample(side.points,progress);const angle=-p.angle;
       // Rotate the local tangent towards feed Z and hold the current stitch
       // point exactly under the fixed needle at X=-.22, Z=0.
       layer.rotation.y=angle;
       const x=p.point[0]/1000,z=p.point[1]/1000;
       layer.position.set(-.22-Math.cos(angle)*x-Math.sin(angle)*z,.869+i*.004,Math.sin(angle)*x-Math.cos(angle)*z);
       stitched.geometry.dispose();stitched.geometry=new THREE.BufferGeometry().setFromPoints(p.prefix.map(v=>new THREE.Vector3(v[0]/1000,.004,v[1]/1000)));
-      stitched.visible=sewing.seam_progress>0;
+      stitched.visible=progress>0;
     });
-    for(const [id,mesh] of this.assembled)mesh.visible=s.pieces[id]==='sewn'&&!(seam?.piece_ids.includes(id)&&inSewing);
-    for(const [id,mesh] of this.pending)mesh.visible=s.pieces[id]!=='sewn'&&!(seam?.piece_ids.includes(id))&&s.operation!=='transfer_to_sewing';
-    this.animate();
   }
   animate(){
     const s=this.state;if(!s)return;
     const sewing=s.sewing;
-    const machine=this.plan.config.machine;
+    // Desktop step times are measured, so its stations may carry no stitch rate.
+    const station=this.plan.config.process?.[{pfaff:'lockstitch',overlock:'overlock',coverstitch:'coverstitch'}[s.machine_id]];
+    const stitchesPerMin=station?.stitches_per_min||this.plan.config.machine.stitches_per_min;
     const elapsed=s.status==='playing'?Math.min(.1,(performance.now()-this.receivedAt)/1000)*s.speed:0;
-    const phase=(s.sim_time_s+elapsed)*machine.stitches_per_min/60*Math.PI*2;
-    if(this.viewer.sewingNeedle)this.viewer.sewingNeedle.position.y=.933+(s.operation==='stitch'?Math.sin(phase)*.02:.025);
-    if(this.viewer.sewingFoot)this.viewer.sewingFoot.position.y=sewing.presser_down?.883:.912;
-    if(this.viewer.sewingWheel)this.viewer.sewingWheel.rotation.x=s.operation==='stitch'?phase:0;
+    if(s.operation==='stitch'&&s.operation_end_s>s.operation_start_s){
+      const progress=Math.min(1,(s.sim_time_s+elapsed-s.operation_start_s)/(s.operation_end_s-s.operation_start_s));
+      this.updateFeed(progress);
+    }
+    const phase=(s.sim_time_s+elapsed)*stitchesPerMin/60*Math.PI*2;
+    for(const [id,parts] of this.viewer.sewingMechanisms||[]){
+      const active=s.machine_id===id,stitching=active&&s.operation==='stitch';
+      parts.needle.position.y=.933+(stitching?Math.sin(phase)*.02:.025);
+      parts.foot.position.y=active&&sewing.presser_down?.883:.912;
+      parts.wheel.rotation.x=stitching?phase:0;
+    }
   }
   dispose(){this.station.remove(this.group);this.viewer.disposeGroup(this.group);}
 }

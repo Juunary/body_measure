@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Maß-DPP Polo Simulator</title>
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
+  <link rel="stylesheet" href="./desktop.css"><link rel="stylesheet" href="./desktop-polish.css">
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand"><small>MAß-DPP / PRODUCTION STUDIO</small><h1 data-i18n="title">3D 폴로 생산 시뮬레이터</h1></div>
+    <div class="toolbar">
+      <button id="example" class="primary" data-i18n="example">연구 예제로 시작</button>
+      <button id="open-measure" data-i18n="openMeasurement">측정 JSON 열기</button>
+      <button id="open-project" data-i18n="openProject">프로젝트 열기</button>
+      <button id="save-project" data-i18n="saveProject" disabled>저장</button>
+      <select id="language" aria-label="Language"><option value="ko">한국어</option><option value="en">English</option><option value="de">Deutsch</option></select>
+    </div>
+  </header>
+  <div class="sourcebar"><span class="source-dot"></span><span data-i18n="source">입력</span>
+    <strong id="source-name" data-i18n="noSource">측정 결과 또는 예제로 시작하세요</strong>
+    <span id="dirty" hidden data-i18n="dirty">설정 변경됨</span>
+    <button id="settings-toggle" data-i18n="settingsShort">설정</button>
+    <button id="generate" disabled data-i18n="generate">계획 생성·재생</button>
+  </div>
+  <div id="error" role="alert"></div><div id="notice" role="status" aria-live="polite"></div>
+  <nav id="stage-track" class="chapter-track" aria-label="Process timeline"></nav>
+  <main>
+    <section class="viewer-card">
+      <div class="camera-tools">
+        <button data-camera="overview" data-i18n="overview">전체 공정</button>
+        <button data-camera="detail" data-i18n="detail">현재 작업</button>
+        <button data-camera="top" data-i18n="top">위에서 보기</button>
+        <label><input id="auto-follow" type="checkbox" checked><span data-i18n="autoFollow">공정 자동 추적</span></label>
+        <label><input id="show-labels" type="checkbox" checked><span data-i18n="labels">장비 이름</span></label>
+      </div>
+      <canvas id="desktop-canvas" aria-label="3D polo manufacturing simulation"></canvas>
+      <div id="empty" class="empty"><small>ONE GARMENT. EVERY PROCESS.</small>
+        <h2 data-i18n="emptyTitle">원단에서 폴로 한 벌까지.</h2>
+        <p data-i18n="empty">연구 예제로 재단부터 QC까지 공정을 살펴보세요.</p>
+        <button id="empty-start" class="primary" data-i18n="example">연구 예제로 시작</button>
+      </div>
+      <div id="webgl-error" class="error-overlay" hidden><p data-i18n="webglError">3D 가속을 시작하지 못했습니다.</p><button id="retry-3d" data-i18n="retry3d">3D 다시 연결</button></div>
+      <div id="viewer-caption" class="viewer-caption" hidden><span id="scene-index">01 / 08</span><div><strong id="scene-title"></strong><span id="scene-subtitle"></span></div></div>
+      <div class="camera-hint" data-i18n="cameraHint">드래그 회전 · 휠 확대 · 우클릭 이동</div>
+    </section>
+    <aside>
+      <div class="stage-head"><small data-i18n="currentStage">현재 공정</small><b id="status">대기</b></div>
+      <h2 id="operation">—</h2><p id="machine">—</p>
+      <p id="operation-help" class="operation-help"></p>
+      <div id="ready-card" class="ready-card" hidden><b data-i18n="ready">QC 정상 · QR 발급 준비 완료</b><span data-i18n="notIssued">연구 시뮬레이션 완료 · QR 미발급</span></div>
+      <div class="operation-progress"><div><span data-i18n="operationProgress">작업 진행률</span><b id="op-percent">0%</b></div><progress id="op-progress" max="1" value="0"></progress></div>
+      <div id="seam-detail" class="seam-detail" hidden></div>
+      <div id="readouts" class="readouts"></div>
+      <div class="metric-heading"><h3 data-i18n="runningTotals">누적 사용량</h3><span data-i18n="research">연구 모형</span></div>
+      <div class="metric-grid">
+        <div><span data-i18n="time">시간</span><strong id="metric-time">0:00</strong></div>
+        <div><span data-i18n="energy">사용 전력량</span><strong id="metric-energy">0 kWh</strong></div>
+        <div><span data-i18n="carbon">전력 유래 CO₂e</span><strong id="metric-co2">0 g</strong></div>
+        <div><span data-i18n="cost">비용</span><strong id="metric-cost">€0</strong></div>
+        <div><span data-i18n="sewn">봉제 길이</span><strong id="metric-sewn">0 m</strong></div>
+        <div><span data-i18n="buttons">단추</span><strong id="metric-buttons">0 / 2</strong></div>
+      </div>
+      <div class="detail-tabs" role="tablist"><button id="tab-equipment" role="tab" aria-selected="true" data-i18n="equipment">설비</button><button id="tab-cost" role="tab" aria-selected="false" data-i18n="costDetails">비용 내역</button></div>
+      <div id="machines" class="machines" role="tabpanel"></div>
+      <div id="cost-breakdown" class="cost-breakdown" role="tabpanel" hidden></div>
+    </aside>
+  </main>
+  <section class="playback">
+    <div class="buttons">
+      <button data-control="previous" data-title="previous" aria-label="Previous operation">◀</button>
+      <button data-control="toggle" id="play-toggle" class="primary" data-i18n="play">재생</button>
+      <button data-control="next" data-title="next" aria-label="Next operation">▶</button>
+      <button data-control="restart" data-i18n="restart">처음부터</button>
+    </div>
+    <div class="scrubber">
+      <input id="seek" aria-label="Simulation position" type="range" min="0" max="1" value="0" step=".01" disabled>
+      <div><span id="clock">00:00 / 00:00</span><span id="timeline-label" data-i18n="timeline">공정 타임라인</span></div>
+    </div>
+    <div class="speed-control"><label for="speed" data-i18n="speed">배속</label><select id="speed"><option value="0.1">0.1×</option><option value="1">1×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="25">25×</option><option value="50">50×</option><option value="100">100×</option></select></div>
+  </section>
+  <div class="under-player"><span id="remaining"></span><span data-i18n="shortcuts">Space 재생/정지 · ← → 5초 이동 · Home 처음으로</span></div>
+  <details class="terminal"><summary data-i18n="terminal">터미널</summary><pre id="terminal-output">RESEARCH SIMULATION · READY</pre></details>
+  <details id="settings-panel" class="settings"><summary data-i18n="settings">패턴·장비·공정 설정</summary>
+    <p data-i18n="settingsNote">변경한 설정은 계획 생성·재생을 누르면 적용됩니다.</p>
+    <form id="settings-form">
+      <h3 data-i18n="pattern">패턴</h3><div id="pattern-inputs" class="input-grid"></div>
+      <h3 data-i18n="process">봉제·단추·마감·QC</h3><div id="process-inputs" class="input-grid"></div>
+      <h3 data-i18n="manual">측정값 수동 보완</h3><div id="manual-inputs" class="manual-grid"></div>
+    </form>
+  </details>
+  <footer data-i18n="disclaimer">연구 시뮬레이션입니다. 실제 제품·설비·품질을 검증하지 않습니다.</footer>
+  <script type="module" src="./desktop.js"></script>
+</body>
+</html>

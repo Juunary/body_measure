@@ -5,7 +5,7 @@ import { SewingViewer } from './sewing-viewer.js';
 const palette={metal:0xc5d0d4,dark:0x243942,body:0xe7ecec,accent:0x168577,cut:0xd98437,done:0x40b79f};
 export class CuttingViewer {
   constructor(canvas,onError) {
-    this.canvas=canvas;this.plan=null;this.state=null;this.objects=new Map();this.paths=new Map();this.tags=[];
+    this.canvas=canvas;this.plan=null;this.state=null;this.objects=new Map();this.paths=new Map();this.tags=[];this.autoFollow=true;
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xeaf0ef);
     this.camera=new THREE.PerspectiveCamera(40,1,.01,100);this.camera.position.set(4.4,4.5,5.8);
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -26,6 +26,7 @@ export class CuttingViewer {
       if(!canvas.clientWidth||!canvas.clientHeight)return;
       if(this.targetHead){this.head.position.x+=(this.targetHead[0]-this.head.position.x)*.35;this.gantry.position.z+=(this.targetHead[1]-this.gantry.position.z)*.35;}
       this.sewing?.animate();
+      this.animateFrame?.();
       this.controls.update();this.renderer.render(this.scene,this.camera);
     });
   }
@@ -71,6 +72,7 @@ export class CuttingViewer {
   }
   table(g){this.box(g,[1.1,.07,.7],[0,.75,0],palette.body);for(const x of [-.43,.43])for(const z of [-.25,.25])this.box(g,[.045,.73,.045],[x,.36,z],palette.dark);}
   makeMachines(catalogue){
+    this.sewingMechanisms=new Map();
     if(this.other){this.factory.remove(this.other);this.disposeGroup(this.other);}
     this.other=new THREE.Group();this.factory.add(this.other);
     catalogue.filter(m=>m.id!=='zund').forEach((m,i)=>{
@@ -80,11 +82,12 @@ export class CuttingViewer {
         this.box(g,[.13,.34,.22],[.2,1,0],palette.body);this.box(g,[.52,.12,.23],[0,1.13,0],palette.body);
         this.box(g,[.11,.2,.16],[-.22,1.02,0],palette.body);this.cylinder(g,.06,.08,[.32,1.12,0],palette.dark,'x');
         const needle=this.cylinder(g,.006,.1,[-.22,.87,0],palette.metal);
-        if(m.id==='pfaff'){
-          this.sewingNeedle=needle;
-          this.sewingFoot=this.box(g,[.045,.008,.04],[-.22,.837,0],palette.metal);
-          this.sewingWheel=this.cylinder(g,.065,.015,[.37,1.12,0],0x7d958c,'x');
-          this.box(this.sewingWheel,[.02,.10,.015],[0,0,0],palette.metal);
+        if(['pfaff','overlock','coverstitch'].includes(m.id)){
+          const foot=this.box(g,[.045,.008,.04],[-.22,.887,0],palette.metal);
+          const wheel=this.cylinder(g,.065,.015,[.37,1.12,0],0x7d958c,'x');
+          this.box(wheel,[.02,.10,.015],[0,0,0],palette.metal);
+          this.sewingMechanisms.set(m.id,{needle,foot,wheel});
+          if(m.id==='pfaff'){this.sewingNeedle=needle;this.sewingFoot=foot;this.sewingWheel=wheel;}
         }
         this.box(g,[.23,.015,.24],[-.19,.798,.02],0x96b8b0);
         for(let j=0;j<(m.shape==='embroidery'?4:m.id==='overlock'?3:2);j++)this.cylinder(g,.02,.085,[.02+j*.07,1.27,-.07],j%2?0xcb9c65:0x507e74);
@@ -101,7 +104,7 @@ export class CuttingViewer {
         this.cylinder(g,.09,.12,[0,1.31,0],palette.body);this.box(g,[.85,.08,.1],[0,1.19,0],palette.metal);
         for(const x of [-.42,.42])this.box(g,[.055,.65,.055],[x,.89,0],palette.dark);
       } else if(m.shape==='camera'){
-        this.table(g);this.box(g,[.055,.9,.055],[0,1.17,-.25],palette.metal);this.box(g,[.05,.05,.48],[0,1.6,-.04],palette.metal);
+        this.table(g);this.box(g,[.055,.9,.055],[0,1.17,-.6],palette.metal);this.box(g,[.05,.05,.82],[0,1.6,-.2],palette.metal);
         this.box(g,[.18,.12,.16],[0,1.55,.17],palette.dark);this.cylinder(g,.035,.06,[0,1.46,.17],0x4b8096);
         this.box(g,[.8,.015,.5],[0,.798,0],0xe2eccc);
       } else if(m.shape==='printer'){
@@ -142,7 +145,7 @@ export class CuttingViewer {
       obj.visible=false;this.paths.set(path.id,obj);
     }
     this.partial=this.line(this.dynamic,[[0,0,0],[0,0,0]],0xf2712d);
-    if(plan.sewing_seams?.length&&this.equipment.has('pfaff'))this.sewing=new SewingViewer(this,this.equipment.get('pfaff'),plan);
+    if(plan.sewing_seams?.length&&this.equipment.has('pfaff'))this.sewing=new SewingViewer(this,this.factory,plan);
   }
   apply(s){
     this.state=s;if(!this.plan)return;
@@ -153,20 +156,22 @@ export class CuttingViewer {
     this.cloth.position.set((win.width_mm/1000-this.w)/2,.862,win.length_mm/1000*feed/2-this.l/2);
     this.cloth.material.color.setHex(win.material==='rib'?0x8ba393:0xd7c9a5);
     this.roll.rotation.x=s.operation==='feed'?-feed*win.length_mm/160:0;
-    this.targetHead=s.machine_id==='pfaff'?[-this.w/2,-this.l/2]:[s.head_mm[0]/1000-this.w/2,s.head_mm[1]/1000-this.l/2];
+    const offCutter=s.machine_id!=='zund';
+    this.targetHead=offCutter?[-this.w/2,-this.l/2]:[s.head_mm[0]/1000-this.w/2,s.head_mm[1]/1000-this.l/2];
     if(s.status!=='playing'||this.lastRevision!==s.revision){this.head.position.x=this.targetHead[0];this.gantry.position.z=this.targetHead[1];}
     this.lastRevision=s.revision;
-    this.head.position.y=s.tool==='up'||s.machine_id==='pfaff'?.025:0;this.blade.rotation.x=s.tool==='cut'?s.sim_time_s*10:0;
+    this.head.position.y=s.tool==='up'||offCutter?.025:0;this.blade.rotation.x=s.tool==='cut'?s.sim_time_s*10:0;
     this.light.material.color.setHex(s.vacuum?0x50d39b:0xdab45c);
     let count=0;
     for(const [id,o] of this.objects){
       const state=s.pieces[id],collected=['collected','sewing','sewn'].includes(state);
       const picking=s.operation==='pickup'&&s.piece_id===id?s.operation_progress:collected?1:0;
       o.mesh.visible=collected||(o.window===s.window&&feed>=1);
-      if(s.machine_id==='pfaff')o.mesh.visible=s.operation==='transfer_to_sewing';
+      const transfer=s.operation.startsWith('transfer_to_')?(s.operation==='transfer_to_sewing'?'pfaff':s.operation.slice(12)):null;
+      if(offCutter||s.cutting_complete)o.mesh.visible=transfer==='pfaff';
       const targetX=this.w/2+.75-o.center[0],targetZ=.45-o.center[1];
       o.mesh.position.set(-this.w/2+(targetX+this.w/2)*picking,.866*(1-picking)+(.705+.004*count)*picking+Math.sin(picking*Math.PI)*.3,-this.l/2+(targetZ+this.l/2)*picking);
-      if(s.operation==='transfer_to_sewing'){
+      if(transfer==='pfaff'){
         const station=this.equipment.get('pfaff').position,f=s.operation_progress;
         o.mesh.position.lerp(new THREE.Vector3(station.x-o.center[0],.87+.004*count,station.z-o.center[1]),f);
         o.mesh.position.y+=Math.sin(f*Math.PI)*.35;
@@ -187,7 +192,7 @@ export class CuttingViewer {
       this.partial.geometry.dispose();this.partial.geometry=new THREE.BufferGeometry().setFromPoints(pts.map(v=>new THREE.Vector3(v[0]/1000-this.w/2,.88,v[1]/1000-this.l/2)));
     }
     this.sewing?.apply(s);
-    if(s.machine_id==='pfaff'&&this.previousMachine!=='pfaff')this.focus('pfaff');
+    if(this.autoFollow&&s.machine_id!=='zund'&&this.equipment.has(s.machine_id)&&s.machine_id!==this.previousMachine)this.focus(s.machine_id);
     this.previousMachine=s.machine_id;
   }
   cameraMode(mode){
@@ -197,6 +202,7 @@ export class CuttingViewer {
     else {this.camera.position.set(3.7,3.6,4.4);this.controls.target.set(0,.7,0);}
     this.controls.update();
   }
+  setAutoFollow(enabled){this.autoFollow=!!enabled;}
   focus(id){const g=this.equipment.get(id);if(!g)return;const p=g.getWorldPosition(new THREE.Vector3());this.controls.target.copy(p).add(new THREE.Vector3(0,.85,0));this.camera.position.copy(p).add(id==='pfaff'?new THREE.Vector3(1.45,1.75,2):new THREE.Vector3(2.3,2.2,2.9));this.controls.update();}
   resize(){const r=this.canvas.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;this.renderer.setSize(r.width,r.height,false);this.camera.aspect=r.width/r.height;this.camera.updateProjectionMatrix();}
   clear(){this.sewing?.dispose();this.sewing=null;this.previousMachine=null;this.plan=null;this.state=null;this.targetHead=null;this.disposeGroup(this.dynamic);this.objects.clear();this.paths.clear();this.makeCutter(1.6,2);}

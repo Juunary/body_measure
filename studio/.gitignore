@@ -1,5 +1,10 @@
 .venv/
 .venv-factory/
+.venv-desktop/
+build/
+dist/
+installer/deps/
+installer/output/
 __pycache__/
 .pytest_cache/
 uploads/

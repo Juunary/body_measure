@@ -9,6 +9,11 @@ Three pages share one job through the Maß-DPP chain:
 5. generate a research polo pattern, nest it and simulate cutting and Pfaff sewing in 3D, a terminal, or both,
 6. encode the garment configuration with `qr-configurator` and get the QR and the passport.
 
+A separate offline Windows application now visualizes one garment through the
+same cutting geometry, sewing timed by the measured men's-shirt work steps
+(ironing skipped, 30:11), buttons and deterministic vision QC. It stops
+immediately before the QR. See [Windows 3D polo simulator](docs/desktop-simulator.md).
+
 `/measure?job=…` contains steps 1–4, `/simulation?job=…` contains the manufacturing
 simulation, and `/qr?job=…` contains product configuration, QR generation and
 the original expandable document JSON. The top navigation keeps the same job;
