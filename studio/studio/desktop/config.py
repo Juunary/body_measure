@@ -1,7 +1,8 @@
 """Validated, editable research assumptions for the desktop simulator."""
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ..simulation.config import Design, Machine, ManualValue, Resources
+from . import size_chart
 
 
 class StrictModel(BaseModel):
@@ -43,10 +44,18 @@ class QcStation(StrictModel):
 
 class Process(StrictModel):
     transfer_s: float = Field(5, ge=.1, le=300)
+    shirt_size: int | None = None   # ITA_HE_26 size; None keeps the measured size-L step times
     lockstitch: SewingStation = Field(default_factory=SewingStation)
     overlock: SewingStation = Field(default_factory=lambda: SewingStation(active_kw=.6, equipment_eur_h=1.2))
     buttons: ButtonStation = Field(default_factory=ButtonStation)
     qc: QcStation = Field(default_factory=QcStation)
+
+    @field_validator("shirt_size")
+    @classmethod
+    def known_size(cls, value):
+        if value is not None:
+            size_chart.check_size(value)
+        return value
 
 
 class DesktopConfig(StrictModel):

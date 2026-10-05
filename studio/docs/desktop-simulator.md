@@ -111,3 +111,21 @@ Button and QC timings, energy and costs are editable research assumptions.
 QC always passes and supplies display readouts only. There is no
 cloth physics, camera inference, defect/rework model, live machinery or claim
 that a garment was manufactured or validated.
+
+## Size study (ITA_HE_26)
+
+`python -m studio.desktop.size_study --out runs/size-study` runs the desktop plan for the shirt sizes
+40-58 and writes `size-study.csv|json|md`. Only size 52 (L) was measured; other sizes are estimates.
+
+- **Chart:** `studio/desktop/size_chart.py` holds the 15 chart rows. The sleeve-hem row shows 12.0 at sizes
+  48, 50 and 54; 19.0 is used instead (`CORRECTIONS`).
+- **Step times:** `shirt_steps.duration_at` splits a step into needle time (sewn length at size 52 divided by
+  stitch speed, 600 stitches/min by default) and fixed handling time. Only the needle time scales, by the
+  chart row that drives the step (`LENGTH_DRIVERS`). Final pressing (step 35) scales with garment area.
+  Other pressing, hand work and the button chapter stay fixed. Size 52 reproduces the 1811 s table.
+- **Plan:** `Process.shirt_size` selects the size; `None` keeps the measured table. The polo drafter receives
+  body measures derived from the chart (garment dimension minus design ease), so seam length, thread and
+  stitch counts follow the size.
+- **Fabric map:** the nesting package's `grading.py` scales the size-52 Herrenhemd pieces per axis
+  (`size_chart.PIECE_AXES`). The study reports graded piece areas, the area lower bound and, when the
+  nesting dependencies load, the marker length on the 1007 mm roll.

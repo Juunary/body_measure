@@ -127,15 +127,16 @@ def resources_at(plan: dict, time_s: float):
             "fabric_used_m2": area, "thread_used_m": thread}
 
 
-def _sew_work_steps(operations, sewing_start, window, seams):
+def _sew_work_steps(operations, sewing_start, window, seams, config):
     """Lay the scheduled shirt steps end to end. A step that closes polo seams is
     split across them by seam length; its end stays the table's cumulative time."""
     by_id = {s["id"]: s for s in seams}
-    closed = [sid for row in shirt_steps.rows() if row["scheduled"] for sid in row["seam_ids"]]
+    table = shirt_steps.rows(config.process.shirt_size, config.machine.stitches_per_min)
+    closed = [sid for row in table if row["scheduled"] for sid in row["seam_ids"]]
     if sorted(closed) != sorted(by_id):
         raise ValueError("the work-step table must close every pattern seam exactly once")
     work_steps, ordered, elapsed = [], [], 0
-    for row in shirt_steps.rows():
+    for row in table:
         row.update(start_s=None, end_s=None, machine_id=None)
         work_steps.append(row)
         if not row["scheduled"]:
@@ -182,7 +183,7 @@ def build_plan(document: dict, config: DesktopConfig | dict | None = None) -> di
 
     sewing_start = _append(operations, clock, "transfer_to_pfaff", config.process.transfer_s,
                            window, machine_id="transport")
-    work_steps, seams, sewing_work = _sew_work_steps(operations, sewing_start, window, base["sewing_seams"])
+    work_steps, seams, sewing_work = _sew_work_steps(operations, sewing_start, window, base["sewing_seams"], config)
     clock = sewing_end = operations[-1]["end_s"]
 
     b = config.process.buttons
@@ -224,7 +225,7 @@ def build_plan(document: dict, config: DesktopConfig | dict | None = None) -> di
                   ironing_skipped_s=sum(r["duration_s"] for r in work_steps if r["ironing"]),
                   sewn_length_mm=sum(s["length_mm"] for s in seams),
                   stitches=sum(s["stitches"] for s in seams) + b.count * (b.hole_stitches + b.attach_stitches),
-                  seams=len(seams), buttons=b.count)
+                  seams=len(seams), buttons=b.count, shirt_size=config.process.shirt_size)
     plan = {**base, "schema_version": PLAN_VERSION, "scope": "through_qc", "config": config.model_dump(),
             "operations": operations, "sewing_seams": seams, "work_steps": work_steps,
             "buttons": buttons, "machines": machines, "totals": totals,
