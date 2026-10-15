@@ -98,10 +98,103 @@ def assign_size(job: Job, chart_key: str | None, population: str | None,
         "qr_option": option, "qr_status": status, "qr_reason": why,
         "size_source": "3d_scan" if assignment.label else "unknown",
         "override": None,
+        "second_opinion": second_opinion(job, chart_key, population, clothed),
     }
     _describe(job)
     job.emit("size", PHASE, **job.size_view)
     return assignment
+
+
+#: which retrieval store answers the second opinion: the job's params,
+#: else this variable, else a store named "studio" under data/retrieval/
+RETRIEVAL_DB_ENV = "BODY_MEASURE_RETRIEVAL_DB"
+DEFAULT_RETRIEVAL_DB = "studio"
+_STORE_CACHE: dict = {}
+
+
+def _retrieval_store(name: str):
+    """(store, index, calibration, flags), cached per store directory and
+    its records file's mtime, or None when there is no such store."""
+
+    from body_measure.retrieval.calibration import load_or_fit
+    from body_measure.retrieval.store import RECORDS, RecordStore, resolve
+
+    path = resolve(name)
+    records = path / RECORDS
+    if not records.exists():
+        return None
+    key = (str(path), records.stat().st_mtime_ns)
+    if key not in _STORE_CACHE:
+        store = RecordStore.open(path)
+        cal, flags = load_or_fit(store)
+        _STORE_CACHE.clear()
+        _STORE_CACHE[key] = (store, store.index(), cal, store.check_against_current() + flags)
+    return _STORE_CACHE[key]
+
+
+def second_opinion(job: Job, chart_key: str, population: str | None, clothed: bool) -> dict:
+    """Retrieval beside the chest-girth size, never instead of it.
+
+    On an unclothed scan: the size the nearest reference bodies were
+    given, the spread of bodies like this one, and the ITA_HE_26 shirt
+    size. On a clothed scan there is no body vector to search with — the
+    girths are the garment's — and the studio does not run the body
+    recovery (C2, torch) that would give one, so it says so. The clothed
+    path is scripts/retrieve_clothed.py.
+
+    Neighbours from licence-restricted records are counted, not named."""
+    import os
+
+    from body_measure.charts import ita_he_26
+    from body_measure.retrieval.estimator import estimate, query_from_measurements
+    from body_measure.retrieval.record import stature_of
+
+    if clothed:
+        return {"status": "unavailable",
+                "reason": "a clothed scan's girths are the garment's; retrieval needs the body "
+                          "recovered first (scripts/retrieve_clothed.py), which the studio does "
+                          "not run"}
+    if not job.measurements:
+        return {"status": "unavailable", "reason": "nothing measured"}
+    values, usable = query_from_measurements(
+        job.measurements, job.prototypes or {},
+        stature_of(job.mesh) if job.mesh is not None else None)
+    shirt = ita_he_26.nearest_size(values, usable)
+    out = {"ita_he_26": shirt.to_dict()}
+
+    name = (job.params.get("retrieval_db") or os.environ.get(RETRIEVAL_DB_ENV)
+            or DEFAULT_RETRIEVAL_DB)
+    loaded = _retrieval_store(name)
+    if loaded is None:
+        return {**out, "status": "no_store",
+                "reason": f"no retrieval store {name!r} under data/retrieval/ "
+                          f"(set {RETRIEVAL_DB_ENV} or build one with "
+                          "`python -m body_measure index build`)"}
+    store, index, cal, flags = loaded
+    est = estimate(store, index, cal, values, usable, population=population or None,
+                   extra_flags=flags)
+    chart = sizing.CHARTS[chart_key]
+    retrieved = est.to_size_assignment(chart, population=population or None,
+                                       chest_mm=values.get("chest_circumference"))
+    shared = [n for n in est.neighbours if n.licence_class != "local_only_licensed"]
+    return {
+        **out,
+        "status": "abstained" if est.abstained else "ok",
+        "pathway": est.pathway,
+        "db": store.db_name,
+        "size": retrieved.label,
+        "alternative": retrieved.alternative,
+        "probabilities": retrieved.probabilities,
+        "reason": retrieved.reason if not est.abstained else est.reason,
+        "flags": retrieved.flags,
+        "spread_mm": est.spread,
+        "votes_ita_he_26": est.size_votes.get("ita_he_26"),
+        "nearest_distance": est.nearest_distance,
+        "threshold": est.threshold,
+        "neighbours_named": [{"id": n.record_id, "distance": round(n.distance, 3)}
+                             for n in shared],
+        "neighbours_local_only": len(est.neighbours) - len(shared),
+    }
 
 
 def _describe(job: Job) -> None:
@@ -115,6 +208,17 @@ def _describe(job: Job) -> None:
                                (f" — {view['reason']}", "grey")))
     for flag in view.get("flags") or []:
         job.line(PHASE, ev.note(flag))
+    second = view.get("second_opinion") or {}
+    shirt = second.get("ita_he_26") or {}
+    if shirt:
+        job.line(PHASE, ev.note(
+            f"ITA_HE_26 shirt size {shirt.get('size') or '—'} ({shirt.get('reason')})"))
+    if second.get("status") == "ok":
+        job.line(PHASE, ev.note(
+            f"second opinion by retrieval ({second['db']}): {second.get('size') or 'none'}"
+            f" — {second.get('reason')}"))
+    elif second.get("status"):
+        job.line(PHASE, ev.note(f"retrieval {second['status']}: {second.get('reason')}"))
     if view["qr_status"] == NOT_REPRESENTABLE:
         job.line(PHASE, ev.warn_line(view["qr_reason"]))
     if view["qr_status"] in (REFUSED, NOT_REPRESENTABLE):
@@ -149,8 +253,12 @@ def resize(job: Job, chart_key: str | None, population: str | None, clothed: boo
     job.stage(PHASE, "sizing", "done")
 
 
-def set_override(job: Job, option: str | None, reason: str = "") -> dict:
-    """A manual size for the QR. Recorded, never silent."""
+def set_override(job: Job, option: str | None, reason: str = "", *,
+                 guardrail: dict | None = None) -> dict:
+    """A manual size for the QR. Recorded, never silent. `guardrail` is
+    the screening of `reason` (studio.guardrail), kept with the override;
+    the HTTP endpoint always passes one, code that writes its own reason
+    passes `guardrail.exempt(...)` or nothing."""
     if option is not None and option not in SIZE_OPTIONS:
         raise ValueError(f"size must be one of {', '.join(SIZE_OPTIONS)}")
     if not job.size_view:
@@ -158,9 +266,24 @@ def set_override(job: Job, option: str | None, reason: str = "") -> dict:
                          "qr_reason": "no measurement yet", "size_source": "unknown",
                          "flags": [], "reason": "no measurement yet"}
     job.size_view["override"] = None if option is None else {
-        "size": option, "reason": reason or job.size_view.get("qr_reason") or "user override"}
+        "size": option, "reason": reason or job.size_view.get("qr_reason") or "user override",
+        "guardrail": guardrail}
     job.emit("size", PHASE, **job.size_view)
     return job.size_view
+
+
+def guardrail_hold(job: Job) -> str | None:
+    """Why the passport must wait for the override's guardrail, or None."""
+    verdict = ((job.size_view or {}).get("override") or {}).get("guardrail")
+    if not verdict:
+        return None
+    why = "; ".join(verdict.get("why") or [])
+    if verdict["decision"] == "block":
+        return f"the override reason was blocked by the guardrail ({why}); rewrite it"
+    if verdict["decision"] == "review" and not verdict.get("acknowledged"):
+        return (f"the override reason needs review ({why}); improve the reason, "
+                "or confirm it in settings to continue")
+    return None
 
 
 def effective_qr_option(job: Job) -> tuple[str | None, str]:

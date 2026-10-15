@@ -169,6 +169,10 @@ These are enforced in code, not in documentation:
   circumference, surface paths on the edge graph
 - `body_measure/landmarks/` — estimated (topology-agnostic) landmarks
 - `body_measure/validate/` — claim taxonomy, statistics, robustness battery
+- `body_measure/retrieval/` — scan records, the file store and its licence
+  gate, nearest-neighbour index, abstention calibration, size votes, and
+  the torch-free ONNX encoder query; `body_measure/charts/` — the
+  ITA_HE_26 shirt chart read from body to size
 - `scripts/` — dataset reports, the SIZER manifest audit, the export probe
 - `docs/decisions.md` — every decision in *decided / rules out / revisit if*
   form; `docs/plan.md` — the current work plan and what blocks what;
@@ -186,6 +190,39 @@ The plan runs in slices — clothing offset (C1), representation ceiling
 neural regression (C4) — each gated on the one before. The offset report
 skeleton already runs on HSRD-100 and emits no offset, because HSRD ships
 no same-subject body reference; the numbers come from SIZER.
+
+## Retrieval sizing
+
+A scan becomes a record (`body_measure/retrieval/`): the pipeline's seven
+measurements, the five garment prototypes and the stature, each with its
+quality bucket, plus the size every chart gave it, its licence class and
+the hash of the pipeline that measured it. Records are indexed by their
+standardised measurement vector — not by SMPL betas, whose distances do
+not follow millimetres (decision #59). A new scan is measured the same
+way and searched against the store:
+
+```powershell
+.venv\Scripts\python -m body_measure index query --db studio scan.ply --input-unit mm --population men
+```
+
+The answer carries the `retrieved_neighbours` pathway. It is the size and
+the spread of the nearest reference bodies, not a measurement of this
+one. It abstains when the nearest reference is further than 95 % of the
+store's own bodies are from theirs, and it refuses a vote no label
+wins outright. On an unclothed scan the chest-girth size stays the
+authority and retrieval is shown beside it in the studio. A clothed scan
+is never searched with its own girths. Its body is recovered first, by
+C2 (`scripts/retrieve_clothed.py`) or by the trained point encoder
+(`index query --encoder model.onnx`). The same answer also reports the
+ITA_HE_26 shirt size by nearest chart row on chest and neck
+(`body_measure/charts/ita_he_26.py`).
+
+Stores live in `data/retrieval/` and are never committed. Synthetic SMPL
+stores (`scripts/build_synthetic_db.py`) are licence-clean; stores built
+from Texel, NOMO or CAPE are `local_only_licensed` and refuse to be
+exported. The encoder trains on the personal GPU server from synthetic
+shards only (`scripts/export_training_set.py`, `scripts/train_encoder.py`,
+`docs/licenses/scope.md` entry 1).
 
 ## Data and licences
 

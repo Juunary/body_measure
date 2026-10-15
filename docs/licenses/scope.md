@@ -84,6 +84,25 @@ Before any such transfer:
 
 Until that entry exists, training data stays on the local machine.
 
+#### Entry 1 — personal GPU server, synthetic SMPL tensors only (2026-10-15)
+
+| | |
+|---|---|
+| Provider | June woo Kang's personal server (not a third-party cloud) |
+| Location / jurisdiction | **to be filled before the first upload** |
+| Material | encoder training shards from `scripts/export_training_set.py`: points sampled on SMPL bodies generated from a normal beta prior, and on procedural shells around them; their betas and pipeline measurement vectors |
+| Not covered | Texel, NOMO, CAPE, HSRD meshes; CAPE displacements, CAPE-fitted betas or priors; any record of class `local_only_licensed` |
+| Enforced by | `RecordStore.assert_exportable`, which the shard exporter calls and which refuses a store holding one licensed record |
+| Licence basis | SMPL research licence, single named user; the server is operated by that user |
+| Retention | delete the shards and checkpoints on the server after the run; the trained weights come back here and stay unpublished (item 7) |
+
+The SMPL model files themselves are needed on the server only if the
+shards are generated there rather than here. Generating them here and
+uploading only the shards keeps the model files on this machine.
+
+A CAPE-derived tensor (CAPE-prior bodies, CAPE garment shells) needs a
+second entry before it moves.
+
 ---
 
 ## Item 7 — Commercial path, disclosed rather than denied

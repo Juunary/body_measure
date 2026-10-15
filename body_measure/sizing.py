@@ -402,3 +402,54 @@ def assign(measurements, *, chart: SizeChart = EN_13402_3,
         probabilities_if_bias_holds=band_probabilities(
             chart, chest_mm - error_model.bias_mm, error_model.sd_mm),
         error_model=error_model)
+
+
+#: probability key for the share of neighbours the chart itself refused
+NEIGHBOUR_REFUSED = "neighbour_refused"
+
+
+def assign_from_votes(chart: SizeChart, votes: dict[str, float], *, k: int,
+                      chest_mm: float | None = None, min_share: float = 0.5,
+                      alternative_share: float = 0.2) -> SizeAssignment:
+    """A size from the labels the nearest reference bodies were given
+    (body_measure.retrieval), in the same shape `assign` returns.
+
+    `votes` maps a label of `chart` (or NEIGHBOUR_REFUSED) to a weight
+    share. The probabilities are those shares over every band, plus the
+    refused share, so the part of the neighbourhood the chart does not
+    cover stays visible. The label is the leading band only when it holds
+    at least `min_share`; a split neighbourhood is refused, never resolved
+    by plurality. `assign` stays the authority on a measured body: this is
+    the pathway for a body the geometry could not size (a clothed scan),
+    and a second opinion beside `assign` on one it could."""
+    labels = [b.label for b in chart.bands]
+    unknown = set(votes) - set(labels) - {NEIGHBOUR_REFUSED}
+    if unknown:
+        raise ValueError(f"votes carry labels not on {chart.key}: {sorted(unknown)}")
+    total = sum(votes.values())
+    shares = {lab: (votes.get(lab, 0.0) / total if total else 0.0) for lab in labels}
+    shares[NEIGHBOUR_REFUSED] = votes.get(NEIGHBOUR_REFUSED, 0.0) / total if total else 0.0
+    probabilities = {key: round(v, 4) for key, v in shares.items()}
+    flags = ["retrieval_pathway", f"retrieval_k_{k}"]
+
+    ranked = sorted(labels, key=lambda lab: -shares[lab])
+    best = ranked[0]
+    if shares[best] < min_share:
+        return SizeAssignment(
+            chart, None, chest_mm,
+            reason=(f"the nearest bodies split: {best} holds {shares[best]:.0%}, below the "
+                    f"{min_share:.0%} a retrieved size needs"
+                    + (f"; {shares[NEIGHBOUR_REFUSED]:.0%} were refused by the chart"
+                       if shares[NEIGHBOUR_REFUSED] else "")),
+            flags=flags + ["ambiguous_size"], probabilities=probabilities)
+
+    alternative = None
+    runner = ranked[1] if len(ranked) > 1 else None
+    if runner is not None and shares[runner] >= alternative_share:
+        alternative = runner
+        flags.append("near_size_boundary")
+    reason = f"{shares[best]:.0%} of the {k} nearest reference bodies are {best}"
+    if alternative:
+        reason += f", {shares[alternative]:.0%} are {alternative}"
+    return SizeAssignment(chart, best, chest_mm, reason=reason, flags=flags,
+                          alternative=alternative, probabilities=probabilities)

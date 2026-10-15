@@ -101,7 +101,22 @@ def test_every_pathway_declares_whether_it_infers_a_body():
     assert inferring == {
         "inferred_smpl_under_clothing",
         "inferred_smpld_under_clothing",
+        "retrieved_neighbours",
     }
+
+
+def test_retrieval_claims_describe_the_retrieval():
+    assert (claim_category_for("retrieved_neighbours", "minimal_scan_surface")
+            == "reference_surface_agreement")
+    assert claim_category_for("retrieved_neighbours", "synthetic_latent") == "synthetic_recovery"
+    assert (claim_category_for("retrieved_neighbours", "dataset_reference")
+            == "retrieval_dataset_agreement")
+    assert "retrieval_dataset_agreement" in INFERENCE_CATEGORIES
+
+
+def test_a_neighbour_median_is_never_compared_with_a_closed_form():
+    with pytest.raises(ClaimError, match="no claim is defined"):
+        claim_category_for("retrieved_neighbours", "analytic_expected")
 
 
 def test_result_accepts_the_new_pathways():

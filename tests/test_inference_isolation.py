@@ -19,6 +19,22 @@ CORE_MODULES = (
     "body_measure.validate.claims",
     "body_measure.validate.stats",
     "body_measure.cli",
+    # retrieval is core: a query is answered without torch
+    "body_measure.charts.ita_he_26",
+    "body_measure.retrieval.features",
+    "body_measure.retrieval.record",
+    "body_measure.retrieval.store",
+    "body_measure.retrieval.index",
+    "body_measure.retrieval.calibration",
+    "body_measure.retrieval.estimator",
+    "body_measure.retrieval.evaluate",
+    "body_measure.retrieval.ingest",
+    "body_measure.retrieval.labels",
+    "body_measure.retrieval.sources",
+    "body_measure.retrieval.versioning",
+    "body_measure.retrieval.cli",
+    "body_measure.retrieval.points",
+    "body_measure.retrieval.onnx_query",
 )
 
 
@@ -41,7 +57,7 @@ def test_core_source_never_names_the_inference_package():
     # a static guard alongside the runtime one: no core module may import
     # from body_measure.inference, whatever torch happens to be installed
     offenders = []
-    for sub in ("adapters", "measure", "landmarks", "validate"):
+    for sub in ("adapters", "measure", "landmarks", "validate", "retrieval", "charts"):
         for path in (PROJECT_ROOT / "body_measure" / sub).rglob("*.py"):
             text = path.read_text(encoding="utf-8")
             if "body_measure.inference" in text or "from ..inference" in text or "from .inference" in text:

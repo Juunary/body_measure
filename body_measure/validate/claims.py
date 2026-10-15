@@ -54,6 +54,15 @@ PATHWAYS: dict[str, Pathway] = {
             "SMPL+D (base shape plus per-vertex offsets) recovered from a clothed scan",
             True,
         ),
+        # The values come from the nearest reference bodies in a store
+        # (body_measure.retrieval), not from this surface. infers_body is
+        # True: the number describes bodies like this one, and abstains
+        # when there are none.
+        Pathway(
+            "retrieved_neighbours",
+            "values and size taken from the nearest reference bodies, not from this surface",
+            True,
+        ),
     )
 }
 
@@ -124,6 +133,13 @@ CLAIM_BY_COMBINATION: dict[tuple[str, str], str] = {
     ("inferred_smpld_under_clothing", "minimal_scan_surface"): "reference_surface_agreement",
     ("inferred_smpld_under_clothing", "provided_body_registration"): "fit_reference_agreement",
     ("inferred_smpld_under_clothing", "synthetic_latent"): "synthetic_recovery",
+    # --- retrieved from neighbours: characterises the RETRIEVAL -----------
+    # Against the generating betas of a synthetic body, or against the
+    # pipeline's own measurement of the query body. No analytic pair: a
+    # neighbour median is never compared with a closed form.
+    ("retrieved_neighbours", "synthetic_latent"): "synthetic_recovery",
+    ("retrieved_neighbours", "minimal_scan_surface"): "reference_surface_agreement",
+    ("retrieved_neighbours", "dataset_reference"): "retrieval_dataset_agreement",
     # --- accuracy: every pathway, but only against a manual reference -----
     **{(p, "manual_reference"): "measurement_accuracy" for p in PATHWAYS},
 }
@@ -131,7 +147,8 @@ CLAIM_BY_COMBINATION: dict[tuple[str, str], str] = {
 #: Categories that describe how well an INFERRED body was recovered. These
 #: may never be presented as measurement accuracy.
 INFERENCE_CATEGORIES = frozenset(
-    {"reference_surface_agreement", "fit_reference_agreement", "synthetic_recovery"}
+    {"reference_surface_agreement", "fit_reference_agreement", "synthetic_recovery",
+     "retrieval_dataset_agreement"}
 )
 
 

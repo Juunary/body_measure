@@ -3036,3 +3036,112 @@ renormalising away the mass the chart does not cover.
 **Revisit if:** a larger validation set, or a scanned subject with a tape
 reference, gives a chest SD per quality bucket — then the model is
 chosen by bucket rather than one constant.
+
+## 59. A size by retrieval: the nearest reference bodies, beside the measurement
+
+**Date:** 2026-10-15 · **Status:** accepted · **`assign` unchanged, new pathway `retrieved_neighbours`**
+
+A chest-girth lookup (#27) refuses a clothed scan, because its girths are
+the garment's. Retrieval answers it differently. Every scan becomes a
+record (`body_measure/retrieval/`): the pipeline's measurements with
+their quality buckets, the size every chart gave it, its licence class
+and the pipeline hash. A new body is searched against a store of such
+records. The answer is the size the nearest reference bodies carry, as a
+vote, with the spread of their measurements, or an abstention when no
+reference is near.
+
+**Retrieval estimates; it does not measure.** Its pathway is
+`retrieved_neighbours` (`infers_body=True`). Its claims are
+`synthetic_recovery`, `reference_surface_agreement` and the new
+`retrieval_dataset_agreement`, and no pair with `analytic_expected`
+exists. On an unclothed scan `assign` stays the authority and retrieval
+is shown beside it. A clothed scan is never searched with its own girths:
+its body is recovered first (C2, or the point encoder), measured in the
+canonical A pose, and that vector is the query.
+
+**The index is measurement space, not betas.** The C2 battery already
+showed that beta distance does not follow millimetres (|Δβ| 1.6 was
+−21 mm chest, 3.5 was +42 mm), so betas ride along as payload.
+
+**And only five keys of it choose the neighbours.** The first version
+compared all 13 feature keys. Against 2,600 synthetic SMPL bodies, none
+of the 40 real scans fell inside the 95 % calibration distance. The gap
+sat in the garment prototypes and the landmark-derived lengths, real
+minus synthetic, in synthetic SDs:
+
+| key | real − synthetic |
+|---|---|
+| armhole_depth | +2.3 SD (+45 mm) |
+| shoulder_slope | +1.7 SD (+7°) |
+| across_back_shoulder_width | +1.1 SD (+42 mm) |
+| front_back_width | −1.0 SD |
+| hip_girth, waist, stature | ≤ 0.2 SD |
+
+Restricting the distance to chest, waist, hip, neck and stature
+(`features.INDEX_KEYS`, space `meas-v2`) took real coverage from 0 % to
+57 %. Every key is still stored and estimated from the neighbours. The
+excluded keys are not wrong on either side; they are measured from
+landmarks that SMPL's surface and a photogrammetry scan place
+differently, and that is a finding about the landmarks, not about the
+bodies.
+
+**Abstention is calibrated on the store.** The threshold is the 95th
+percentile of the train split's leave-one-out nearest distances; the
+kernel width is their median. Test and holdout records set nothing (#18).
+A vote is a size only when one label holds at least half the weight;
+neighbours a chart refused keep their weight as `neighbour_refused`.
+
+**What it measured** (store of 10,000 neutral SMPL bodies, N(0, 1.2²)
+betas clipped at ±3, k = 15, threshold 0.190; `reports/retrieval_eval_*`,
+`reports/retrieval_clothed_syn-neutral.json`). The same tracks on a
+2,600-body snapshot are in the same reports directory; going from 2,600
+to 10,000 bodies took the synthetic label agreement from 88 % to 92 %
+and the chest SD from 11.9 to 9.3 mm, and left real coverage where it
+was.
+
+| track | claim | coverage | same EN 13402 label | chest Δ (bias / SD) |
+|---|---|---|---|---|
+| synthetic holdout, 1,015 bodies | synthetic_recovery | 97 % | 92 % | −0.9 / 9.3 mm |
+| 40 real scans vs synthetic + other real | reference_surface_agreement | 55 % | 83 % | −8.4 / 15.9 mm |
+| 40 real scans vs other real only, k = 5 | reference_surface_agreement | 85 % | 50 % | — |
+| 18 recovered bodies under clothing | synthetic_recovery | 100 % | 11 / 18 (direct: 10 / 18) | — |
+
+Forty real bodies cannot size each other: half the labels differ. The
+synthetic store is what makes retrieval work, and the 45 % of real scans
+it still abstains on is the honest statement of how far photogrammetry
+bodies sit from a neutral SMPL prior on those five keys. Under clothing,
+retrieval adds one correct label over the direct size of the recovered
+body. It cannot remove C2's own chest inflation (+14.7 mm on average; +30
+to +56 mm on the uniform, partwise, holed, flipped and hair-and-shoes
+shells), which still sizes four of those five XXL against a true XL.
+
+**Cost.** 10,000 bodies took 3.0 CPU-hours of wall time on six workers,
+about 1.1 s a body; a single process measures a body in 2.5–4 s and the
+first probe, with every worker spawning a thread per core, took 14 s a
+body (`reports/retrieval_cost.json`). One thread per worker is the rule.
+
+**ITA_HE_26 from body to size.** The shirt chart is read by nearest row
+on chest and neck, in grading steps (`charts/ita_he_26.py`, pinned to the
+desktop chart by a studio test). Its lengths and widths start from
+garment landmarks the pipeline does not measure from, and sit 7–16 steps
+off on an average body, so they are reported as residuals and never move
+the size. The chest bias (#36) is a full step on this chart; the size it
+would give is reported beside, never applied.
+
+**Licence.** A record carries its licence class. Texel, NOMO and CAPE
+records are `local_only_licensed`, and `RecordStore.export` and the
+encoder's shard exporter refuse a store holding even one. The encoder
+trains on the personal GPU server from synthetic shards only
+(`docs/licenses/scope.md`, entry 1). In the studio, licensed neighbours
+are counted, not named.
+
+**Rules out:** retrieval choosing the label on an unclothed scan;
+searching with a clothed scan's own girths; a beta-space index;
+prototypes or landmark lengths in the distance without a new coverage
+measurement; exporting a store with licensed records.
+
+**Revisit if:** the scanner's first real subjects arrive — they are the
+first real population the store can be measured against; the landmark
+gap above is closed (then widen `INDEX_KEYS` and re-measure); or a male
+or female SMPL store changes real coverage, since 35 of the 40 real
+scans are men searched against a neutral body.

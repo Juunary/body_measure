@@ -74,6 +74,10 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=["dataset_agreement", "numerical_robustness", "synthetic_agreement", "all"],
         default="all",
     )
+    # retrieval store commands; their imports happen inside each command
+    from .retrieval import cli as retrieval_cli
+
+    retrieval_cli.add_parser(sub)
     return parser
 
 
@@ -336,4 +340,8 @@ def main(argv: list[str] | None = None) -> int:
         return _measure(args)
     if args.command == "validate":
         return _validate(args)
+    if args.command == "index":
+        from .retrieval import cli as retrieval_cli
+
+        return retrieval_cli.run(args)
     return EXIT_ERROR

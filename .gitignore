@@ -8,6 +8,12 @@ __pycache__/
 .pytest_cache/
 external/
 data/generated/
+# Retrieval stores and encoder training sets: records derived from licensed
+# scans (Texel, NOMO, CAPE) live here beside synthetic ones. Only the
+# README is tracked.
+data/retrieval/*
+!data/retrieval/README.md
+data/training/
 
 # 착의 스캔 워크스트림 — LICENSE-G0 참조.
 # 학습 가중치는 CAPE/SIZER 파생물로 취급: 사용 범위 서면 확인 전까지 배포 금지.
