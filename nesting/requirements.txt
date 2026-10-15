@@ -1,0 +1,5 @@
+numpy>=2.0
+shapely>=2.0
+mapbox-earcut>=1.0
+pymupdf>=1.24
+pytest>=8

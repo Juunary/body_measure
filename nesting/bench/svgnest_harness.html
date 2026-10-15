@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVGnest benchmark harness</title>
+<!-- Served from the SVGnest checkout root, so these load SVGnest's own files unchanged. -->
+<script src="util/pathsegpolyfill.js"></script>
+<script src="util/matrix.js"></script>
+<script src="util/domparser.js"></script>
+<script src="util/clipper.js"></script>
+<script src="util/parallel.js"></script>
+<script src="util/geometryutil.js"></script>
+<script src="util/placementworker.js"></script>
+<script src="svgparser.js"></script>
+<script src="svgnest.js"></script>
+</head>
+<body>
+<script>
+// Runs SVGnest for `seconds` and records every new best placement with its time.
+window.runNest = function (svgString, cfg, seconds) {
+  return new Promise(function (resolve) {
+    var svg = SvgNest.parsesvg(svgString);
+    var bin = null;
+    Array.prototype.forEach.call(svg.childNodes, function (n) {
+      if (n.getAttribute && n.getAttribute('id') === 'bin') { bin = n; }
+    });
+    SvgNest.setbin(bin);
+    SvgNest.config(cfg);
+    var t0 = performance.now(), trace = [], evaluations = 0;
+    SvgNest.start(function () {}, function (svglist) {
+      evaluations++;
+      if (!svglist) { return; }
+      var placements = [];
+      svglist.forEach(function (s, b) {
+        Array.prototype.forEach.call(s.childNodes, function (g) {
+          if (!g.tagName || g.tagName.toLowerCase() !== 'g') { return; }
+          placements.push({bin: b, id: g.firstChild.getAttribute('id'), transform: g.getAttribute('transform')});
+        });
+      });
+      trace.push({t: (performance.now() - t0) / 1000, evaluations: evaluations, placements: placements});
+    });
+    setTimeout(function () {
+      SvgNest.stop();
+      resolve({trace: trace, evaluations: evaluations, seconds: (performance.now() - t0) / 1000,
+               config: SvgNest.config(), hardwareConcurrency: navigator.hardwareConcurrency});
+    }, seconds * 1000);
+  });
+};
+window.harnessReady = true;
+</script>
+</body>
+</html>

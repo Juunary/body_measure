@@ -1,0 +1,4 @@
+# Extra packages for the open-source comparison (bench/); the core study needs only ../requirements.txt
+-r ../requirements.txt
+websockets>=13
+matplotlib>=3.8
